@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cais Investimentos · Análise de Substituição · CRI BTGI Quartzo 600ª Opea</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@200,300,400,500,600,700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --azul-profundo: #081421;
+    --azul-marinho: #002B49;
+    --azul-corporativo: #003b5c;
+    --azul-medio: #346f93;
+    --azul-ceu: #7ba7bc;
+    --ouro: #d9bd7e;
+    --ouro-escuro: #b89c5e;
+    --branco: #fcfcfc;
+    --cinza-claro: #e8edf2;
+  }
+  * { font-family: 'General Sans', system-ui, sans-serif; }
+  body { background: var(--branco); color: var(--azul-profundo); font-weight: 400; }
+  .font-italic-gold { font-style: italic; font-weight: 300; color: var(--ouro); }
+  .text-gold { color: var(--ouro); }
+  .bg-profundo { background-color: var(--azul-profundo); }
+  .bg-marinho { background-color: var(--azul-marinho); }
+  .bg-corporativo { background-color: var(--azul-corporativo); }
+  .bg-medio { background-color: var(--azul-medio); }
+  .border-gold { border-color: var(--ouro); }
+  .text-corporativo { color: var(--azul-corporativo); }
+  .text-profundo { color: var(--azul-profundo); }
+  .text-medio { color: var(--azul-medio); }
+  .text-marinho { color: var(--azul-marinho); }
+
+  .label-up { text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; font-size: 0.7rem; }
+  .headline { font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; }
+  .em-gold { font-style: italic; font-weight: 300; color: var(--ouro); }
+
+  /* Gradiente hero */
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse at 80% 20%, rgba(217,189,126,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 10% 90%, rgba(52,111,147,0.12) 0%, transparent 50%),
+      linear-gradient(135deg, var(--azul-profundo) 0%, var(--azul-marinho) 100%);
+  }
+  .gold-line { background: linear-gradient(90deg, transparent, var(--ouro), transparent); height: 1px; }
+
+  /* Rosa-dos-ventos SVG (compass) */
+  .compass-svg { display: inline-block; }
+
+  /* Logo wrappers */
+  .logo-dark, .logo-light { display: inline-flex; align-items: center; gap: 0.65rem; }
+  .logo-dark .logo-text { color: var(--branco); }
+  .logo-light .logo-text { color: var(--azul-profundo); }
+  .logo-text { display: flex; flex-direction: column; line-height: 1; }
+  .logo-text .l1 { font-weight: 500; font-size: 1.1rem; letter-spacing: 0.32em; }
+  .logo-text .l2 { font-weight: 400; font-size: 0.58rem; letter-spacing: 0.32em; opacity: 0.85; margin-top: 0.18rem; }
+
+  /* Tabs */
+  .tab-btn {
+    padding: 0.7rem 1.1rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    color: var(--azul-medio);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--azul-profundo); }
+  .tab-btn.active { color: var(--azul-profundo); border-bottom-color: var(--ouro); }
+
+  /* Cards */
+  .kpi-card {
+    background: var(--branco);
+    border: 1px solid var(--cinza-claro);
+    border-radius: 4px;
+    padding: 1.1rem 1.25rem;
+    transition: all 0.2s;
+  }
+  .kpi-card:hover { border-color: var(--ouro); }
+  .kpi-card.dark { background: var(--azul-profundo); border-color: var(--azul-marinho); color: var(--branco); }
+  .kpi-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 500; color: var(--azul-medio); }
+  .kpi-card.dark .kpi-label { color: var(--azul-ceu); }
+  .kpi-value { font-size: 1.55rem; font-weight: 500; line-height: 1.1; margin-top: 0.35rem; color: var(--azul-profundo); }
+  .kpi-card.dark .kpi-value { color: var(--branco); }
+  .kpi-value.gold { color: var(--ouro-escuro); }
+  .kpi-card.dark .kpi-value.gold { color: var(--ouro); }
+  .kpi-sub { font-size: 0.72rem; color: var(--azul-medio); margin-top: 0.3rem; }
+  .kpi-card.dark .kpi-sub { color: var(--azul-ceu); }
+
+  /* Semáforos */
+  .chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.04em; }
+  .chip-verde { background: #d4edda; color: #155724; }
+  .chip-amarelo { background: #fff3cd; color: #856404; }
+  .chip-vermelho { background: #f8d7da; color: #721c24; }
+  .chip-cinza { background: #e2e3e5; color: #6c757d; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-verde { background: #28a745; }
+  .dot-amarelo { background: #ffc107; }
+  .dot-vermelho { background: #dc3545; }
+  .dot-cinza { background: #adb5bd; }
+
+  /* Tabelas */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .data-table th { background: var(--azul-profundo); color: var(--branco); text-align: left; padding: 0.6rem 0.7rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.66rem; }
+  .data-table td { padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--cinza-claro); vertical-align: middle; }
+  .data-table tr.clickable { cursor: pointer; transition: background 0.15s; }
+  .data-table tr.clickable:hover { background: rgba(217,189,126,0.08); }
+  .data-table tr.clickable:hover td:last-child { color: var(--ouro-escuro); font-weight: 500; }
+  .data-table .arrow-col { width: 20px; text-align: right; color: var(--ouro-escuro); opacity: 0; transition: opacity 0.15s; }
+  .data-table tr.clickable:hover .arrow-col { opacity: 1; }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed var(--azul-medio);
+    border-radius: 6px;
+    background: rgba(122,167,188,0.04);
+    transition: all 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.dragging { border-color: var(--ouro); background: rgba(217,189,126,0.06); }
+
+  /* Inputs */
+  .input-cais {
+    border: 1px solid var(--cinza-claro);
+    border-radius: 3px;
+    padding: 0.42rem 0.6rem;
+    font-size: 0.85rem;
+    background: var(--branco);
+    color: var(--azul-profundo);
+    transition: border-color 0.15s;
+    font-variant-numeric: tabular-nums;
+  }
+  .input-cais:focus { outline: none; border-color: var(--ouro); }
+
+  /* Botões */
+  .btn-primary {
+    background: var(--azul-profundo);
+    color: var(--branco);
+    padding: 0.65rem 1.4rem;
+    border-radius: 3px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid var(--azul-profundo);
+  }
+  .btn-primary:hover { background: var(--azul-marinho); }
+  .btn-gold {
+    background: var(--ouro);
+    color: var(--azul-profundo);
+    padding: 0.65rem 1.4rem;
+    border-radius: 3px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid var(--ouro);
+  }
+  .btn-gold:hover { background: var(--ouro-escuro); border-color: var(--ouro-escuro); }
+  .btn-outline {
+    background: transparent;
+    color: var(--azul-profundo);
+    padding: 0.55rem 1.1rem;
+    border-radius: 3px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    font-size: 0.78rem;
+    border: 1px solid var(--cinza-claro);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-outline:hover { border-color: var(--ouro); color: var(--ouro-escuro); }
+
+  /* Sections */
+  .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--azul-medio); font-weight: 500; }
+
+  /* Pitch box */
+  .pitch-box { background: var(--branco); border-left: 3px solid var(--ouro); padding: 1.2rem 1.5rem; margin-bottom: 1rem; }
+  .pitch-box-dark { background: var(--azul-profundo); color: var(--branco); padding: 1.6rem 1.8rem; border-radius: 4px; }
+  .pitch-box-dark .em-gold { color: var(--ouro); }
+
+  /* Decomp table */
+  .decomp-table { width: 100%; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .decomp-table td { padding: 0.45rem 0.7rem; }
+  .decomp-table tr.sub td { color: var(--azul-medio); }
+  .decomp-table tr.total td { border-top: 2px solid var(--azul-profundo); font-weight: 500; padding-top: 0.6rem; }
+  .decomp-table tr.gold td { color: var(--ouro-escuro); font-weight: 500; }
+
+  /* Loading */
+  .loading-overlay { position: fixed; inset: 0; background: rgba(8,20,33,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .spinner { width: 40px; height: 40px; border: 3px solid rgba(217,189,126,0.3); border-top-color: var(--ouro); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* PDF / Print */
+  #pdf-template { display: none; }
+  @media print {
+    @page { size: A4 portrait; margin: 0; }
+    body * { visibility: hidden; }
+    #pdf-template, #pdf-template * { visibility: visible; }
+    #pdf-template { display: block; position: absolute; left: 0; top: 0; width: 100%; }
+    .pdf-page {
+      width: 210mm;
+      height: 297mm;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .pdf-page:last-child { page-break-after: auto; }
+    .no-print { display: none !important; }
+  }
+
+  /* Selector series */
+  .series-card {
+    border: 1px solid var(--cinza-claro);
+    border-radius: 4px;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--branco);
+    position: relative;
+  }
+  .series-card:hover { border-color: var(--azul-medio); }
+  .series-card.selected { border-color: var(--ouro); background: rgba(217,189,126,0.06); }
+  .series-card .badge-best { position: absolute; top: -8px; right: 8px; background: var(--ouro); color: var(--azul-profundo); padding: 2px 8px; border-radius: 999px; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* Hide content sections initially */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Scrollbar fino */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--cinza-claro); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--azul-medio); }
+
+  /* Responsive grid */
+  .kpi-grid-8 { display: grid; gap: 0.85rem; grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 768px) { .kpi-grid-8 { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1280px) { .kpi-grid-8 { grid-template-columns: repeat(4, 1fr); } }
+
+  /* Smooth scroll */
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body class="bg-white">
+
+<!-- ============== HEADER ============== -->
+<header class="bg-profundo py-5 px-8 flex items-center justify-between sticky top-0 z-50 no-print" style="border-bottom: 1px solid rgba(217,189,126,0.15);">
+  <div class="logo-dark">
+    <svg class="compass-svg" width="36" height="36" viewBox="0 0 60 60" fill="none">
+      <circle cx="30" cy="30" r="28" stroke="#d9bd7e" stroke-width="1" opacity="0.4"/>
+      <circle cx="30" cy="30" r="20" stroke="#d9bd7e" stroke-width="0.7" opacity="0.3"/>
+      <path d="M30 8 L34 30 L30 28 L26 30 Z" fill="#d9bd7e"/>
+      <path d="M30 52 L26 30 L30 32 L34 30 Z" fill="#d9bd7e" opacity="0.55"/>
+      <path d="M8 30 L30 26 L28 30 L30 34 Z" fill="#d9bd7e" opacity="0.65"/>
+      <path d="M52 30 L30 34 L32 30 L30 26 Z" fill="#d9bd7e" opacity="0.55"/>
+      <circle cx="30" cy="30" r="2.5" fill="#d9bd7e"/>
+    </svg>
+    <div class="logo-text">
+      <span class="l1">CAIS</span>
+      <span class="l2">INVESTIMENTOS</span>
+    </div>
+  </div>
+  <div class="text-right">
+    <div class="label-up text-xs" style="color:#7ba7bc;">Análise de Substituição</div>
+    <div class="text-white text-sm font-medium tracking-wide mt-1">CRI BTGI Quartzo · 600ª Emissão Opea</div>
+  </div>
+  <div class="text-right text-xs" style="color:#7ba7bc;">
+    <div class="label-up">Gerado em</div>
+    <div id="header-date" class="text-white mt-1"></div>
+  </div>
+</header>
+
+<!-- ============== HERO ============== -->
+<section class="hero-gradient text-white px-8 py-24 relative overflow-hidden">
+  <div class="absolute top-12 right-12 opacity-10">
+    <svg width="280" height="280" viewBox="0 0 60 60" fill="none">
+      <circle cx="30" cy="30" r="28" stroke="#d9bd7e" stroke-width="0.5"/>
+      <circle cx="30" cy="30" r="20" stroke="#d9bd7e" stroke-width="0.4"/>
+      <circle cx="30" cy="30" r="12" stroke="#d9bd7e" stroke-width="0.3"/>
+      <path d="M30 4 L34 30 L30 28 L26 30 Z" fill="#d9bd7e"/>
+      <path d="M30 56 L26 30 L30 32 L34 30 Z" fill="#d9bd7e" opacity="0.55"/>
+      <path d="M4 30 L30 26 L28 30 L30 34 Z" fill="#d9bd7e" opacity="0.65"/>
+      <path d="M56 30 L30 34 L32 30 L30 26 Z" fill="#d9bd7e" opacity="0.55"/>
+      <circle cx="30" cy="30" r="2.5" fill="#d9bd7e"/>
+    </svg>
+  </div>
+  <div class="max-w-6xl mx-auto relative">
+    <div class="label-up text-gold mb-5">Tese de Investimento · Maio 2026</div>
+    <h1 class="headline text-5xl md:text-6xl max-w-4xl mb-8">
+      Uma <span class="em-gold">janela cirúrgica</span> para realocar crédito privado<br>
+      em portfólio imobiliário <span class="em-gold">premium</span>.
+    </h1>
+    <p class="text-lg max-w-3xl leading-relaxed" style="color:#cfd9e3;">
+      O CRI da 600ª Emissão da Opea Securitizadora, lastreado em créditos imobiliários devidos pela
+      BTGI Quartzo Participações — controlada pela BTG Pactual Holding — combina três vetores raros:
+      ativo imobiliário top-tier (Tecnisa + Hines), prêmio relevante sobre o título público equivalente,
+      e isenção de IR para pessoa física.
+    </p>
+    <p class="mt-4 text-sm max-w-3xl leading-relaxed" style="color:#9eb3c4; font-style: italic;">
+      Esta ferramenta analisa, posição por posição, se vale a pena substituir os ativos atuais da carteira pelo CRI selecionado — considerando deságio, custo de transação, projeções Focus e horizonte equivalente.
+    </p>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mt-12">
+      <div>
+        <div class="label-up text-gold mb-2">Volume</div>
+        <div class="text-3xl font-medium">R$ 600MM</div>
+        <div class="text-xs mt-1" style="color:#9eb3c4;">Até 6 séries · vasos comunicantes</div>
+      </div>
+      <div>
+        <div class="label-up text-gold mb-2">Devedora</div>
+        <div class="text-3xl font-medium">BTGI Quartzo</div>
+        <div class="text-xs mt-1" style="color:#9eb3c4;">SPE controlada BTG Holding</div>
+      </div>
+      <div>
+        <div class="label-up text-gold mb-2">Lastro</div>
+        <div class="text-3xl font-medium">Tecnisa + Hines</div>
+        <div class="text-xs mt-1" style="color:#9eb3c4;">Portfólio residencial & comercial</div>
+      </div>
+      <div>
+        <div class="label-up text-gold mb-2">Liquidação</div>
+        <div class="text-3xl font-medium">22/05/2026</div>
+        <div class="text-xs mt-1" style="color:#9eb3c4;">Bookbuilding em 20/05</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== UPLOAD ============== -->
+<section id="upload-section" class="py-20 px-8 bg-white">
+  <div class="max-w-4xl mx-auto">
+    <div class="section-title mb-3">Passo 1</div>
+    <h2 class="headline text-3xl mb-3">Carregue o extrato da carteira</h2>
+    <p class="text-medio text-sm mb-8 max-w-2xl">Arraste o arquivo <code class="bg-gray-100 px-2 py-0.5 rounded text-xs">CP_CAIS_*.xlsx</code> exportado do BTG. Todo o processamento acontece no seu navegador — nada sai daqui.</p>
+
+    <div id="drop-zone" class="drop-zone p-16 text-center cursor-pointer">
+      <svg class="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#346f93" stroke-width="1.5"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></svg>
+      <div class="text-sm text-medio mb-2">Solte o arquivo aqui ou</div>
+      <button class="btn-outline">selecione no computador</button>
+      <input type="file" id="file-input" accept=".xlsx,.xls" class="hidden">
+      <div class="text-xs mt-4" style="color:#7ba7bc;">.xlsx · padrão BTG Necton</div>
+    </div>
+    <div id="file-status" class="hidden mt-4 text-sm"></div>
+  </div>
+</section>
+
+<!-- ============== PARAMETROS ============== -->
+<section id="parametros-section" class="hidden py-16 px-8" style="background:#f5f7fa;">
+  <div class="max-w-7xl mx-auto">
+    <div class="section-title mb-3">Passo 2</div>
+    <h2 class="headline text-3xl mb-8">Parâmetros da análise</h2>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Series CRI -->
+      <div class="lg:col-span-2">
+        <div class="label-up text-corporativo mb-3">Série do CRI</div>
+        <p class="text-xs text-medio mb-4">Selecione qual série usar como destino da realocação. A <span class="text-gold font-medium">3ª série</span> é tecnicamente a mais vantajosa para a maioria dos clientes (ver Metodologia).</p>
+        <div id="series-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+      </div>
+
+      <!-- Macro Focus -->
+      <div>
+        <div class="label-up text-corporativo mb-3">Cenário Focus</div>
+        <p class="text-xs text-medio mb-3">Release de 18/05/2026 (editável)</p>
+        <div class="space-y-2">
+          <div class="grid grid-cols-3 gap-2 text-xs label-up text-medio">
+            <div>Ano</div><div class="text-right">IPCA</div><div class="text-right">Selic</div>
+          </div>
+          <div id="focus-inputs" class="space-y-1.5"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-10 pt-8 border-t border-gray-300">
+      <div>
+        <label class="label-up text-corporativo">Custo de Transação</label>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="number" id="param-custo" value="0.30" step="0.05" class="input-cais w-24">
+          <span class="text-sm text-medio">% sobre Valor Mercado</span>
+        </div>
+      </div>
+      <div>
+        <label class="label-up text-corporativo">Ganho mínimo VERDE</label>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="number" id="param-th-verde" value="2.0" step="0.5" class="input-cais w-24">
+          <span class="text-sm text-medio">% ganho líquido</span>
+        </div>
+      </div>
+      <div>
+        <label class="label-up text-corporativo">Δ Duration máx VERDE</label>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="number" id="param-th-dur" value="5.0" step="0.5" class="input-cais w-24">
+          <span class="text-sm text-medio">anos</span>
+        </div>
+      </div>
+      <div>
+        <label class="label-up text-corporativo">Concentração máx</label>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="number" id="param-th-conc" value="30" step="5" class="input-cais w-24">
+          <span class="text-sm text-medio">% no novo ativo</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 flex items-center gap-4">
+      <button id="btn-recalc" class="btn-primary">↻ Recalcular Análise</button>
+      <div class="text-xs text-medio">Última atualização: <span id="last-calc">—</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RESULTADOS ============== -->
+<section id="resultados-section" class="hidden">
+
+  <!-- TABS NAV -->
+  <div class="border-b bg-white sticky top-[78px] z-40 no-print" style="border-color:var(--cinza-claro);">
+    <div class="max-w-7xl mx-auto px-8 flex gap-1 overflow-x-auto">
+      <button class="tab-btn active" data-tab="consolidada">Visão Consolidada</button>
+      <button class="tab-btn" data-tab="cliente">Por Cliente</button>
+      <button class="tab-btn" data-tab="assessor">Por Assessor</button>
+      <button class="tab-btn" data-tab="ativo">Por Ativo</button>
+      <button class="tab-btn" data-tab="tabela">Tabela Completa</button>
+      <button class="tab-btn" data-tab="pitch">Pitch Comercial</button>
+      <button class="tab-btn" data-tab="metodologia">Metodologia</button>
+    </div>
+  </div>
+
+  <!-- TAB: CONSOLIDADA -->
+  <div class="tab-content active px-8 py-12" data-tab="consolidada">
+    <div class="max-w-7xl mx-auto">
+      <div class="section-title mb-3">Panorama da carteira analisada</div>
+      <h2 class="headline text-3xl mb-8">Onde está a <span class="em-gold">oportunidade real</span></h2>
+      <div id="kpi-consolidado" class="kpi-grid-8 mb-12"></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="kpi-card p-6">
+          <div class="section-title mb-4">Distribuição de Recomendações</div>
+          <div style="height:300px;"><canvas id="chart-donut"></canvas></div>
+          <div id="chart-donut-legend" class="grid grid-cols-2 gap-2 mt-4"></div>
+        </div>
+        <div class="kpi-card p-6">
+          <div class="section-title mb-4">Ganho Projetado por Assessor</div>
+          <div style="height:300px;"><canvas id="chart-bar-assessor"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: POR CLIENTE -->
+  <div class="tab-content px-8 py-12" data-tab="cliente">
+    <div class="max-w-7xl mx-auto">
+      <div class="section-title mb-3">Análise individualizada</div>
+      <h2 class="headline text-3xl mb-6">Por Cliente</h2>
+      <div class="flex items-center gap-4 mb-8 flex-wrap">
+        <label class="label-up text-corporativo">Conta</label>
+        <select id="cliente-select" class="input-cais min-w-[260px]"></select>
+        <button id="btn-pdf" class="btn-gold ml-auto">📄 Gerar Relatório PDF</button>
+      </div>
+      <div id="cliente-conteudo"></div>
+    </div>
+  </div>
+
+  <!-- TAB: POR ASSESSOR -->
+  <div class="tab-content px-8 py-12" data-tab="assessor">
+    <div class="max-w-7xl mx-auto">
+      <div class="section-title mb-3">Ranking interno</div>
+      <h2 class="headline text-3xl mb-6">Por Assessor</h2>
+      <div class="flex items-center gap-4 mb-6 flex-wrap">
+        <label class="label-up text-corporativo">Assessor</label>
+        <select id="assessor-select" class="input-cais min-w-[300px]"></select>
+        <div class="text-xs text-medio italic ml-2">↳ clique em um cliente para abrir a análise individual</div>
+      </div>
+      <div id="assessor-conteudo"></div>
+    </div>
+  </div>
+
+  <!-- TAB: POR ATIVO -->
+  <div class="tab-content px-8 py-12" data-tab="ativo">
+    <div class="max-w-7xl mx-auto">
+      <div class="section-title mb-3">Exposição por título</div>
+      <h2 class="headline text-3xl mb-6">Por Ativo</h2>
+      <div class="flex items-center gap-4 mb-6 flex-wrap">
+        <label class="label-up text-corporativo">Ativo</label>
+        <select id="ativo-select" class="input-cais min-w-[300px]"></select>
+        <div class="text-xs text-medio italic ml-2">↳ clique em um cliente para abrir a análise individual</div>
+      </div>
+      <div id="ativo-conteudo"></div>
+    </div>
+  </div>
+
+  <!-- TAB: TABELA -->
+  <div class="tab-content px-8 py-12" data-tab="tabela">
+    <div class="max-w-[1400px] mx-auto">
+      <div class="section-title mb-3">Base completa</div>
+      <h2 class="headline text-3xl mb-6">Tabela Completa</h2>
+      <div class="flex items-center gap-3 mb-6 flex-wrap">
+        <input type="text" id="tabela-busca" placeholder="Buscar conta, ativo, emissor, assessor…" class="input-cais flex-1 min-w-[280px]">
+        <select id="tabela-recom" class="input-cais"><option value="">Todas recomendações</option><option value="VERDE">🟢 Verde</option><option value="AMARELO">🟡 Amarelo</option><option value="VERMELHO">🔴 Vermelho</option><option value="CINZA">⚪ Cinza</option></select>
+        <select id="tabela-indexador" class="input-cais"><option value="">Todos indexadores</option></select>
+        <button id="btn-csv" class="btn-outline">⬇ Exportar CSV</button>
+      </div>
+      <div class="overflow-x-auto kpi-card p-0">
+        <table class="data-table" id="tabela-completa"></table>
+      </div>
+      <div id="tabela-info" class="text-xs text-medio mt-3"></div>
+    </div>
+  </div>
+
+  <!-- TAB: PITCH COMERCIAL -->
+  <div class="tab-content px-8 py-12" data-tab="pitch">
+    <div class="max-w-5xl mx-auto">
+      <div class="section-title mb-3">Material para reunião</div>
+      <h2 class="headline text-4xl mb-3">Seis perguntas, <span class="em-gold">seis respostas.</span></h2>
+      <p class="text-medio text-base mb-12 max-w-2xl">Pitch comercial pronto para a defesa do CRI BTGI Quartzo nas reuniões com clientes Cais. Cada bloco enfrenta uma objeção típica com argumentação numérica.</p>
+      <div id="pitch-conteudo"></div>
+    </div>
+  </div>
+
+  <!-- TAB: METODOLOGIA -->
+  <div class="tab-content px-8 py-12" data-tab="metodologia">
+    <div class="max-w-4xl mx-auto">
+      <div class="section-title mb-3">Como os números são calculados</div>
+      <h2 class="headline text-3xl mb-8">Metodologia</h2>
+      <div id="metodologia-conteudo" class="prose-cais"></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ============== FOOTER ============== -->
+<footer class="bg-profundo text-white px-8 py-16 mt-20 no-print">
+  <div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div>
+        <div class="logo-dark mb-4">
+          <svg class="compass-svg" width="32" height="32" viewBox="0 0 60 60" fill="none">
+            <circle cx="30" cy="30" r="28" stroke="#d9bd7e" stroke-width="1" opacity="0.4"/>
+            <path d="M30 8 L34 30 L30 28 L26 30 Z" fill="#d9bd7e"/>
+            <path d="M30 52 L26 30 L30 32 L34 30 Z" fill="#d9bd7e" opacity="0.55"/>
+            <path d="M8 30 L30 26 L28 30 L30 34 Z" fill="#d9bd7e" opacity="0.65"/>
+            <path d="M52 30 L30 34 L32 30 L30 26 Z" fill="#d9bd7e" opacity="0.55"/>
+            <circle cx="30" cy="30" r="2.5" fill="#d9bd7e"/>
+          </svg>
+          <div class="logo-text">
+            <span class="l1">CAIS</span>
+            <span class="l2">INVESTIMENTOS</span>
+          </div>
+        </div>
+        <p class="text-sm italic font-light" style="color:#d9bd7e;">Seu destino começa com direção.</p>
+        <p class="text-xs mt-2" style="color:#7ba7bc;">Assessoria financeira personalizada</p>
+      </div>
+      <div>
+        <div class="label-up mb-3" style="color:#7ba7bc;">Sede</div>
+        <p class="text-sm">Santa Maria de Jetibá<br>Espírito Santo · Brasil</p>
+        <p class="text-xs mt-3" style="color:#7ba7bc;">Escritório de investimentos parceiro BTG Pactual / Necton</p>
+      </div>
+      <div>
+        <div class="label-up mb-3" style="color:#7ba7bc;">Disclaimer</div>
+        <p class="text-xs leading-relaxed" style="color:#9eb3c4;">Esta ferramenta não constitui recomendação de investimento. Os resultados são projeções baseadas em premissas declaradas e podem divergir do realizado. Decisões de investimento devem considerar o perfil, objetivo e tolerância a risco de cada cliente.</p>
+      </div>
+    </div>
+    <div class="gold-line my-10"></div>
+    <div class="text-xs text-center" style="color:#7ba7bc;">© Cais Investimentos · Ferramenta interna · uso restrito de assessores e clientes</div>
+  </div>
+</footer>
+
+<!-- PDF TEMPLATE (escondido em screen) -->
+<div id="pdf-template"></div>
+
+<!-- Loading overlay -->
+<div id="loading" class="loading-overlay hidden"><div class="spinner"></div></div>
+
+<script>
+/* ============================================================================
+   DADOS EMBEBIDOS
+   ============================================================================ */
+const SERIES_CRI = [
+  { id:1, label:'1ª Série', prazo:10, indexador:'CDI',  desc:'97,5% CDI',        taxa:0.975, durationOriginal:5.85, cupom:'Semestral', venc:'2036-05-22' },
+  { id:2, label:'2ª Série', prazo:10, indexador:'PRE',  desc:'PréxDI/32 −0,30%', taxa:0.130, durationOriginal:5.86, cupom:'Mensal',    venc:'2036-05-22' },
+  { id:3, label:'3ª Série', prazo:10, indexador:'IPCA+',desc:'NTN-B37 −0,30%',   taxa:0.0715, durationOriginal:7.35, cupom:'Semestral', venc:'2036-05-22', best:true },
+  { id:4, label:'4ª Série', prazo:15, indexador:'CDI',  desc:'98,5% CDI',        taxa:0.985, durationOriginal:6.90, cupom:'Semestral', venc:'2041-05-22' },
+  { id:5, label:'5ª Série', prazo:15, indexador:'PRE',  desc:'PréxDI/33 −0,20%', taxa:0.131, durationOriginal:6.97, cupom:'Mensal',    venc:'2041-05-22' },
+  { id:6, label:'6ª Série', prazo:15, indexador:'IPCA+',desc:'NTN-B40 −0,20%',   taxa:0.0694, durationOriginal:9.47, cupom:'Semestral', venc:'2041-05-22' }
+];
+
+/* Boletim Focus 18/05/2026 (mediana). Anos > 2029 → equilíbrio. */
+let FOCUS = {
+  2026: { ipca: 4.92, selic: 13.25 },
+  2027: { ipca: 4.00, selic: 11.25 },
+  2028: { ipca: 3.65, selic: 10.00 },
+  2029: { ipca: 3.50, selic: 10.00 },
+  2030: { ipca: 3.50, selic: 10.00 }
+};
+const FOCUS_EQUILIBRIO = { ipca: 3.50, selic: 10.00 };
+
+const NTN_B_REF = {
+  2035: 7.40, 2037: 7.45, 2040: 7.14, 2045: 7.20
+};
+
+/* Estado global */
+let STATE = {
+  rawData: [],
+  results: [],
+  serieSelecionada: 3, // default 3ª
+  custoTransacao: 0.30, // %
+  thresholds: { ganhoVerde: 2.0, deltaDuration: 5.0, concentracao: 30.0, ratingMin: 'AA' },
+  totalCarteira: 0,
+  chartDonut: null,
+  chartBar: null
+};
+
+/* ============================================================================
+   FORMATTERS
+   ============================================================================ */
+const fmtBRL = v => 'R$ ' + (v||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtBRLCompact = v => {
+  const abs = Math.abs(v||0);
+  if (abs >= 1e6) return 'R$ ' + (v/1e6).toFixed(2).replace('.', ',') + 'MM';
+  if (abs >= 1e3) return 'R$ ' + (v/1e3).toFixed(1).replace('.', ',') + 'k';
+  return 'R$ ' + (v||0).toFixed(0);
+};
+const fmtPct = (v, dec=2) => (v||0).toFixed(dec).replace('.', ',') + '%';
+const fmtNum = (v, dec=2) => (v||0).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const fmtDate = d => {
+  if (!d) return '—';
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return dt.toLocaleDateString('pt-BR');
+};
+const todayBR = () => new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+document.getElementById('header-date').textContent = new Date().toLocaleDateString('pt-BR');
+
+/* ============================================================================
+   CÁLCULOS FINANCEIROS
+   ============================================================================ */
+function focusForYear(year) {
+  if (FOCUS[year]) return FOCUS[year];
+  if (year > 2030) return FOCUS_EQUILIBRIO;
+  if (year < 2026) return FOCUS[2026];
+  return FOCUS_EQUILIBRIO;
+}
+
+/* Média ponderada (anos fracionários) das projeções por indexador */
+function mediaFocus(field, fromDate, toDate) {
+  if (!(fromDate instanceof Date)) fromDate = new Date(fromDate);
+  if (!(toDate instanceof Date)) toDate = new Date(toDate);
+  if (toDate <= fromDate) return field === 'cdi' ? FOCUS[2026].selic - 0.1 : FOCUS[2026][field];
+  let total = 0; let totalDias = 0;
+  let cursor = new Date(fromDate);
+  while (cursor < toDate) {
+    const ano = cursor.getFullYear();
+    const fimAno = new Date(ano + 1, 0, 1);
+    const proximoMarco = (fimAno < toDate) ? fimAno : toDate;
+    const dias = (proximoMarco - cursor) / 86400000;
+    let val;
+    const f = focusForYear(ano);
+    if (field === 'cdi') val = f.selic - 0.10;
+    else val = f[field];
+    total += val * dias;
+    totalDias += dias;
+    cursor = proximoMarco;
+  }
+  return total / totalDias;
+}
+
+/* Taxa anualizada efetiva considerando indexador e taxa contratual */
+function taxaAnualizadaContrato(indexador, taxaCompra, fromDate, toDate) {
+  // taxaCompra vem em decimal: CDI=1.00 (fator), IPCA+=0.07 (spread), PRE=0.13, 100% CDI+=0.015 (spread sobre CDI)
+  const ind = (indexador || '').toUpperCase().trim();
+  if (ind === 'CDI') {
+    const cdiMedio = mediaFocus('cdi', fromDate, toDate);
+    return (taxaCompra * cdiMedio); // ex.: 0.98 * 11 = 10.78%
+  }
+  if (ind.includes('CDI+') || ind === '100% CDI+') {
+    const cdiMedio = mediaFocus('cdi', fromDate, toDate);
+    return cdiMedio + (taxaCompra * 100); // spread em decimal -> %
+  }
+  if (ind.includes('IPCA')) {
+    const ipcaMedio = mediaFocus('ipca', fromDate, toDate);
+    return ipcaMedio + (taxaCompra * 100);
+  }
+  if (ind === 'PRE' || ind === 'PRÉ') {
+    return taxaCompra * 100; // já em pré
+  }
+  // fallback
+  return taxaCompra * 100;
+}
+
+/* FV bullet composto: PV * (1 + r/100)^t */
+function fvBullet(pv, taxaAnualPct, anos) {
+  return pv * Math.pow(1 + taxaAnualPct / 100, anos);
+}
+
+function diffAnos(d1, d2) {
+  const a = (d1 instanceof Date) ? d1 : new Date(d1);
+  const b = (d2 instanceof Date) ? d2 : new Date(d2);
+  return (b - a) / (365.25 * 86400000);
+}
+
+/* Calcula uma posição individual */
+function calcularPosicao(row, serie, custoTxPct, refDate) {
+  const venc = row['Data Vencimento'];
+  const vencDt = (venc instanceof Date) ? venc : new Date(venc);
+  const vencSerieDt = new Date(serie.venc);
+  const today = refDate || new Date();
+
+  // horizonte = primeiro vencimento
+  const horizonteDt = vencSerieDt < vencDt ? vencSerieDt : vencDt;
+  const anos = Math.max(0, diffAnos(today, horizonteDt));
+
+  const valCurva = parseFloat(row['Valor Total Curva']) || 0;
+  const valMercado = parseFloat(row['Valor Total Mercado']) || 0;
+  const desagioStatus = row['Ágio ou Deságio'] || '';
+  const valDesagio = parseFloat(row['Valor Ágio ou Deságio']) || 0;
+  const desagio = desagioStatus.toLowerCase().includes('deságio') ? valDesagio : -valDesagio;
+  const custoTx = valMercado * custoTxPct / 100;
+  const valLiquido = valMercado - custoTx;
+  const custoSaida = desagio + custoTx; // total custo do desinvestimento (positivo = perda)
+
+  // FV MANTER (parte de Curva, capitaliza pela Taxa Compra)
+  const taxaManter = taxaAnualizadaContrato(row.Indexador, row['Taxa Compra'], today, horizonteDt);
+  const fvManter = fvBullet(valCurva, taxaManter, anos);
+
+  // FV TROCAR (parte de Mercado − custo, capitaliza pela taxa nova)
+  const indexadorNovo = serie.indexador === 'CDI' ? 'CDI' : (serie.indexador === 'PRE' ? 'PRE' : 'IPCA+');
+  // taxa do novo CRI: já vem como decimal: 0.0715 (IPCA+spread), 0.975 (fator CDI), 0.13 (pré)
+  const taxaNova = taxaAnualizadaContrato(indexadorNovo, serie.taxa, today, horizonteDt);
+  const fvTrocar = fvBullet(valLiquido, taxaNova, anos);
+
+  const ganhoRS = fvTrocar - fvManter;
+  const ganhoPct = fvManter > 0 ? (ganhoRS / fvManter) * 100 : 0;
+  const deltaDuration = serie.durationOriginal - (parseFloat(row.Duration) || 0);
+
+  return {
+    raw: row,
+    anos: anos,
+    horizonte: horizonteDt,
+    valCurva, valMercado, desagio, custoTx, valLiquido, custoSaida,
+    taxaManter, fvManter,
+    taxaNova, fvTrocar,
+    ganhoRS, ganhoPct,
+    deltaDuration,
+    serie: serie.label
+  };
+}
+
+/* Classifica semáforo */
+function classificarRecomendacao(pos, ths, ratingNovoAtivo='AAA') {
+  if (pos.valMercado < 1000) return { color: 'CINZA', label: 'Ignorar', reason: 'Posição < R$ 1.000' };
+  if (pos.anos < 0.5) return { color: 'VERMELHO', label: 'Não trocar', reason: 'Vence em < 6 meses' };
+  if (pos.ganhoRS <= 0) return { color: 'VERMELHO', label: 'Não trocar', reason: 'Perda projetada' };
+  const okGanho = pos.ganhoPct >= ths.ganhoVerde;
+  const okDuration = Math.abs(pos.deltaDuration) <= ths.deltaDuration;
+  // concentração resultante avaliada depois (cliente-level)
+  const okRating = ['AAA','AA+','AA','AA-'].includes(ratingNovoAtivo);
+  if (okGanho && okDuration && okRating) {
+    return { color: 'VERDE', label: 'Trocar', reason: `Ganho ${fmtPct(pos.ganhoPct)} em ${fmtNum(pos.anos,1)}a · Δdur ${fmtNum(pos.deltaDuration,1)}a` };
+  }
+  let reasons = [];
+  if (!okGanho) reasons.push(`Ganho abaixo (${fmtPct(pos.ganhoPct)} < ${fmtPct(ths.ganhoVerde)})`);
+  if (!okDuration) reasons.push(`Δduration ${fmtNum(pos.deltaDuration,1)}a > ${ths.deltaDuration}a`);
+  if (!okRating) reasons.push(`Rating < AA`);
+  return { color: 'AMARELO', label: 'Avaliar', reason: reasons.join(' · ') };
+}
+
+/* ============================================================================
+   PARSING DA PLANILHA
+   ============================================================================ */
+function parsePlanilha(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: true });
+  return rows.map(r => {
+    // normalizar nomes (algumas colunas têm espaço extra)
+    const obj = {};
+    Object.keys(r).forEach(k => { obj[k.trim()] = r[k]; });
+    // assegurar datas
+    ['Data Emissão','Data Aquisição','Data Vencimento'].forEach(k => {
+      if (obj[k] && !(obj[k] instanceof Date)) obj[k] = new Date(obj[k]);
+    });
+    return obj;
+  }).filter(r => r['Conta'] && r['Ativo']);
+}
+
+/* ============================================================================
+   RECALCULAR ANÁLISE COMPLETA
+   ============================================================================ */
+function recalcular() {
+  if (!STATE.rawData.length) return;
+  const serie = SERIES_CRI.find(s => s.id === STATE.serieSelecionada);
+  const today = new Date();
+  STATE.results = STATE.rawData.map(row => {
+    const pos = calcularPosicao(row, serie, STATE.custoTransacao, today);
+    pos.recom = classificarRecomendacao(pos, STATE.thresholds, 'AAA');
+    return pos;
+  });
+  STATE.totalCarteira = STATE.results.reduce((s, p) => s + p.valMercado, 0);
+
+  document.getElementById('last-calc').textContent = new Date().toLocaleTimeString('pt-BR');
+
+  // Re-render tudo
+  renderConsolidada();
+  populaSelects();
+  renderCliente();
+  renderAssessor();
+  renderAtivo();
+  renderTabela();
+  renderPitch();
+  renderMetodologia();
+}
+
+/* ============================================================================
+   POPULA PARÂMETROS (séries, focus, thresholds)
+   ============================================================================ */
+function renderSeriesGrid() {
+  const grid = document.getElementById('series-grid');
+  grid.innerHTML = SERIES_CRI.map(s => `
+    <div class="series-card ${s.id === STATE.serieSelecionada ? 'selected' : ''}" data-serie="${s.id}">
+      ${s.best ? '<span class="badge-best">🏆 Mais vantajosa</span>' : ''}
+      <div class="label-up text-medio">${s.label}</div>
+      <div class="text-sm font-medium text-profundo mt-1">${s.desc}</div>
+      <div class="text-xs text-medio mt-2">${s.prazo}a · ${s.indexador} · dur ${s.durationOriginal}a</div>
+      <div class="text-xs text-medio">${s.cupom}</div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.series-card').forEach(card => {
+    card.addEventListener('click', () => {
+      STATE.serieSelecionada = parseInt(card.dataset.serie);
+      renderSeriesGrid();
+    });
+  });
+}
+
+function renderFocusInputs() {
+  const cont = document.getElementById('focus-inputs');
+  cont.innerHTML = Object.entries(FOCUS).map(([ano, v]) => `
+    <div class="grid grid-cols-3 gap-2 items-center">
+      <div class="text-sm font-medium text-profundo">${ano}</div>
+      <input type="number" step="0.01" value="${v.ipca}" data-ano="${ano}" data-field="ipca" class="input-cais text-right text-xs focus-input">
+      <input type="number" step="0.01" value="${v.selic}" data-ano="${ano}" data-field="selic" class="input-cais text-right text-xs focus-input">
+    </div>
+  `).join('');
+  cont.querySelectorAll('.focus-input').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const a = e.target.dataset.ano;
+      const f = e.target.dataset.field;
+      FOCUS[a][f] = parseFloat(e.target.value);
+    });
+  });
+}
+
+/* ============================================================================
+   RENDER VISÃO CONSOLIDADA
+   ============================================================================ */
+function renderConsolidada() {
+  const total = STATE.results.length;
+  const verdes = STATE.results.filter(r => r.recom.color === 'VERDE');
+  const amarelos = STATE.results.filter(r => r.recom.color === 'AMARELO');
+  const vermelhos = STATE.results.filter(r => r.recom.color === 'VERMELHO');
+  const cinzas = STATE.results.filter(r => r.recom.color === 'CINZA');
+
+  const volVerde = verdes.reduce((s, r) => s + r.valMercado, 0);
+  const ganhoTotal = verdes.reduce((s, r) => s + r.ganhoRS, 0);
+  const custoSaidaTotal = STATE.results.reduce((s, r) => s + r.custoSaida, 0);
+  const totalCurva = STATE.results.reduce((s, r) => s + r.valCurva, 0);
+  const desagioTotal = STATE.results.reduce((s, r) => s + r.desagio, 0);
+
+  const ganhoMedioPct = verdes.length > 0 ? verdes.reduce((s, r) => s + r.ganhoPct, 0) / verdes.length : 0;
+
+  const kpis = [
+    { label: 'Posições analisadas', val: total, sub: `${STATE.results.length} ativos · ${new Set(STATE.results.map(r=>r.raw.Conta)).size} contas` },
+    { label: 'Volume a mercado', val: fmtBRLCompact(STATE.totalCarteira), sub: `Curva: ${fmtBRLCompact(totalCurva)}` },
+    { label: 'Custo total de saída', val: fmtBRLCompact(custoSaidaTotal), sub: 'Deságio + transação', gold: true },
+    { label: 'Volume candidato à troca', val: fmtBRLCompact(volVerde), sub: `${verdes.length} posições verdes (${(verdes.length/total*100).toFixed(0)}%)`, gold: true },
+    { label: 'Ganho projetado total', val: fmtBRLCompact(ganhoTotal), sub: `Média ${fmtPct(ganhoMedioPct)} por posição`, gold: true, dark: true },
+    { label: 'Deságio acumulado', val: fmtBRLCompact(desagioTotal), sub: 'Já em valor mercado' },
+    { label: 'Vermelhos', val: vermelhos.length, sub: 'Não trocar' },
+    { label: 'Amarelos', val: amarelos.length, sub: 'Avaliar caso-a-caso' }
+  ];
+
+  document.getElementById('kpi-consolidado').innerHTML = kpis.map(k => `
+    <div class="kpi-card ${k.dark ? 'dark' : ''}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.gold ? 'gold' : ''}">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>
+  `).join('');
+
+  // Donut
+  const ctx1 = document.getElementById('chart-donut').getContext('2d');
+  if (STATE.chartDonut) STATE.chartDonut.destroy();
+  STATE.chartDonut = new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: ['Verde (Trocar)', 'Amarelo (Avaliar)', 'Vermelho (Não)', 'Cinza (Ignorar)'],
+      datasets: [{
+        data: [verdes.length, amarelos.length, vermelhos.length, cinzas.length],
+        backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#adb5bd'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => `${c.label}: ${c.parsed} posições (${(c.parsed/total*100).toFixed(1)}%)`
+          }
+        }
+      },
+      cutout: '65%'
+    }
+  });
+
+  document.getElementById('chart-donut-legend').innerHTML = [
+    { label: 'Verde', n: verdes.length, color: '#28a745' },
+    { label: 'Amarelo', n: amarelos.length, color: '#ffc107' },
+    { label: 'Vermelho', n: vermelhos.length, color: '#dc3545' },
+    { label: 'Cinza', n: cinzas.length, color: '#adb5bd' }
+  ].map(l => `
+    <div class="flex items-center gap-2 text-xs">
+      <span class="w-3 h-3 rounded-full" style="background:${l.color};"></span>
+      <span class="text-medio">${l.label}:</span>
+      <span class="font-medium text-profundo">${l.n} posições (${(l.n/total*100).toFixed(0)}%)</span>
+    </div>
+  `).join('');
+
+  // Bar por assessor
+  const porAssessor = {};
+  verdes.forEach(r => {
+    const a = r.raw.ASSESSOR || '—';
+    if (!porAssessor[a]) porAssessor[a] = 0;
+    porAssessor[a] += r.ganhoRS;
+  });
+  const assessores = Object.entries(porAssessor).sort((a, b) => b[1] - a[1]);
+
+  const ctx2 = document.getElementById('chart-bar-assessor').getContext('2d');
+  if (STATE.chartBar) STATE.chartBar.destroy();
+  STATE.chartBar = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: assessores.map(a => a[0].split(' ').slice(0,2).join(' ')),
+      datasets: [{
+        label: 'Ganho projetado (R$)',
+        data: assessores.map(a => a[1]),
+        backgroundColor: '#003b5c',
+        borderColor: '#d9bd7e',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: c => fmtBRL(c.parsed.x) }
+        }
+      },
+      scales: {
+        x: { ticks: { callback: v => fmtBRLCompact(v) } }
+      }
+    }
+  });
+}
+
+/* ============================================================================
+   POPULA SELECTS
+   ============================================================================ */
+function populaSelects() {
+  const contas = [...new Set(STATE.results.map(r => r.raw.Conta))].sort();
+  const sel1 = document.getElementById('cliente-select');
+  sel1.innerHTML = contas.map(c => {
+    const subset = STATE.results.filter(r => r.raw.Conta === c);
+    const ass = subset[0]?.raw.ASSESSOR || '—';
+    const vol = subset.reduce((s,r)=>s+r.valMercado,0);
+    return `<option value="${c}">Conta ${c} · ${ass.split(' ').slice(0,2).join(' ')} · ${fmtBRLCompact(vol)}</option>`;
+  }).join('');
+
+  const assessores = [...new Set(STATE.results.map(r => r.raw.ASSESSOR))].sort();
+  const sel2 = document.getElementById('assessor-select');
+  sel2.innerHTML = assessores.map(a => `<option value="${a}">${a}</option>`).join('');
+
+  const ativos = [...new Set(STATE.results.map(r => r.raw.Ativo))].sort();
+  const sel3 = document.getElementById('ativo-select');
+  sel3.innerHTML = ativos.map(a => {
+    const emiss = STATE.results.find(r => r.raw.Ativo === a)?.raw.Emissor || '';
+    return `<option value="${a}">${a} · ${emiss.substring(0,40)}</option>`;
+  }).join('');
+
+  const indexadores = [...new Set(STATE.results.map(r => r.raw.Indexador))].sort();
+  const selI = document.getElementById('tabela-indexador');
+  selI.innerHTML = '<option value="">Todos indexadores</option>' + indexadores.map(i => `<option value="${i}">${i}</option>`).join('');
+}
+
+/* ============================================================================
+   RENDER POR CLIENTE + PITCH DINÂMICO
+   ============================================================================ */
+function renderCliente() {
+  const sel = document.getElementById('cliente-select');
+  if (!sel.value && sel.options.length) sel.value = sel.options[0].value;
+  const conta = sel.value;
+  if (!conta) return;
+  const subset = STATE.results.filter(r => String(r.raw.Conta) === String(conta));
+  if (!subset.length) return;
+  const assessor = subset[0].raw.ASSESSOR;
+
+  // KPIs do cliente
+  const totalPos = subset.reduce((s,r)=>s+r.valMercado,0);
+  const verdes = subset.filter(r=>r.recom.color==='VERDE');
+  const volVerde = verdes.reduce((s,r)=>s+r.valMercado,0);
+  const ganhoTotal = verdes.reduce((s,r)=>s+r.ganhoRS,0);
+  const custoSaidaTotal = subset.reduce((s,r)=>s+r.custoSaida,0);
+  const pctTroca = totalPos > 0 ? (volVerde/totalPos*100) : 0;
+  const concResult = totalPos > 0 ? (volVerde/totalPos*100) : 0;
+
+  // BTG concentration
+  const btgKeys = ['BTG','PRIME LOG','BTLC','SERTRADING'];
+  const isBtg = (e) => btgKeys.some(k => (e||'').toUpperCase().includes(k));
+  const btgAtual = subset.filter(r => isBtg(r.raw.Emissor)).reduce((s,r)=>s+r.valMercado,0);
+  const concBtgAtual = totalPos > 0 ? (btgAtual/totalPos*100) : 0;
+  // após troca: btg − verdesBtg + volVerde (todo o verde vai para BTGI Quartzo, também é BTG family)
+  const concBtgPosTroca = totalPos > 0 ? ((btgAtual + (volVerde - verdes.filter(r=>isBtg(r.raw.Emissor)).reduce((s,r)=>s+r.valMercado,0))) / totalPos * 100) : 0;
+
+  // Pitch personalizado
+  const pitchHtml = gerarPitchCliente(subset, { totalPos, verdes, volVerde, ganhoTotal, custoSaidaTotal, pctTroca, concBtgAtual, concBtgPosTroca, assessor, conta });
+
+  const kpisCliente = [
+    { label: 'Posição total', val: fmtBRLCompact(totalPos), sub: `${subset.length} ativos` },
+    { label: 'Volume sugerido', val: fmtBRLCompact(volVerde), sub: `${verdes.length} verdes (${pctTroca.toFixed(0)}%)`, gold: true },
+    { label: 'Ganho projetado', val: fmtBRLCompact(ganhoTotal), sub: `${verdes.length > 0 ? fmtPct(verdes.reduce((s,r)=>s+r.ganhoPct,0)/verdes.length) : '—'} médio`, gold: true, dark: true },
+    { label: 'Custo de saída', val: fmtBRLCompact(custoSaidaTotal), sub: 'Deságio + transação' },
+    { label: 'Concentração BTG atual', val: fmtPct(concBtgAtual, 0), sub: btgAtual ? fmtBRLCompact(btgAtual) : 'Sem BTG' },
+    { label: 'Conc. BTG pós-troca', val: fmtPct(concBtgPosTroca, 0), sub: concBtgPosTroca > concBtgAtual ? '⚠ aumenta' : '✓ mantém/reduz' },
+  ];
+
+  // Bloco de posições
+  const tabelaRows = subset.map((r, idx) => `
+    <tr>
+      <td class="text-xs">${r.raw.Ativo}</td>
+      <td class="text-xs">${(r.raw.Emissor || '').substring(0, 28)}</td>
+      <td class="text-xs">${r.raw.Indexador}</td>
+      <td class="num text-xs">${fmtBRL(r.valMercado)}</td>
+      <td class="num text-xs">${fmtBRL(r.custoSaida)}</td>
+      <td class="num text-xs">${fmtBRL(r.ganhoRS)}</td>
+      <td class="num text-xs">${fmtPct(r.ganhoPct)}</td>
+      <td><span class="chip chip-${r.recom.color.toLowerCase()}"><span class="dot dot-${r.recom.color.toLowerCase()}"></span>${r.recom.label}</span></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('cliente-conteudo').innerHTML = `
+    <div class="kpi-grid-8 mb-10" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+      ${kpisCliente.map(k => `
+        <div class="kpi-card ${k.dark?'dark':''}">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value ${k.gold?'gold':''}" style="font-size:1.25rem;">${k.val}</div>
+          <div class="kpi-sub">${k.sub}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    ${pitchHtml}
+
+    <div class="mt-10">
+      <div class="section-title mb-3">Posições da conta</div>
+      <div class="kpi-card p-0 overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ativo</th><th>Emissor</th><th>Indexador</th>
+              <th class="num">Vol. Mercado</th><th class="num">Custo Saída</th>
+              <th class="num">Ganho R$</th><th class="num">Ganho %</th><th>Recom.</th>
+            </tr>
+          </thead>
+          <tbody>${tabelaRows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================================
+   PITCH DINÂMICO POR CLIENTE
+   ============================================================================ */
+function gerarPitchCliente(rows, ctx) {
+  const { totalPos, verdes, volVerde, ganhoTotal, custoSaidaTotal, pctTroca, concBtgAtual, concBtgPosTroca, assessor, conta } = ctx;
+
+  // Parágrafo abertura
+  let abertura;
+  if (pctTroca >= 70) {
+    abertura = `<p class="text-base leading-relaxed">A carteira da conta <strong>${conta}</strong> está <span class="em-gold">fortemente posicionada</span> para uma realocação no CRI BTGI Quartzo — ${pctTroca.toFixed(0)}% do volume atual a mercado é candidato direto. A maior parte das posições está em deságio, abrindo uma janela rara onde o custo de saída já está implícito no preço.</p>`;
+  } else if (pctTroca >= 40) {
+    abertura = `<p class="text-base leading-relaxed">Esta conta está em uma <span class="em-gold">janela cirúrgica</span> — ${pctTroca.toFixed(0)}% do volume atual passa pelo filtro técnico para realocação. Não é "trocar tudo", é trocar o que faz sentido com matemática clara.</p>`;
+  } else if (pctTroca > 0) {
+    abertura = `<p class="text-base leading-relaxed">A conta apresenta uma <span class="em-gold">oportunidade pontual</span> — ${pctTroca.toFixed(0)}% do volume é candidato à troca. A carteira já está, em sua maior parte, bem ancorada nos níveis atuais.</p>`;
+  } else {
+    abertura = `<p class="text-base leading-relaxed">A carteira está <span class="em-gold">já bem posicionada</span> — não identificamos posição em que valha a pena substituir pelo CRI BTGI Quartzo neste momento. Recomendação: manter.</p>`;
+  }
+
+  // Argumento timing por indexador dominante
+  const counts = {};
+  rows.forEach(r => { counts[r.raw.Indexador] = (counts[r.raw.Indexador]||0) + 1; });
+  const dominante = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+  const serie = SERIES_CRI.find(s => s.id === STATE.serieSelecionada);
+
+  let timing;
+  if (dominante.includes('IPCA')) {
+    timing = `A carteira atual é majoritariamente <strong>${dominante}</strong>. Substituindo posições em deságio por um IPCA+ com prêmio sobre a NTN-B equivalente, o cliente mantém a proteção real (Focus aponta IPCA ${fmtPct(FOCUS[2026].ipca)} em 2026, ainda ${fmtPct(FOCUS[2028].ipca)} em 2028) e captura spread líquido pela isenção de IR PF.`;
+  } else if (dominante.includes('CDI')) {
+    timing = `A carteira é majoritariamente <strong>CDI</strong>. Com o Focus apontando Selic em ${fmtPct(FOCUS[2027].selic)} já em 2027 e ${fmtPct(FOCUS[2028].selic)} em 2028, posições CDI veem seu carrego nominal cair junto. A 3ª série IPCA+ permite "travar" rendimento real acima de 7% por uma década — protege do encolhimento natural da remuneração CDI.`;
+  } else {
+    timing = `A carteira tem peso relevante em <strong>pré-fixados</strong>. A 3ª série IPCA+ adiciona um vetor de proteção real à carteira, complementando (não substituindo) a estratégia de travamento de taxa nominal.`;
+  }
+
+  // Maior oportunidade individual
+  let jogada = '';
+  if (verdes.length > 0) {
+    const top = [...verdes].sort((a,b)=>b.ganhoRS-a.ganhoRS)[0];
+    jogada = `
+      <div class="mt-6 p-5 bg-marinho text-white rounded">
+        <div class="label-up text-gold mb-2">A jogada principal</div>
+        <div class="text-xl font-medium mb-1">${top.raw.Ativo} · ${(top.raw.Emissor||'').substring(0,40)}</div>
+        <div class="text-sm opacity-80 mb-3">Vol. mercado ${fmtBRL(top.valMercado)} · ${top.raw.Indexador} ${fmtNum(top.raw['Taxa Compra']*100,2)}%</div>
+        <div class="grid grid-cols-3 gap-4 mt-4">
+          <div><div class="text-xs opacity-60">Ganho R$</div><div class="text-2xl font-medium text-gold">${fmtBRLCompact(top.ganhoRS)}</div></div>
+          <div><div class="text-xs opacity-60">Ganho %</div><div class="text-2xl font-medium text-gold">${fmtPct(top.ganhoPct)}</div></div>
+          <div><div class="text-xs opacity-60">Horizonte</div><div class="text-2xl font-medium">${fmtNum(top.anos,1)}a</div></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Decomposição passo-a-passo da posição principal (ou agregado)
+  let decomposicao = '';
+  if (verdes.length > 0) {
+    const top = [...verdes].sort((a,b)=>b.ganhoRS-a.ganhoRS)[0];
+    decomposicao = `
+      <div class="mt-6 pitch-box">
+        <div class="label-up text-corporativo mb-3">A conta — passo a passo</div>
+        <p class="text-xs text-medio mb-3">Decomposição matemática para a posição "${top.raw.Ativo}" (${(top.raw.Emissor||'').substring(0,40)})</p>
+        <table class="decomp-table">
+          <tr class="sub"><td>Valor de face hoje (Curva)</td><td class="num">${fmtBRL(top.valCurva)}</td></tr>
+          <tr class="sub"><td>(−) Deságio do secundário</td><td class="num">${fmtBRL(-top.desagio)}</td></tr>
+          <tr class="sub"><td>(−) Custo de transação (${STATE.custoTransacao}%)</td><td class="num">${fmtBRL(-top.custoTx)}</td></tr>
+          <tr class="total"><td>= Valor líquido para reinvestir</td><td class="num">${fmtBRL(top.valLiquido)}</td></tr>
+          <tr class="sub"><td>× Taxa Novo Ativo (${fmtPct(top.taxaNova)} a.a., ${fmtNum(top.anos,2)} anos)</td><td class="num">× ${fmtNum(Math.pow(1+top.taxaNova/100, top.anos), 4)}</td></tr>
+          <tr class="total"><td>= Valor Futuro (TROCAR)</td><td class="num">${fmtBRL(top.fvTrocar)}</td></tr>
+          <tr><td colspan="2" style="padding-top:0.7rem;"></td></tr>
+          <tr class="sub"><td>Cenário MANTER (${fmtPct(top.taxaManter)} a.a. sobre curva)</td><td class="num">${fmtBRL(top.fvManter)}</td></tr>
+          <tr class="gold total"><td>= GANHO LÍQUIDO</td><td class="num">${fmtBRL(top.ganhoRS)} · ${fmtPct(top.ganhoPct)}</td></tr>
+        </table>
+      </div>
+    `;
+  }
+
+  // O que NÃO realocar
+  const naoRealocar = rows.filter(r => r.recom.color !== 'VERDE' && r.recom.color !== 'CINZA');
+  let bloqueNao = '';
+  if (naoRealocar.length > 0) {
+    bloqueNao = `
+      <div class="mt-6 pitch-box" style="border-left-color: var(--azul-medio);">
+        <div class="label-up text-corporativo mb-3">O que NÃO realocar e por quê</div>
+        <p class="text-xs text-medio mb-3">Transparência matemática: ${naoRealocar.length} posições permanecem.</p>
+        <ul class="text-sm space-y-2">
+          ${naoRealocar.slice(0,5).map(r => `
+            <li class="flex items-start gap-3">
+              <span class="chip chip-${r.recom.color.toLowerCase()} mt-0.5"><span class="dot dot-${r.recom.color.toLowerCase()}"></span>${r.recom.label}</span>
+              <div class="flex-1">
+                <div class="font-medium text-profundo">${r.raw.Ativo} <span class="text-medio font-normal text-xs">· ${fmtBRLCompact(r.valMercado)}</span></div>
+                <div class="text-xs text-medio">${r.recom.reason}</div>
+              </div>
+            </li>
+          `).join('')}
+          ${naoRealocar.length > 5 ? `<li class="text-xs text-medio italic">+ ${naoRealocar.length-5} outras posições · ver tabela completa</li>` : ''}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Concentração BTG
+  let concWarning = '';
+  if (concBtgPosTroca > 50) {
+    concWarning = `
+      <div class="mt-6 p-4 rounded" style="background:#fff3cd; border-left: 3px solid #ffc107;">
+        <div class="label-up" style="color:#856404;">⚠ Alerta de concentração</div>
+        <p class="text-sm mt-2" style="color:#856404;">Após a realocação, a exposição "BTG family" desta conta vai para <strong>${fmtPct(concBtgPosTroca,0)}</strong> (atual: ${fmtPct(concBtgAtual,0)}). Considere se faz sentido para o perfil de risco do cliente.</p>
+      </div>
+    `;
+  }
+
+  // Fechamento
+  const fechamento = `
+    <div class="pitch-box-dark mt-6">
+      <div class="label-up text-gold mb-3">Recomendação para a reunião</div>
+      <h3 class="headline text-2xl mb-3">
+        ${verdes.length > 0
+          ? `Realocar <span class="em-gold">${fmtBRLCompact(volVerde)}</span> · ganho projetado <span class="em-gold">${fmtBRLCompact(ganhoTotal)}</span>`
+          : `Manter posições atuais. <span class="em-gold">Não há vantagem matemática</span> neste momento.`}
+      </h3>
+      <p class="text-sm opacity-80 leading-relaxed">
+        Assessor responsável: <strong>${assessor}</strong> · Carteira analisada: <strong>${fmtBRLCompact(totalPos)}</strong> · Análise gerada em ${todayBR()}.
+      </p>
+    </div>
+  `;
+
+  return `
+    <div class="pitch-box">
+      <div class="label-up text-corporativo mb-3">Tese da realocação</div>
+      ${abertura}
+      <p class="text-sm text-medio mt-3 leading-relaxed">${timing}</p>
+    </div>
+    ${jogada}
+    ${decomposicao}
+    ${bloqueNao}
+    ${concWarning}
+    ${fechamento}
+  `;
+}
+
+/* ============================================================================
+   RENDER POR ASSESSOR
+   ============================================================================ */
+function renderAssessor() {
+  const sel = document.getElementById('assessor-select');
+  if (!sel.value && sel.options.length) sel.value = sel.options[0].value;
+  const ass = sel.value;
+  if (!ass) return;
+  const subset = STATE.results.filter(r => r.raw.ASSESSOR === ass);
+
+  // Agrupa por cliente
+  const porCliente = {};
+  subset.forEach(r => {
+    const c = r.raw.Conta;
+    if (!porCliente[c]) porCliente[c] = { conta: c, posicoes: 0, volume: 0, ganho: 0, verdes: 0 };
+    porCliente[c].posicoes++;
+    porCliente[c].volume += r.valMercado;
+    if (r.recom.color === 'VERDE') { porCliente[c].ganho += r.ganhoRS; porCliente[c].verdes++; }
+  });
+  const ranking = Object.values(porCliente).sort((a,b)=>b.ganho-a.ganho);
+
+  // KPIs do assessor
+  const totalVol = subset.reduce((s,r)=>s+r.valMercado,0);
+  const totalGanho = subset.filter(r=>r.recom.color==='VERDE').reduce((s,r)=>s+r.ganhoRS,0);
+  const ksimples = [
+    { label: 'Clientes', val: Object.keys(porCliente).length, sub: `${subset.length} posições totais` },
+    { label: 'Volume sob análise', val: fmtBRLCompact(totalVol), sub: '' },
+    { label: 'Ganho projetado', val: fmtBRLCompact(totalGanho), sub: `${subset.filter(r=>r.recom.color==='VERDE').length} posições verdes`, gold: true, dark: true },
+    { label: 'Ticket médio cliente', val: fmtBRLCompact(totalVol / Object.keys(porCliente).length), sub: '' }
+  ];
+
+  document.getElementById('assessor-conteudo').innerHTML = `
+    <div class="kpi-grid-8 mb-8" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      ${ksimples.map(k => `
+        <div class="kpi-card ${k.dark?'dark':''}">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value ${k.gold?'gold':''}">${k.val}</div>
+          ${k.sub ? `<div class="kpi-sub">${k.sub}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="section-title mb-3">Ranking de clientes (clique para abrir a análise)</div>
+    <div class="kpi-card p-0 overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Conta</th><th class="num">Posições</th>
+            <th class="num">Volume mercado</th><th class="num">Verdes</th>
+            <th class="num">Ganho projetado</th><th class="arrow-col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ranking.map((c, i) => `
+            <tr class="clickable" data-conta="${c.conta}">
+              <td class="text-medio">${i+1}</td>
+              <td class="font-medium">${c.conta}</td>
+              <td class="num">${c.posicoes}</td>
+              <td class="num">${fmtBRL(c.volume)}</td>
+              <td class="num">${c.verdes}</td>
+              <td class="num font-medium" style="color:${c.ganho > 0 ? 'var(--ouro-escuro)' : 'var(--azul-medio)'};">${fmtBRL(c.ganho)}</td>
+              <td class="arrow-col">→</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  // Bind click
+  document.querySelectorAll('#assessor-conteudo tr[data-conta]').forEach(tr => {
+    tr.addEventListener('click', () => abrirCliente(tr.dataset.conta));
+  });
+}
+
+/* ============================================================================
+   RENDER POR ATIVO
+   ============================================================================ */
+function renderAtivo() {
+  const sel = document.getElementById('ativo-select');
+  if (!sel.value && sel.options.length) sel.value = sel.options[0].value;
+  const ativo = sel.value;
+  if (!ativo) return;
+  const subset = STATE.results.filter(r => r.raw.Ativo === ativo);
+  const first = subset[0];
+
+  const totalVol = subset.reduce((s,r)=>s+r.valMercado,0);
+  const totalGanho = subset.filter(r=>r.recom.color==='VERDE').reduce((s,r)=>s+r.ganhoRS,0);
+
+  document.getElementById('ativo-conteudo').innerHTML = `
+    <div class="kpi-grid-8 mb-8" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="kpi-card"><div class="kpi-label">Emissor</div><div class="kpi-value" style="font-size:1.05rem;">${(first.raw.Emissor||'').substring(0,40)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Indexador</div><div class="kpi-value">${first.raw.Indexador} · ${fmtPct(first.raw['Taxa Compra']*100,2)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Vencimento</div><div class="kpi-value">${fmtDate(first.raw['Data Vencimento'])}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Detentores</div><div class="kpi-value">${subset.length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Volume agregado</div><div class="kpi-value">${fmtBRLCompact(totalVol)}</div></div>
+      <div class="kpi-card dark"><div class="kpi-label">Ganho projetado</div><div class="kpi-value gold">${fmtBRLCompact(totalGanho)}</div></div>
+    </div>
+
+    <div class="section-title mb-3">Clientes que detêm este ativo (clique para abrir)</div>
+    <div class="kpi-card p-0 overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Conta</th><th>Assessor</th><th class="num">Vol. Mercado</th>
+            <th class="num">Custo Saída</th><th class="num">Ganho R$</th><th>Recom.</th><th class="arrow-col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${subset.map(r => `
+            <tr class="clickable" data-conta="${r.raw.Conta}">
+              <td class="font-medium">${r.raw.Conta}</td>
+              <td class="text-xs">${(r.raw.ASSESSOR||'').split(' ').slice(0,2).join(' ')}</td>
+              <td class="num">${fmtBRL(r.valMercado)}</td>
+              <td class="num">${fmtBRL(r.custoSaida)}</td>
+              <td class="num font-medium">${fmtBRL(r.ganhoRS)}</td>
+              <td><span class="chip chip-${r.recom.color.toLowerCase()}"><span class="dot dot-${r.recom.color.toLowerCase()}"></span>${r.recom.label}</span></td>
+              <td class="arrow-col">→</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.querySelectorAll('#ativo-conteudo tr[data-conta]').forEach(tr => {
+    tr.addEventListener('click', () => abrirCliente(tr.dataset.conta));
+  });
+}
+
+/* ============================================================================
+   RENDER TABELA COMPLETA
+   ============================================================================ */
+function renderTabela() {
+  const q = (document.getElementById('tabela-busca').value || '').toLowerCase();
+  const filR = document.getElementById('tabela-recom').value;
+  const filI = document.getElementById('tabela-indexador').value;
+  let rows = STATE.results;
+  if (q) rows = rows.filter(r =>
+    String(r.raw.Conta).includes(q) ||
+    (r.raw.Ativo||'').toLowerCase().includes(q) ||
+    (r.raw.Emissor||'').toLowerCase().includes(q) ||
+    (r.raw.ASSESSOR||'').toLowerCase().includes(q)
+  );
+  if (filR) rows = rows.filter(r => r.recom.color === filR);
+  if (filI) rows = rows.filter(r => r.raw.Indexador === filI);
+
+  const tbl = document.getElementById('tabela-completa');
+  tbl.innerHTML = `
+    <thead>
+      <tr>
+        <th>Conta</th><th>Ativo</th><th>Emissor</th><th>Indexador</th>
+        <th>Vencimento</th><th class="num">Vol. Mercado</th><th class="num">Custo Saída</th>
+        <th class="num">Ganho R$</th><th class="num">Ganho %</th><th>Recom.</th><th>Assessor</th><th class="arrow-col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r => `
+        <tr class="clickable" data-conta="${r.raw.Conta}">
+          <td class="font-medium">${r.raw.Conta}</td>
+          <td class="text-xs">${r.raw.Ativo}</td>
+          <td class="text-xs">${(r.raw.Emissor||'').substring(0,30)}</td>
+          <td>${r.raw.Indexador}</td>
+          <td class="text-xs">${fmtDate(r.raw['Data Vencimento'])}</td>
+          <td class="num">${fmtBRL(r.valMercado)}</td>
+          <td class="num">${fmtBRL(r.custoSaida)}</td>
+          <td class="num font-medium">${fmtBRL(r.ganhoRS)}</td>
+          <td class="num">${fmtPct(r.ganhoPct)}</td>
+          <td><span class="chip chip-${r.recom.color.toLowerCase()}"><span class="dot dot-${r.recom.color.toLowerCase()}"></span>${r.recom.label}</span></td>
+          <td class="text-xs">${(r.raw.ASSESSOR||'').split(' ').slice(0,2).join(' ')}</td>
+          <td class="arrow-col">→</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  document.getElementById('tabela-info').textContent = `${rows.length} posições · clique em uma linha para abrir a análise da conta`;
+  tbl.querySelectorAll('tr.clickable').forEach(tr => {
+    tr.addEventListener('click', () => abrirCliente(tr.dataset.conta));
+  });
+}
+
+/* ============================================================================
+   RENDER PITCH COMERCIAL (6 BLOCOS)
+   ============================================================================ */
+function renderPitch() {
+  const serie = SERIES_CRI.find(s => s.id === STATE.serieSelecionada);
+  const ntnRef = serie.indexador === 'IPCA+' ? (serie.prazo === 10 ? NTN_B_REF[2037] : NTN_B_REF[2040]) : null;
+  const cdiMedio10 = mediaFocus('cdi', new Date(), new Date('2036-05-22'));
+
+  const blocos = [
+    {
+      titulo: '1. Por que agora?',
+      pergunta: 'O cliente perguntará: o que mudou para esta oportunidade aparecer?',
+      resposta: `
+        <p>Três vetores convergem em maio/2026:</p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><strong>(a) Selic ainda alta (${fmtPct(14.75)} hoje), Focus projetando queda</strong> para ${fmtPct(FOCUS[2027].selic)} em 2027 e ${fmtPct(FOCUS[2028].selic)} em 2028. Travar carrego real agora protege da erosão futura.</li>
+          <li><strong>(b) Carteira do cliente em deságio relevante</strong> — 89% das posições da base CP_CAIS estão hoje em deságio (valor de mercado abaixo da curva). Esse "custo" já está pago pelo mercado, não pelo cliente.</li>
+          <li><strong>(c) Oferta primária com taxa fechada por bookbuilding</strong> em 20/05/2026 — janela curta, depois disso só mercado secundário (e os spreads tendem a fechar para emissões BTG).</li>
+        </ul>
+      `
+    },
+    {
+      titulo: '2. Quem é o emissor / devedor?',
+      pergunta: 'Que risco eu estou correndo?',
+      resposta: `
+        <p><strong>Estrutura em camadas:</strong></p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><strong>Emissora (securitizadora):</strong> Opea Securitizadora S.A. — apenas veículo legal.</li>
+          <li><strong>Devedora (risco de crédito):</strong> BTGI Quartzo Participações S.A. — SPE controlada 100% pela BTG Pactual Holding (via BTG Partnership).</li>
+          <li><strong>Lastro:</strong> contratos de compra e venda das quotas da SPE Windsor (Tecnisa + Hines), portfólio imobiliário residencial e comercial premium.</li>
+        </ul>
+        <p class="mt-4"><strong>Quem está por trás (BTG Pactual — controlador):</strong></p>
+        <ul class="mt-2 space-y-1.5 text-sm">
+          <li>· Banco do <strong>Segmento 1 do BCB</strong> (sistemicamente importante)</li>
+          <li>· Lucro líquido ajustado <strong>R$ 4,81 bi no 1T26</strong> (+42% a.a.) · LTM R$ 18,2 bi</li>
+          <li>· ROAE <strong>26,6%</strong> · Patrimônio Líquido R$ 75 bi · Ativos totais R$ 845,6 bi</li>
+          <li>· Carteira de crédito R$ 355 bi · Basileia 15,9% · LCR 160,9%</li>
+          <li>· AuM + WuM <strong>R$ 2,6 trilhões</strong></li>
+        </ul>
+        <p class="mt-3 text-xs text-medio italic">Fonte: Release oficial BTG Pactual 1T26 (11/05/2026). Estes números são do <strong>controlador final</strong>, não da devedora direta — ver bloco 6.</p>
+      `
+    },
+    {
+      titulo: '3. E o risco?',
+      pergunta: 'Não tem rating. Isso é um problema?',
+      resposta: `
+        <p>Sim, é um ponto sensível e merece resposta honesta:</p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><strong>Fato:</strong> A emissão <strong>não conta com classificação de risco</strong> de agência (declarado no prospecto).</li>
+          <li><strong>Implicação:</strong> Pelo critério Cais conservador, o ativo cairia automaticamente para AMARELO. Optamos por tratar como <strong>equivalente AAA</strong> dado o suporte do controlador.</li>
+          <li><strong>O que sustenta essa premissa:</strong> (1) lastro imobiliário em ativos top-tier; (2) controle final BTG Holding — uma SPE pré-operacional não quebra publicamente sem afetar a marca do controlador; (3) regime fiduciário sobre os créditos imobiliários.</li>
+          <li><strong>O que NÃO sustenta:</strong> não há coobrigação formal nem garantia fidejussória do Banco BTG Pactual. O conforto é reputacional, não jurídico.</li>
+        </ul>
+        <p class="mt-4 italic text-medio text-sm">Para clientes muito conservadores ou que exijam rating formal, esta oferta não é adequada.</p>
+      `
+    },
+    {
+      titulo: '4. Compensa vs NTN-B?',
+      pergunta: 'Por que não compro o Tesouro direto?',
+      resposta: `
+        <p><strong>Comparativo para a ${serie.label} (${serie.desc}):</strong></p>
+        <table class="data-table mt-3" style="font-size:0.8rem;">
+          <thead><tr><th>Métrica</th><th class="num">CRI ${serie.label}</th><th class="num">NTN-B equivalente</th></tr></thead>
+          <tbody>
+            ${serie.indexador === 'IPCA+' ? `
+              <tr><td>Taxa contratada (real)</td><td class="num">${fmtPct(serie.taxa*100)}</td><td class="num">${fmtPct(ntnRef)}</td></tr>
+              <tr><td>IR para PF</td><td class="num">Isento</td><td class="num">15% (LP)</td></tr>
+              <tr><td>Equivalente bruto (PF)</td><td class="num font-medium">${fmtPct(serie.taxa*100/0.85)}</td><td class="num">${fmtPct(ntnRef)}</td></tr>
+              <tr><td><strong>Spread líquido a favor do CRI</strong></td><td class="num text-gold font-medium" colspan="2">+${fmtPct((serie.taxa*100/0.85)-ntnRef*1)} brutos</td></tr>
+            ` : serie.indexador === 'CDI' ? `
+              <tr><td>Taxa contratada</td><td class="num">${(serie.taxa*100).toFixed(1)}% CDI</td><td class="num">CDI base</td></tr>
+              <tr><td>CDI médio projetado ${serie.prazo}a</td><td class="num">${fmtPct(cdiMedio10)}</td><td class="num">${fmtPct(cdiMedio10)}</td></tr>
+              <tr><td>IR para PF</td><td class="num">Isento</td><td class="num">15-22,5%</td></tr>
+              <tr><td><strong>Vantagem CRI</strong></td><td class="num text-gold font-medium" colspan="2">Carrego em CDI alto + isenção</td></tr>
+            ` : `
+              <tr><td>Taxa Pré contratada</td><td class="num">~${fmtPct(serie.taxa*100)}</td><td class="num">Tesouro Pré 2035: ~13,5%</td></tr>
+              <tr><td>IR para PF</td><td class="num">Isento</td><td class="num">15% (LP)</td></tr>
+            `}
+          </tbody>
+        </table>
+        <p class="mt-3 text-sm italic text-medio">Compensa quando: o cliente é PF (isenção é diferencial), aceita risco corporativo BTG vs. soberano e tem horizonte para carregar.</p>
+      `
+    },
+    {
+      titulo: '5. E se sair antes?',
+      pergunta: 'Posso vender no meio do caminho?',
+      resposta: `
+        <p>Honesta resposta: <strong>liquidez secundária é restrita.</strong></p>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li><strong>(a) Restrição inicial:</strong> Por ${serie.prazo === 10 ? '6 meses' : '6 meses'} após o encerramento da oferta, só Investidores Qualificados podem negociar entre si. Como o ativo é "sem rating", o público em geral fica restrito indefinidamente.</li>
+          <li><strong>(b) Marcação a mercado:</strong> Em ambiente de Selic em queda (Focus aponta isso), CRIs IPCA+ tendem a se valorizar (taxa real cai → preço sobe). Já em choque de aversão a risco, o oposto.</li>
+          <li><strong>(c) Duration ${serie.durationOriginal}a:</strong> A cada 100bps de variação na taxa, o PU oscila aproximadamente ±${fmtPct(serie.durationOriginal)} (regra de bolso).</li>
+        </ul>
+        <p class="mt-4 italic text-medio text-sm">Recomendação: para clientes que possam precisar resgatar antes, este ativo deve ser <strong>parcela menor</strong> da carteira. Para quem carrega ao vencimento, o risco de marcação é irrelevante.</p>
+      `
+    },
+    {
+      titulo: '6. Riscos declarados (com mitigantes)',
+      pergunta: 'O que pode dar errado?',
+      resposta: `
+        <div class="space-y-3 text-sm">
+          <div class="p-3 rounded" style="background:#f8f9fa;">
+            <strong>Risco 1 — Devedora sem histórico operacional</strong> (Probabilidade Média · Materialidade Maior)<br>
+            <span class="text-medio">O prospecto declara explicitamente: "sociedade em fase pré-operacional".</span><br>
+            <strong>Mitigante:</strong> A devedora existe para receber os imóveis premium adquiridos via SPE Windsor — sua função é segurar e operar esses ativos. O risco real é qualidade do lastro imobiliário, que é Tecnisa + Hines.
+          </div>
+          <div class="p-3 rounded" style="background:#f8f9fa;">
+            <strong>Risco 2 — Sem rating</strong> (afeta liquidez secundária)<br>
+            <strong>Mitigante:</strong> Já discutido no Bloco 3. Premissa interna Cais: equivalente AAA dado o controle BTG Holding.
+          </div>
+          <div class="p-3 rounded" style="background:#f8f9fa;">
+            <strong>Risco 3 — Concentração em "BTG family"</strong> (relevante para clientes da Cais)<br>
+            <span class="text-medio">A base CP_CAIS já tem 74,5% de exposição BTG (Prime Log, Sertrading, BTLC, Pactual, Commodities).</span><br>
+            <strong>Mitigante:</strong> A ferramenta destaca o KPI "Concentração BTG resultante" em cada cliente. Quando a troca aumenta a concentração além de 50%, exibe alerta.
+          </div>
+          <div class="p-3 rounded" style="background:#f8f9fa;">
+            <strong>Risco 4 — Pessoas Vinculadas no bookbuilding</strong><br>
+            <span class="text-medio">A devedora e o coordenador (BTG) são do mesmo grupo econômico, o que pode pressionar a formação de taxa final.</span><br>
+            <strong>Mitigante:</strong> Acompanhar a taxa final do bookbuilding (20/05/2026) antes de fechar — se sair muito abaixo do teto, reduzir o tamanho da alocação.
+          </div>
+        </div>
+      `
+    }
+  ];
+
+  const blocosHtml = blocos.map(b => `
+    <div class="pitch-box">
+      <div class="label-up text-corporativo mb-2">${b.titulo}</div>
+      <p class="text-xs italic text-medio mb-3">"${b.pergunta}"</p>
+      <div class="text-sm text-profundo leading-relaxed">${b.resposta}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('pitch-conteudo').innerHTML = blocosHtml + `
+    <div class="pitch-box-dark mt-10">
+      <div class="label-up text-gold mb-3">Síntese para a reunião</div>
+      <h3 class="headline text-3xl mb-4">
+        Não é "o melhor CRI do mercado". É a <span class="em-gold">substituição certa</span> para quem tem deságio em CDI/IPCA hoje e quer travar prêmio real isento por uma década.
+      </h3>
+      <p class="text-sm opacity-80 leading-relaxed">
+        A 3ª série combina spread líquido sobre NTN-B (+~100bps brutos equivalentes), duration equilibrada (7,35a) e indexador IPCA+ que protege da inflação ainda persistente até 2028. Para outras séries, a defesa muda — selecione no painel de parâmetros.
+      </p>
+    </div>
+  `;
+}
+
+/* ============================================================================
+   RENDER METODOLOGIA
+   ============================================================================ */
+function renderMetodologia() {
+  const serie = SERIES_CRI.find(s => s.id === STATE.serieSelecionada);
+  document.getElementById('metodologia-conteudo').innerHTML = `
+    <div class="space-y-8 text-sm leading-relaxed">
+
+      <div>
+        <h3 class="headline text-xl mb-3">Premissas comuns</h3>
+        <ul class="list-disc pl-6 space-y-2">
+          <li><strong>Horizonte de comparação:</strong> primeiro vencimento entre o ativo atual e o novo CRI (o que vencer primeiro).</li>
+          <li><strong>Tributação:</strong> assumimos isenção de IR para Pessoa Física em todos os ativos da carteira e no novo (CRA, CRI, CDCA, Debênture Incentivada).</li>
+          <li><strong>Fluxo:</strong> tratamos como <em>bullet</em> (capitalização composta), mesmo para títulos com cupons. Premissa conservadora: não considera ganho de reinvestimento dos cupons.</li>
+          <li><strong>Projeções macro:</strong> medianas do Boletim Focus de 18/05/2026 (BCB). Para anos posteriores a 2029, mantemos a última projeção (premissa de equilíbrio): IPCA 3,50% / Selic 10,00%.</li>
+          <li><strong>CDI ≈ Selic − 0,10pp.</strong></li>
+          <li><strong>Sem rating tratado como AAA:</strong> ativado por padrão (parametrizável). Aplicado especificamente ao CRI BTGI Quartzo dado o controle BTG Holding.</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="headline text-xl mb-3">Cálculo dos dois cenários</h3>
+        <table class="data-table" style="font-size:0.82rem;">
+          <thead><tr><th>Cenário</th><th>Ponto de partida</th><th>Capitalização</th><th>Resultado</th></tr></thead>
+          <tbody>
+            <tr><td><strong>MANTER</strong></td><td>Valor Total Curva</td><td>× Taxa Compra ajustada por Focus</td><td>FV_manter</td></tr>
+            <tr><td><strong>TROCAR</strong></td><td>Valor Total Mercado − Custo Transação</td><td>× Taxa Novo Ativo ajustada por Focus</td><td>FV_trocar</td></tr>
+          </tbody>
+        </table>
+        <p class="mt-3"><strong>Ganho líquido = FV_trocar − FV_manter</strong> (em R$ e em %).</p>
+      </div>
+
+      <div class="pitch-box" style="border-left-color: var(--ouro);">
+        <h3 class="headline text-xl mb-3">Tratamento explícito do deságio (CRÍTICO)</h3>
+        <p>O deságio (Valor Curva − Valor Mercado, quando positivo) já está implicitamente considerado no cenário TROCAR — porque ele parte do Valor Mercado (que é menor que o Valor Curva quando há deságio).</p>
+        <p class="mt-3"><strong>Para garantir visibilidade ao assessor, exibimos o deságio EXPLÍCITO em 5 lugares:</strong></p>
+        <ol class="list-decimal pl-6 mt-3 space-y-1">
+          <li>KPI "Custo total de saída" no resumo do cliente</li>
+          <li>Coluna "Custo Saída" na tabela completa e na tabela por cliente</li>
+          <li>Bloco "A conta — passo a passo" no pitch personalizado por cliente</li>
+          <li>Mesma tabela no relatório PDF do cliente</li>
+          <li>Esta seção (Metodologia)</li>
+        </ol>
+        <p class="mt-4">A decomposição matemática segue a fórmula:</p>
+        <div class="mt-3 p-4 rounded font-mono text-xs" style="background:#f8f9fa;">
+          Valor Curva − Deságio − Custo Transação = Valor Líquido<br>
+          Valor Líquido × (1 + Taxa Nova)^t = FV_trocar<br>
+          Valor Curva × (1 + Taxa Atual)^t = FV_manter<br>
+          GANHO = FV_trocar − FV_manter
+        </div>
+      </div>
+
+      <div>
+        <h3 class="headline text-xl mb-3">Semáforo de recomendação</h3>
+        <table class="data-table" style="font-size:0.82rem;">
+          <thead><tr><th>Cor</th><th>Critérios (todos devem ser atendidos)</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip chip-verde"><span class="dot dot-verde"></span>VERDE</span></td><td>Ganho ≥ ${STATE.thresholds.ganhoVerde}% · Δduration ≤ ${STATE.thresholds.deltaDuration}a · rating ≥ AA (CRI tratado como AAA)</td></tr>
+            <tr><td><span class="chip chip-amarelo"><span class="dot dot-amarelo"></span>AMARELO</span></td><td>Ganho positivo, mas alguma trava estoura</td></tr>
+            <tr><td><span class="chip chip-vermelho"><span class="dot dot-vermelho"></span>VERMELHO</span></td><td>Perda projetada OU vencimento em menos de 6 meses</td></tr>
+            <tr><td><span class="chip chip-cinza"><span class="dot dot-cinza"></span>CINZA</span></td><td>Posição menor que R$ 1.000 (ruído operacional)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h3 class="headline text-xl mb-3">Série selecionada: ${serie.label}</h3>
+        <p>${serie.desc} · prazo ${serie.prazo} anos · duration ${serie.durationOriginal}a · cupom ${serie.cupom.toLowerCase()}.</p>
+        <p class="mt-3">Para alterar a série (e refazer toda a análise), volte ao painel de parâmetros.</p>
+      </div>
+
+      <div>
+        <h3 class="headline text-xl mb-3">Fontes consultadas</h3>
+        <ul class="list-disc pl-6 space-y-2 text-sm">
+          <li>Boletim Focus — Banco Central do Brasil, release de 18/05/2026.</li>
+          <li>Material publicitário "CRI BTG Pactual — Material de Roadshow" (Maio/2026) — 600ª Emissão Opea Securitizadora.</li>
+          <li>Taxas Tesouro Direto — Tesouro Nacional (consulta maio/2026).</li>
+          <li>Release de resultados BTG Pactual 1T26 — divulgado em 11/05/2026.</li>
+          <li>Planilha de carteira CP_CAIS_19-05.xlsx (extrato BTG/Necton).</li>
+        </ul>
+      </div>
+
+      <div class="pitch-box" style="border-left-color: var(--azul-medio);">
+        <h3 class="headline text-lg mb-2">Limitações desta análise</h3>
+        <ul class="list-disc pl-6 space-y-1.5 text-xs text-medio">
+          <li>Premissas Focus podem mudar semanalmente — recalcule antes de cada reunião.</li>
+          <li>Tratamento bullet ignora reinvestimento de cupons; em ativos com cupons longos, isso subestima o FV.</li>
+          <li>O cálculo de taxa anualizada usa médias ponderadas por período — aproximação suficiente para decisão, não para precificação financeira.</li>
+          <li>Análise não inclui efeito de FGC (CRI/CRA/Deb não possuem) nem custos eventuais de marcação se vendido antes do vencimento.</li>
+          <li>"Sem rating tratado como AAA" é uma premissa interna, não uma classificação de mercado.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================================
+   NAVEGAÇÃO ENTRE ABAS + ABRIR CLIENTE
+   ============================================================================ */
+function trocarAba(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === tabId));
+  window.scrollTo({ top: document.getElementById('resultados-section').offsetTop - 80, behavior: 'smooth' });
+}
+
+function abrirCliente(conta) {
+  document.getElementById('cliente-select').value = String(conta);
+  renderCliente();
+  trocarAba('cliente');
+}
+
+/* ============================================================================
+   PDF DO CLIENTE (window.print)
+   ============================================================================ */
+function gerarPDFCliente() {
+  const sel = document.getElementById('cliente-select');
+  const conta = sel.value;
+  if (!conta) { alert('Selecione um cliente antes.'); return; }
+  const subset = STATE.results.filter(r => String(r.raw.Conta) === String(conta));
+  if (!subset.length) return;
+
+  const assessor = subset[0].raw.ASSESSOR;
+  const totalPos = subset.reduce((s,r)=>s+r.valMercado,0);
+  const verdes = subset.filter(r=>r.recom.color==='VERDE');
+  const volVerde = verdes.reduce((s,r)=>s+r.valMercado,0);
+  const ganhoTotal = verdes.reduce((s,r)=>s+r.ganhoRS,0);
+  const concResult = totalPos > 0 ? (volVerde/totalPos*100) : 0;
+
+  const top = verdes.length > 0 ? [...verdes].sort((a,b)=>b.ganhoRS-a.ganhoRS)[0] : null;
+
+  const serie = SERIES_CRI.find(s => s.id === STATE.serieSelecionada);
+
+  const semáforosCount = {
+    VERDE: subset.filter(r=>r.recom.color==='VERDE').length,
+    AMARELO: subset.filter(r=>r.recom.color==='AMARELO').length,
+    VERMELHO: subset.filter(r=>r.recom.color==='VERMELHO').length,
+    CINZA: subset.filter(r=>r.recom.color==='CINZA').length
+  };
+
+  const compassSvg = `
+    <svg width="56" height="56" viewBox="0 0 60 60" fill="none" style="vertical-align: middle;">
+      <circle cx="30" cy="30" r="28" stroke="#d9bd7e" stroke-width="1" opacity="0.45"/>
+      <circle cx="30" cy="30" r="20" stroke="#d9bd7e" stroke-width="0.7" opacity="0.3"/>
+      <path d="M30 8 L34 30 L30 28 L26 30 Z" fill="#d9bd7e"/>
+      <path d="M30 52 L26 30 L30 32 L34 30 Z" fill="#d9bd7e" opacity="0.55"/>
+      <path d="M8 30 L30 26 L28 30 L30 34 Z" fill="#d9bd7e" opacity="0.65"/>
+      <path d="M52 30 L30 34 L32 30 L30 26 Z" fill="#d9bd7e" opacity="0.55"/>
+      <circle cx="30" cy="30" r="2.5" fill="#d9bd7e"/>
+    </svg>
+  `;
+
+  const compassSvgLight = compassSvg.replace(/fill="#d9bd7e"/g, 'fill="#003b5c"');
+
+  document.getElementById('pdf-template').innerHTML = `
+    <!-- PÁGINA 1 - CAPA -->
+    <div class="pdf-page" style="background: linear-gradient(135deg, #081421 0%, #002B49 100%); color:#fcfcfc; padding: 24mm 22mm; position: relative;">
+      <!-- Background compass -->
+      <div style="position: absolute; right:-60px; bottom:-80px; opacity: 0.07;">
+        <svg width="500" height="500" viewBox="0 0 60 60" fill="none">
+          <circle cx="30" cy="30" r="28" stroke="#d9bd7e" stroke-width="0.5"/>
+          <circle cx="30" cy="30" r="20" stroke="#d9bd7e" stroke-width="0.4"/>
+          <path d="M30 4 L34 30 L30 28 L26 30 Z" fill="#d9bd7e"/>
+          <path d="M30 56 L26 30 L30 32 L34 30 Z" fill="#d9bd7e" opacity="0.55"/>
+          <path d="M4 30 L30 26 L28 30 L30 34 Z" fill="#d9bd7e" opacity="0.65"/>
+          <path d="M56 30 L30 34 L32 30 L30 26 Z" fill="#d9bd7e" opacity="0.55"/>
+        </svg>
+      </div>
+      <!-- Grafismo retangular azul-médio à direita -->
+      <div style="position: absolute; right: 0; top: 30%; width: 12mm; height: 70mm; background: #346f93; opacity: 0.4;"></div>
+
+      <!-- Logo -->
+      <div style="display: flex; align-items: center; gap: 12px; position: relative;">
+        ${compassSvg}
+        <div style="display: flex; flex-direction: column; line-height: 1;">
+          <span style="font-weight: 500; font-size: 18px; letter-spacing: 0.32em; color:#fcfcfc;">CAIS</span>
+          <span style="font-weight: 400; font-size: 10px; letter-spacing: 0.32em; color:#fcfcfc; opacity: 0.85; margin-top: 3px;">INVESTIMENTOS</span>
+        </div>
+      </div>
+
+      <!-- Headline central -->
+      <div style="margin-top: 60mm; position: relative;">
+        <div style="text-transform: uppercase; letter-spacing: 0.18em; font-size: 10px; color: #d9bd7e; margin-bottom: 16px; font-weight: 500;">Análise de Substituição · CRI BTGI Quartzo</div>
+        <h1 style="font-size: 44px; font-weight: 500; line-height: 1.1; letter-spacing: -0.02em; max-width: 140mm;">
+          Seu destino <span style="font-style: italic; font-weight: 300; color: #d9bd7e;">começa com direção.</span>
+        </h1>
+      </div>
+
+      <!-- Bloco delimitado por linhas em Ouro -->
+      <div style="margin-top: 30mm; max-width: 150mm; position: relative;">
+        <div style="height: 1px; background: linear-gradient(90deg, transparent, #d9bd7e, transparent); margin-bottom: 20px;"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 9px; color: #7ba7bc; margin-bottom: 6px;">Preparado para</div>
+            <div style="font-size: 18px; font-weight: 500; color:#fcfcfc;">Conta ${conta}</div>
+          </div>
+          <div>
+            <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 9px; color: #7ba7bc; margin-bottom: 6px;">Assessor responsável</div>
+            <div style="font-size: 14px; font-weight: 500; color:#fcfcfc;">${assessor}</div>
+          </div>
+        </div>
+        <div style="height: 1px; background: linear-gradient(90deg, transparent, #d9bd7e, transparent); margin-top: 20px;"></div>
+      </div>
+
+      <!-- Footer -->
+      <div style="position: absolute; bottom: 18mm; left: 22mm; right: 22mm; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #7ba7bc;">
+        <div>${todayBR()} · Santa Maria de Jetibá · ES</div>
+        <div>Confidencial · uso interno e do cliente</div>
+      </div>
+    </div>
+
+    <!-- PÁGINA 2 - ANÁLISE -->
+    <div class="pdf-page" style="background: #fcfcfc; color: #081421; padding: 18mm 16mm; position: relative;">
+      <!-- Header com logo -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e8edf2; padding-bottom: 10mm;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          ${compassSvgLight}
+          <div style="display: flex; flex-direction: column; line-height: 1;">
+            <span style="font-weight: 500; font-size: 14px; letter-spacing: 0.32em; color:#081421;">CAIS</span>
+            <span style="font-weight: 400; font-size: 8px; letter-spacing: 0.32em; color:#003b5c; opacity: 0.85; margin-top: 2px;">INVESTIMENTOS</span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 8px; color:#346f93;">Conta</div>
+          <div style="font-size: 14px; font-weight: 500;">${conta} · ${assessor.split(' ').slice(0,2).join(' ')}</div>
+        </div>
+      </div>
+
+      <!-- 4 KPIs -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10mm;">
+        <div style="border: 1px solid #e8edf2; padding: 10px; border-radius: 3px;">
+          <div style="text-transform: uppercase; letter-spacing: 0.12em; font-size: 8px; color:#346f93; margin-bottom: 4px;">Posição total</div>
+          <div style="font-size: 18px; font-weight: 500;">${fmtBRLCompact(totalPos)}</div>
+          <div style="font-size: 8px; color:#346f93; margin-top: 2px;">${subset.length} ativos</div>
+        </div>
+        <div style="border: 1px solid #e8edf2; padding: 10px; border-radius: 3px;">
+          <div style="text-transform: uppercase; letter-spacing: 0.12em; font-size: 8px; color:#346f93; margin-bottom: 4px;">Volume sugerido</div>
+          <div style="font-size: 18px; font-weight: 500; color:#b89c5e;">${fmtBRLCompact(volVerde)}</div>
+          <div style="font-size: 8px; color:#346f93; margin-top: 2px;">${verdes.length} verdes</div>
+        </div>
+        <div style="background:#081421; color:#fcfcfc; padding: 10px; border-radius: 3px;">
+          <div style="text-transform: uppercase; letter-spacing: 0.12em; font-size: 8px; color:#7ba7bc; margin-bottom: 4px;">Ganho projetado</div>
+          <div style="font-size: 18px; font-weight: 500; color:#d9bd7e;">${fmtBRLCompact(ganhoTotal)}</div>
+          <div style="font-size: 8px; color:#7ba7bc; margin-top: 2px;">${verdes.length > 0 ? fmtPct(verdes.reduce((s,r)=>s+r.ganhoPct,0)/verdes.length) + ' médio' : '—'}</div>
+        </div>
+        <div style="border: 1px solid #e8edf2; padding: 10px; border-radius: 3px;">
+          <div style="text-transform: uppercase; letter-spacing: 0.12em; font-size: 8px; color:#346f93; margin-bottom: 4px;">Conc. no novo ativo</div>
+          <div style="font-size: 18px; font-weight: 500;">${fmtPct(concResult, 0)}</div>
+          <div style="font-size: 8px; color:#346f93; margin-top: 2px;">após realocação</div>
+        </div>
+      </div>
+
+      <!-- Tabela passo-a-passo -->
+      ${top ? `
+      <div style="margin-top: 8mm;">
+        <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 9px; color:#346f93; margin-bottom: 6px;">A conta da realocação — passo a passo</div>
+        <div style="font-size: 9px; color:#346f93; margin-bottom: 6px;">Posição destaque: ${top.raw.Ativo} · ${(top.raw.Emissor||'').substring(0,50)}</div>
+        <table style="width: 100%; font-size: 10px; font-variant-numeric: tabular-nums;">
+          <tr style="color:#346f93;"><td style="padding: 4px 8px;">Valor de face hoje (Curva)</td><td style="padding: 4px 8px; text-align: right;">${fmtBRL(top.valCurva)}</td></tr>
+          <tr style="color:#346f93;"><td style="padding: 4px 8px;">(−) Deságio do secundário</td><td style="padding: 4px 8px; text-align: right;">${fmtBRL(-top.desagio)}</td></tr>
+          <tr style="color:#346f93;"><td style="padding: 4px 8px;">(−) Custo de transação (${STATE.custoTransacao}%)</td><td style="padding: 4px 8px; text-align: right;">${fmtBRL(-top.custoTx)}</td></tr>
+          <tr style="border-top: 1.5px solid #081421; font-weight: 500;"><td style="padding: 6px 8px;">= Valor líquido para reinvestir</td><td style="padding: 6px 8px; text-align: right;">${fmtBRL(top.valLiquido)}</td></tr>
+          <tr style="color:#346f93;"><td style="padding: 4px 8px;">× Taxa Novo Ativo (${fmtPct(top.taxaNova)} a.a., ${fmtNum(top.anos,2)}a)</td><td style="padding: 4px 8px; text-align: right;">× ${fmtNum(Math.pow(1+top.taxaNova/100, top.anos), 4)}</td></tr>
+          <tr style="border-top: 1.5px solid #081421; font-weight: 500;"><td style="padding: 6px 8px;">= Valor Futuro (TROCAR)</td><td style="padding: 6px 8px; text-align: right;">${fmtBRL(top.fvTrocar)}</td></tr>
+          <tr style="color:#346f93;"><td style="padding: 4px 8px;">Cenário MANTER (${fmtPct(top.taxaManter)} a.a. sobre curva)</td><td style="padding: 4px 8px; text-align: right;">${fmtBRL(top.fvManter)}</td></tr>
+          <tr style="background:#081421; color:#d9bd7e; font-weight: 500;"><td style="padding: 8px 8px;">= GANHO LÍQUIDO</td><td style="padding: 8px 8px; text-align: right;">${fmtBRL(top.ganhoRS)} · ${fmtPct(top.ganhoPct)}</td></tr>
+        </table>
+      </div>
+      ` : '<div style="margin-top: 8mm; padding: 10mm; background:#f8f9fa; text-align:center; color:#346f93;">Não há posições candidatas a realocação nesta conta no momento.</div>'}
+
+      <!-- Box escuro -->
+      <div style="margin-top: 8mm; background:#081421; color:#fcfcfc; padding: 12px 14px; border-radius: 3px;">
+        <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 9px; color:#d9bd7e; margin-bottom: 4px;">Por que BTGI Quartzo · agora</div>
+        <p style="font-size: 10px; line-height: 1.5; margin: 0;">${serie.label} (${serie.desc}) com lastro imobiliário Tecnisa + Hines, controlada pela BTG Pactual Holding (banco S1 BCB, ROAE 26,6% no 1T26). Isenção de IR para PF + spread sobre NTN-B equivalente. Bookbuilding 20/05/2026, liquidação 22/05/2026.</p>
+      </div>
+
+      <!-- Tabela compacta de posições -->
+      <div style="margin-top: 8mm;">
+        <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 9px; color:#346f93; margin-bottom: 6px;">Resumo das posições da conta</div>
+        <table style="width: 100%; font-size: 9px; border-collapse: collapse;">
+          <thead>
+            <tr style="background:#081421; color:#fcfcfc;">
+              <th style="padding: 5px 6px; text-align: left;">Ativo</th>
+              <th style="padding: 5px 6px; text-align: left;">Emissor</th>
+              <th style="padding: 5px 6px; text-align: right;">Vol. Mercado</th>
+              <th style="padding: 5px 6px; text-align: right;">Custo Saída</th>
+              <th style="padding: 5px 6px; text-align: right;">Ganho R$</th>
+              <th style="padding: 5px 6px; text-align: center;">Rec.</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${subset.slice(0,12).map(r => `
+              <tr style="border-bottom: 1px solid #e8edf2;">
+                <td style="padding: 4px 6px;">${r.raw.Ativo}</td>
+                <td style="padding: 4px 6px;">${(r.raw.Emissor||'').substring(0,22)}</td>
+                <td style="padding: 4px 6px; text-align: right;">${fmtBRL(r.valMercado)}</td>
+                <td style="padding: 4px 6px; text-align: right;">${fmtBRL(r.custoSaida)}</td>
+                <td style="padding: 4px 6px; text-align: right; font-weight: 500;">${fmtBRL(r.ganhoRS)}</td>
+                <td style="padding: 4px 6px; text-align: center;"><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${r.recom.color==='VERDE'?'#28a745':r.recom.color==='AMARELO'?'#ffc107':r.recom.color==='VERMELHO'?'#dc3545':'#adb5bd'};"></span></td>
+              </tr>
+            `).join('')}
+            ${subset.length > 12 ? `<tr><td colspan="6" style="padding: 6px; text-align: center; font-style: italic; color:#346f93;">+ ${subset.length-12} outras posições</td></tr>` : ''}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Distribuição semáforos -->
+      <div style="margin-top: 6mm;">
+        <div style="text-transform: uppercase; letter-spacing: 0.14em; font-size: 9px; color:#346f93; margin-bottom: 6px;">Distribuição</div>
+        <div style="display: flex; height: 16px; border-radius: 2px; overflow: hidden;">
+          ${semáforosCount.VERDE > 0 ? `<div style="background:#28a745; width:${semáforosCount.VERDE/subset.length*100}%; display:flex; align-items:center; justify-content:center; color:white; font-size:9px;">${semáforosCount.VERDE}</div>` : ''}
+          ${semáforosCount.AMARELO > 0 ? `<div style="background:#ffc107; width:${semáforosCount.AMARELO/subset.length*100}%; display:flex; align-items:center; justify-content:center; color:#856404; font-size:9px;">${semáforosCount.AMARELO}</div>` : ''}
+          ${semáforosCount.VERMELHO > 0 ? `<div style="background:#dc3545; width:${semáforosCount.VERMELHO/subset.length*100}%; display:flex; align-items:center; justify-content:center; color:white; font-size:9px;">${semáforosCount.VERMELHO}</div>` : ''}
+          ${semáforosCount.CINZA > 0 ? `<div style="background:#adb5bd; width:${semáforosCount.CINZA/subset.length*100}%; display:flex; align-items:center; justify-content:center; color:white; font-size:9px;">${semáforosCount.CINZA}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="position: absolute; bottom: 12mm; left: 16mm; right: 16mm; border-top: 1px solid #e8edf2; padding-top: 6mm; font-size: 8px; color:#346f93; display: flex; justify-content: space-between;">
+        <div>
+          <strong>Premissas:</strong> bullet composto · isenção IR PF · Focus 18/05/2026 · custo entrada ${STATE.custoTransacao}% · CRI tratado como AAA.<br>
+          Não constitui recomendação de investimento.
+        </div>
+        <div style="text-align: right;">
+          <strong>Cais Investimentos</strong><br>
+          ${todayBR()}
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => window.print(), 100);
+}
+
+/* ============================================================================
+   EXPORT CSV
+   ============================================================================ */
+function exportCSV() {
+  const headers = ['Conta','Ativo','Emissor','Indexador','TaxaCompra','DataVencimento','ValorCurva','ValorMercado','CustoSaida','GanhoRS','GanhoPct','HorizonteAnos','Recomendacao','Assessor'];
+  const lines = [headers.join(';')];
+  STATE.results.forEach(r => {
+    lines.push([
+      r.raw.Conta, r.raw.Ativo, r.raw.Emissor, r.raw.Indexador,
+      fmtNum(r.raw['Taxa Compra']*100, 4), fmtDate(r.raw['Data Vencimento']),
+      r.valCurva.toFixed(2).replace('.', ','), r.valMercado.toFixed(2).replace('.', ','),
+      r.custoSaida.toFixed(2).replace('.', ','), r.ganhoRS.toFixed(2).replace('.', ','),
+      fmtNum(r.ganhoPct, 2), fmtNum(r.anos, 2),
+      r.recom.color, r.raw.ASSESSOR
+    ].map(v => `"${v}"`).join(';'));
+  });
+  const csv = '\uFEFF' + lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cais_analise_substituicao_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================================
+   INICIALIZAÇÃO E EVENT BINDINGS
+   ============================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  renderSeriesGrid();
+  renderFocusInputs();
+
+  // Upload
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragging');
+    if (e.dataTransfer.files.length) processarArquivo(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) processarArquivo(e.target.files[0]);
+  });
+
+  // Botões
+  document.getElementById('btn-recalc').addEventListener('click', () => {
+    // capturar inputs
+    STATE.custoTransacao = parseFloat(document.getElementById('param-custo').value) || 0.30;
+    STATE.thresholds.ganhoVerde = parseFloat(document.getElementById('param-th-verde').value) || 2.0;
+    STATE.thresholds.deltaDuration = parseFloat(document.getElementById('param-th-dur').value) || 5.0;
+    STATE.thresholds.concentracao = parseFloat(document.getElementById('param-th-conc').value) || 30.0;
+    document.getElementById('loading').classList.remove('hidden');
+    setTimeout(() => {
+      recalcular();
+      document.getElementById('loading').classList.add('hidden');
+    }, 100);
+  });
+
+  document.getElementById('btn-pdf').addEventListener('click', gerarPDFCliente);
+  document.getElementById('btn-csv').addEventListener('click', exportCSV);
+
+  // Tabs
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => trocarAba(b.dataset.tab));
+  });
+
+  // Selects
+  document.getElementById('cliente-select').addEventListener('change', renderCliente);
+  document.getElementById('assessor-select').addEventListener('change', renderAssessor);
+  document.getElementById('ativo-select').addEventListener('change', renderAtivo);
+  document.getElementById('tabela-busca').addEventListener('input', renderTabela);
+  document.getElementById('tabela-recom').addEventListener('change', renderTabela);
+  document.getElementById('tabela-indexador').addEventListener('change', renderTabela);
+});
+
+function processarArquivo(file) {
+  document.getElementById('loading').classList.remove('hidden');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      STATE.rawData = parsePlanilha(e.target.result);
+      document.getElementById('file-status').classList.remove('hidden');
+      document.getElementById('file-status').innerHTML = `<span class="chip chip-verde"><span class="dot dot-verde"></span>${file.name}</span> · ${STATE.rawData.length} posições carregadas`;
+      document.getElementById('parametros-section').classList.remove('hidden');
+      document.getElementById('resultados-section').classList.remove('hidden');
+      // capturar params atuais
+      STATE.custoTransacao = parseFloat(document.getElementById('param-custo').value) || 0.30;
+      STATE.thresholds.ganhoVerde = parseFloat(document.getElementById('param-th-verde').value) || 2.0;
+      STATE.thresholds.deltaDuration = parseFloat(document.getElementById('param-th-dur').value) || 5.0;
+      recalcular();
+      window.scrollTo({ top: document.getElementById('parametros-section').offsetTop - 80, behavior: 'smooth' });
+    } catch (err) {
+      alert('Erro ao processar arquivo: ' + err.message);
+      console.error(err);
+    } finally {
+      document.getElementById('loading').classList.add('hidden');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+</script>
+</body>
+</html>
