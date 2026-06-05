@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Badge } from "@/components/cais/Badge";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
+import { DomainManagerTable } from "@/components/cais/DomainManagerTable";
 import { fetchMe } from "@/lib/api/auth";
-import { fetchMetaPeriod, fetchProfiles, formatBRL, formatDate } from "@/lib/cais-api";
+import { fetchMetaPeriod, fetchProfiles, fetchLookups, formatBRL, formatDate } from "@/lib/cais-api";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações — CAIS" }] }),
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
 function ConfiguracoesPage() {
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
+  const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -27,7 +29,9 @@ function ConfiguracoesPage() {
     <AppLayout>
       <div className="mb-6">
         <h1 className="text-[26px] font-semibold text-azul-profundo">Configurações</h1>
-        <p className="text-[14px] text-slate-500">Conta, meta do período e equipe.</p>
+        <p className="text-[14px] text-slate-500">
+          Conta, meta do período, equipe e domínios do sistema.
+        </p>
       </div>
 
       <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
@@ -52,7 +56,7 @@ function ConfiguracoesPage() {
         )}
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-branco p-5">
+      <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
         <SectionHeader>Equipe</SectionHeader>
         {profiles.isLoading ? (
           <PageLoader />
@@ -65,6 +69,39 @@ function ConfiguracoesPage() {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <h2 className="mb-1 text-[18px] font-semibold text-azul-profundo">
+            Domínios do Sistema
+          </h2>
+          <p className="mb-4 text-[13px] text-slate-500">
+            Gerencie os valores permitidos para status, origens e próximas ações dos leads.
+          </p>
+        </div>
+
+        {lookups.isLoading ? (
+          <PageLoader />
+        ) : (
+          <>
+            <DomainManagerTable
+              type="status"
+              title="Status de Lead"
+              items={lookups.data?.statuses ?? []}
+            />
+            <DomainManagerTable
+              type="source"
+              title="Origens"
+              items={lookups.data?.sources ?? []}
+            />
+            <DomainManagerTable
+              type="action"
+              title="Próximas Ações"
+              items={lookups.data?.nextActions ?? []}
+            />
+          </>
         )}
       </div>
     </AppLayout>

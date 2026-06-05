@@ -4,13 +4,6 @@ import { notFound } from "../utils/httpError.js";
 import { incrementCurrentGoal } from "./goal.service.js";
 import type { CreatePurchaseInput } from "../schemas/purchase.schema.js";
 
-/**
- * Registra uma compra de forma atômica:
- * 1. cria Purchase
- * 2. atualiza closed_amount e status do lead para "Fechado"
- * 3. incrementa a meta vigente
- * Qualquer falha provoca rollback de toda a transação.
- */
 export async function registerPurchase(leadId: string, input: CreatePurchaseInput) {
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
@@ -18,6 +11,7 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
   });
   if (!lead) throw notFound("Lead não encontrado");
 
+  const fechadoStatus = await prisma.leadStatus.findUnique({ where: { slug: "fechado" } });
   const amount = new Prisma.Decimal(input.amount);
 
   return prisma.$transaction(async (tx) => {
@@ -30,7 +24,7 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
       where: { id: leadId },
       data: {
         closedAmount: currentClosed.plus(amount),
-        salesStatus: "Fechado",
+        ...(fechadoStatus ? { salesStatusId: fechadoStatus.id } : {}),
       },
     });
 

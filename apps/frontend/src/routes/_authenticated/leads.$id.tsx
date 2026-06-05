@@ -13,6 +13,7 @@ import {
   fetchReferralChain,
   formatDate,
   formatDateTime,
+  isLeadClosed,
 } from "@/lib/cais-api";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
@@ -60,9 +61,12 @@ function LeadDetail() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-[26px] font-semibold text-azul-profundo">{l.name}</h1>
-          <StatusBadge status={l.status} />
+          <StatusBadge
+            status={l.salesStatus?.name ?? "Sem status"}
+            slug={l.salesStatus?.slug}
+          />
         </div>
-        {l.status !== "Convertido" && (
+        {!isLeadClosed(l) && (
           <Button variant="gold" onClick={() => setSaleOpen(true)}>
             Registrar Venda
           </Button>
@@ -82,6 +86,14 @@ function LeadDetail() {
           <div>
             <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Celular</dt>
             <dd className="text-[14px] text-azul-profundo">{l.phone}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Origem</dt>
+            <dd className="text-[14px] text-azul-profundo">{l.source?.name ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Próxima ação</dt>
+            <dd className="text-[14px] text-azul-profundo">{l.nextAction?.name ?? "—"}</dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Observações</dt>
@@ -118,7 +130,7 @@ function LeadDetail() {
               <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-azul-medio" />
               <div>
                 <p className="text-[13px] text-azul-profundo">
-                  Status atualizado para {l.status}
+                  Status atualizado para {l.salesStatus?.name ?? "—"}
                 </p>
                 <p className="text-[11px] text-slate-500">{formatDateTime(l.updated_at)}</p>
               </div>

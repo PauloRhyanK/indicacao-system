@@ -126,21 +126,33 @@ Aqui estão os artefatos solicitados para darmos início imediato:
 
 **Copia e cola o texto abaixo na tua IA de geração de código:**
 
-> "Atue como um Arquiteto de Banco de Dados PostgreSQL. Crie o script DDL completo para um MVP de um Programa de Indicações.
-> **Regras de Negócio:**
+> "Atue como um Arquiteto de Banco de Dados PostgreSQL sênior. Atualize o script DDL do MVP considerando tabelas dinâmicas de parametrização para evitar enums rígidos.
 >
-> 1. Tabela `users`: (id UUID PK, name, email, password_hash, role, created_at).
-> 2. Tabela `leads`: (id UUID PK, **external_code** VARCHAR UNIQUE — ex. OP-0001 da planilha BASE_CRM, name, phone, **source** — origem do lead, **assigned_to_user_id** FK nullable → users, sales_status, **next_action**, **next_follow_up_at**, notes, **offered_amount** DECIMAL nullable, **closed_amount** DECIMAL nullable, created_at, **updated_at**).
-> 3. Tabela `referrals`: Polimorfismo. Campos: id, `referred_lead_id` (FK → leads), `referrer_type` (Enum: 'USER' ou 'LEAD'), `referrer_id` (UUID), created_at.
-> 4. Tabela `purchases`: Vendas de consórcio. Campos: id, `lead_id` (FK), amount (decimal), purchase_date, created_at.
-> 5. Tabela `goals`: Meta global. Campos: id, target_amount, current_amount, start_date, end_date.
+> **Tabelas auxiliares (Módulo 5):**
+>
+> 1. `lead_statuses`: (id UUID PK, slug VARCHAR UNIQUE, name VARCHAR).
+> 2. `lead_sources`: (id UUID PK, slug VARCHAR UNIQUE, name VARCHAR).
+> 3. `next_actions`: (id UUID PK, slug VARCHAR UNIQUE, name VARCHAR).
+>
+> **Tabelas principais:**
+>
+> 1. `users`: (id UUID PK, name, email, password_hash, role, created_at).
+> 2. `leads`: (id UUID PK, external_code VARCHAR UNIQUE, name, phone, **source_id** FK → lead_sources, assigned_to_user_id FK → users, **sales_status_id** FK → lead_statuses, **next_action_id** FK nullable → next_actions, next_follow_up_at, notes, offered_amount DECIMAL nullable, closed_amount DECIMAL nullable, created_at, updated_at).
+> 3. `referrals`: Polimorfismo — id, referred_lead_id (FK → leads), referrer_type (Enum USER/LEAD), referrer_id (UUID), created_at.
+> 4. `purchases`: id, lead_id (FK), amount, purchase_date, created_at.
+> 5. `goals`: id, target_amount, current_amount, start_date, end_date.
+>
+> **INSERTs iniciais (planilha Cais):**
+>
+> - Status: Reunião agendada, Reunião realizada, Pensando, Mandar proposta, Proposta enviada, Em negociação, Fechado, Perdido, Sem retorno, Follow-up, Reagendar.
+> - Origens: Base interna, MPA, Reativação, Prospecção ativa, Base Lucas, WhatsApp, Outro, Evento mulheres.
+> - Ações: Cobrar decisão, Mandar proposta, Reenviar proposta, Agendar retorno, Ligar novamente, Enviar mensagem, Aguardar cliente, Sem ação, Fechado, Encerrado.
 >
 > **Requisitos técnicos:**
-> - UUIDs nativos (`gen_random_uuid()`), enums tipados, constraints e índices em todas as FKs.
-> - Índice em `leads.external_code`, `leads.next_follow_up_at`, `leads.sales_status`, `leads.source`.
-> - Trigger ou default para `leads.updated_at` ON UPDATE.
-> - Comentário SQL com CTE recursiva para árvore de indicações **limitada a 10 níveis**, retornando flag quando truncada.
-> - Comentário sobre endpoint de importação Excel mapeando colunas BASE_CRM → tabelas acima."
+> - UUIDs nativos (`gen_random_uuid()`), FKs com ON DELETE SET NULL nas tabelas auxiliares.
+> - Índices em `leads.external_code`, `leads.sales_status_id`, `leads.source_id`, `leads.next_follow_up_at`.
+> - CTE recursiva para árvore de indicações **limitada a 10 níveis** (implementada em `referralTree.service.ts` — sem alteração neste módulo).
+> - Importação Excel valida status/origem/ação contra tabelas auxiliares; valores desconhecidos exigem mapeamento no preview antes de persistir."
 
 #### 2. Prompt para Extração da Identidade Visual
 

@@ -23,8 +23,9 @@ import {
   fetchProfiles,
   fetchReferrals,
   fetchMetaPeriod,
+  fetchLookups,
   formatBRL,
-  LEAD_STATUSES,
+  isLeadClosed,
 } from "@/lib/cais-api";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -48,6 +49,7 @@ function Dashboard() {
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
+  const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   useEffect(() => {
     fetchMe()
@@ -70,17 +72,16 @@ function Dashboard() {
   }, [pct]);
 
   const total = leads.data?.length ?? 0;
-  const converted = (leads.data ?? []).filter((l) => l.status === "Convertido").length;
+  const converted = (leads.data ?? []).filter(isLeadClosed).length;
   const convRate = total ? ((converted / total) * 100).toFixed(1) : "0.0";
 
-  const funnelData = useMemo(
-    () =>
-      LEAD_STATUSES.map((s) => ({
-        status: s,
-        count: (leads.data ?? []).filter((l) => l.status === s).length,
-      })),
-    [leads.data],
-  );
+  const funnelData = useMemo(() => {
+    const statuses = lookups.data?.statuses ?? [];
+    return statuses.map((s) => ({
+      status: s.name,
+      count: (leads.data ?? []).filter((l) => l.salesStatus?.slug === s.slug).length,
+    }));
+  }, [leads.data, lookups.data]);
 
   const leaderboard = useMemo(() => {
     const profs = profiles.data ?? [];
@@ -98,9 +99,10 @@ function Dashboard() {
           (r) => r.referrer_type === "user" && r.referrer_user_id === p.id,
         );
         const indicated = mine.length;
-        const conv = mine.filter(
-          (r) => leadById.get(r.lead_id ?? "")?.status === "Convertido",
-        ).length;
+        const conv = mine.filter((r) => {
+          const lead = leadById.get(r.lead_id ?? "");
+          return lead && isLeadClosed(lead);
+        }).length;
         const vol = mine.reduce(
           (sum, r) => sum + (salesByLead.get(r.lead_id ?? "") ?? 0),
           0,
@@ -129,7 +131,6 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Meta */}
       <div className="mb-8 rounded-lg border-l-[3px] border-ouro bg-slate-50 px-[22px] py-[18px]">
         <SectionHeader>Meta do Período</SectionHeader>
         <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
@@ -151,7 +152,6 @@ function Dashboard() {
         )}
       </div>
 
-      {/* KPIs */}
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KPICard label="Total de Leads" value={total} sub="No período" />
         <KPICard
@@ -164,7 +164,6 @@ function Dashboard() {
         <KPICard label="Volume Vendido" value={formatBRL(volume)} sub="Soma das vendas" />
       </div>
 
-      {/* Funnel */}
       <div className="mb-8 rounded-md border border-slate-200 bg-branco p-5">
         <SectionHeader>Funil de Conversão</SectionHeader>
         <div className="h-[280px] w-full">
@@ -201,7 +200,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Leaderboard */}
       <div className="rounded-md border border-slate-200 bg-branco p-5">
         <SectionHeader>Top Indicadores do Mês</SectionHeader>
         <div className="overflow-x-auto">

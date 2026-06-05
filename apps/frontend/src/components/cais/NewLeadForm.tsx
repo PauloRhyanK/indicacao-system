@@ -6,8 +6,7 @@ import {
   createLead,
   fetchProfiles,
   fetchLeads,
-  LEAD_STATUSES,
-  type LeadStatus,
+  fetchLookups,
 } from "@/lib/cais-api";
 
 interface RefOption {
@@ -26,10 +25,12 @@ export function NewLeadForm({
   const qc = useQueryClient();
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
+  const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [status, setStatus] = useState<LeadStatus>("Novo");
+  const [statusSlug, setStatusSlug] = useState("");
+  const [sourceSlug, setSourceSlug] = useState("");
   const [notes, setNotes] = useState("");
   const [refSearch, setRefSearch] = useState("");
   const [refSelected, setRefSelected] = useState<RefOption | null>(null);
@@ -56,7 +57,8 @@ export function NewLeadForm({
   const reset = () => {
     setName("");
     setPhone("");
-    setStatus("Novo");
+    setStatusSlug(lookups.data?.statuses[0]?.slug ?? "");
+    setSourceSlug("");
     setNotes("");
     setRefSearch("");
     setRefSelected(null);
@@ -67,7 +69,8 @@ export function NewLeadForm({
       createLead({
         name: name.trim(),
         phone: phone.trim(),
-        status,
+        salesStatusSlug: statusSlug || undefined,
+        sourceSlug: sourceSlug || undefined,
         notes: notes.trim(),
         referrer_type: refSelected?.type ?? null,
         referrer_id: refSelected?.id ?? null,
@@ -141,12 +144,28 @@ export function NewLeadForm({
         <Field label="Status">
           <select
             className={inputClass}
-            value={status}
-            onChange={(e) => setStatus(e.target.value as LeadStatus)}
+            value={statusSlug}
+            onChange={(e) => setStatusSlug(e.target.value)}
           >
-            {LEAD_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s}
+            <option value="">— Selecione —</option>
+            {(lookups.data?.statuses ?? []).map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Origem">
+          <select
+            className={inputClass}
+            value={sourceSlug}
+            onChange={(e) => setSourceSlug(e.target.value)}
+          >
+            <option value="">— Selecione —</option>
+            {(lookups.data?.sources ?? []).map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.name}
               </option>
             ))}
           </select>

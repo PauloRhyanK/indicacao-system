@@ -1,9 +1,77 @@
 import { PrismaClient, ReferrerType, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { slugify } from "../src/utils/slugify.js";
 
 const prisma = new PrismaClient();
 
+const LEAD_STATUSES = [
+  "Reunião agendada",
+  "Reunião realizada",
+  "Pensando",
+  "Mandar proposta",
+  "Proposta enviada",
+  "Em negociação",
+  "Fechado",
+  "Perdido",
+  "Sem retorno",
+  "Follow-up",
+  "Reagendar",
+];
+
+const LEAD_SOURCES = [
+  "Base interna",
+  "MPA",
+  "Reativação",
+  "Prospecção ativa",
+  "Base Lucas",
+  "WhatsApp",
+  "Outro",
+  "Evento mulheres",
+];
+
+const NEXT_ACTIONS = [
+  "Cobrar decisão",
+  "Mandar proposta",
+  "Reenviar proposta",
+  "Agendar retorno",
+  "Ligar novamente",
+  "Enviar mensagem",
+  "Aguardar cliente",
+  "Sem ação",
+  "Fechado",
+  "Encerrado",
+];
+
+async function seedLookups() {
+  for (const name of LEAD_STATUSES) {
+    const slug = slugify(name);
+    await prisma.leadStatus.upsert({
+      where: { slug },
+      update: { name },
+      create: { slug, name },
+    });
+  }
+  for (const name of LEAD_SOURCES) {
+    const slug = slugify(name);
+    await prisma.leadSource.upsert({
+      where: { slug },
+      update: { name },
+      create: { slug, name },
+    });
+  }
+  for (const name of NEXT_ACTIONS) {
+    const slug = slugify(name);
+    await prisma.nextAction.upsert({
+      where: { slug },
+      update: { name },
+      create: { slug, name },
+    });
+  }
+}
+
 async function main() {
+  await seedLookups();
+
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@cais.local";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
 
@@ -65,10 +133,10 @@ async function main() {
       externalCode: "OP-0001",
       name: "Maria Source",
       phone: "5511999990001",
-      source: "Base interna",
-      assignedToUserId: lucas.id,
-      salesStatus: "Em negociação",
-      nextAction: "Enviar proposta",
+      source: { connect: { slug: "base-interna" } },
+      assignedTo: { connect: { id: lucas.id } },
+      salesStatus: { connect: { slug: "em-negociacao" } },
+      nextAction: { connect: { slug: "mandar-proposta" } },
       offeredAmount: "150000.00",
     },
   });
@@ -80,10 +148,10 @@ async function main() {
       externalCode: "OP-0002",
       name: "João Indicado",
       phone: "5511999990002",
-      source: "Indicação",
-      assignedToUserId: carlos.id,
-      salesStatus: "Follow-up",
-      nextAction: "Agendar retorno",
+      source: { connect: { slug: "prospeccao-ativa" } },
+      assignedTo: { connect: { id: carlos.id } },
+      salesStatus: { connect: { slug: "follow-up" } },
+      nextAction: { connect: { slug: "agendar-retorno" } },
       offeredAmount: "80000.00",
     },
   });
@@ -95,14 +163,13 @@ async function main() {
       externalCode: "OP-0003",
       name: "Ana Neta",
       phone: "5511999990003",
-      source: "Indicação",
-      assignedToUserId: carlos.id,
-      salesStatus: "Fechado",
+      source: { connect: { slug: "prospeccao-ativa" } },
+      assignedTo: { connect: { id: carlos.id } },
+      salesStatus: { connect: { slug: "fechado" } },
       closedAmount: "120000.00",
     },
   });
 
-  // Cadeia de indicação: leadRoot -> leadChild -> leadGrandChild
   await prisma.referral.upsert({
     where: { referredLeadId: leadChild.id },
     update: {},

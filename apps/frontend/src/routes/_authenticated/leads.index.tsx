@@ -14,9 +14,9 @@ import {
   fetchLeads,
   fetchProfiles,
   fetchReferrals,
-  LEAD_STATUSES,
+  fetchLookups,
+  isLeadClosed,
   type Lead,
-  type LeadStatus,
 } from "@/lib/cais-api";
 
 export const Route = createFileRoute("/_authenticated/leads/")({
@@ -29,9 +29,10 @@ function LeadsPage() {
   const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
+  const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | LeadStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -54,7 +55,8 @@ function LeadsPage() {
     const matchSearch =
       l.name.toLowerCase().includes(search.toLowerCase()) ||
       l.phone.includes(search);
-    const matchStatus = statusFilter === "all" || l.status === statusFilter;
+    const matchStatus =
+      statusFilter === "all" || l.salesStatus?.slug === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -85,12 +87,12 @@ function LeadsPage() {
         <select
           className={inputClass + " w-auto"}
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "all" | LeadStatus)}
+          onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="all">Todos os status</option>
-          {LEAD_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
+          {(lookups.data?.statuses ?? []).map((s) => (
+            <option key={s.slug} value={s.slug}>
+              {s.name}
             </option>
           ))}
         </select>
@@ -144,7 +146,10 @@ function LeadsPage() {
                     {referrerLabel.get(l.id) ?? "—"}
                   </td>
                   <td className="border-b border-slate-200 px-3 py-2.5 text-[13px]">
-                    <StatusBadge status={l.status} />
+                    <StatusBadge
+                      status={l.salesStatus?.name ?? "Sem status"}
+                      slug={l.salesStatus?.slug}
+                    />
                   </td>
                   <td className="max-w-[220px] truncate border-b border-slate-200 px-3 py-2.5 text-[13px] text-slate-500">
                     {l.notes ?? "—"}
@@ -167,7 +172,7 @@ function LeadsPage() {
                         >
                           Ver Detalhes
                         </button>
-                        {l.status !== "Convertido" && (
+                        {!isLeadClosed(l) && (
                           <button
                             className="block w-full px-3 py-2 text-left text-[13px] text-azul-corporativo hover:bg-slate-100"
                             onClick={() => {

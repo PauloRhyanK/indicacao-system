@@ -1,7 +1,18 @@
 import * as XLSX from "xlsx";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
+import { badRequest } from "../utils/httpError.js";
 import { normalizePhone, parseDate, parseDecimal } from "../utils/format.js";
+import {
+  collectUnknownValues,
+  hasUnknownValues,
+  resolveActionId,
+  resolveSourceId,
+  resolveStatusId,
+  validateMappingsCoverUnknown,
+  type ImportMappings,
+  type UnknownValues,
+} from "./domainResolver.service.js";
 
 export interface ImportReport {
   imported: number;
@@ -22,13 +33,15 @@ export interface SheetInfo {
 export interface ImportPreview {
   sheets: SheetInfo[];
   defaultSheet: string | null;
+  unknownValues: UnknownValues;
+  canImport: boolean;
 }
 
 export interface ImportOptions {
   sheetName?: string;
+  mappings?: ImportMappings;
 }
 
-/** Remove acentos e normaliza para comparação de cabeçalhos. */
 function normalizeHeader(value: string): string {
   return value
     .normalize("NFD")
@@ -53,7 +66,6 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   updatedAt: ["ultima atualizacao", "atualizado em"],
 };
 
-/** Constrói um índice header-normalizado -> chave de campo do nosso modelo. */
 function buildHeaderIndex(headers: string[]): Map<string, string> {
   const index = new Map<string, string>();
   for (const header of headers) {
@@ -68,7 +80,6 @@ function buildHeaderIndex(headers: string[]): Map<string, string> {
   return index;
 }
 
-/** Resolve (ou cria placeholder) o consultor responsável a partir do nome. */
 async function resolveAssignedUser(
   name: string | undefined,
   cache: Map<string, string>,
@@ -88,7 +99,6 @@ async function resolveAssignedUser(
     return existing.id;
   }
 
-  // Cria consultor placeholder (sem senha utilizável) para manter o vínculo.
   const slug = key.replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
   const placeholderEmail = `${slug || "consultor"}.${Date.now()}@import.local`;
   const created = await tx.user.create({
@@ -104,7 +114,6 @@ async function resolveAssignedUser(
   return created.id;
 }
 
-/** Localiza a melhor aba automaticamente (nome BASE_CRM ou mais colunas reconhecidas). */
 function pickDefaultSheetName(workbook: XLSX.WorkBook): string | null {
   const analyzed = workbook.SheetNames.map((name) =>
     analyzeSheet(name, workbook.Sheets[name])
@@ -143,17 +152,6 @@ function analyzeSheet(
   return { name, hasValidHeaders: headerIdx >= 0, matchedColumns, dataRowCount };
 }
 
-export function previewWorkbookFromBuffer(buffer: Buffer): ImportPreview {
-  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-  const defaultSheet = pickDefaultSheetName(workbook);
-  const sheets = workbook.SheetNames.map((name) => {
-    const info = analyzeSheet(name, workbook.Sheets[name]);
-    return { ...info, isDefault: info.name === defaultSheet };
-  });
-  return { sheets, defaultSheet };
-}
-
-/** Resolve a aba alvo: explícita ou auto-detectada pelos cabeçalhos BASE_CRM. */
 function resolveSheet(
   workbook: XLSX.WorkBook,
   sheetName?: string
@@ -174,7 +172,6 @@ function resolveSheet(
   return { sheet: workbook.Sheets[fallback], sheetUsed: fallback };
 }
 
-/** Encontra a linha de cabeçalho (ID + Nome) — planilha CAIS tem título nas primeiras linhas. */
 function findHeaderRowIndex(rows: unknown[][]): number {
   for (let i = 0; i < rows.length; i++) {
     const norms = rows[i].map((c) => (c == null ? "" : normalizeHeader(String(c))));
@@ -185,7 +182,6 @@ function findHeaderRowIndex(rows: unknown[][]): number {
   return -1;
 }
 
-/** Converte linhas da planilha em objetos keyed pelo cabeçalho original. */
 function sheetToDataRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { defval: null, header: 1 });
   const headerIdx = findHeaderRowIndex(matrix);
@@ -208,6 +204,47 @@ function sheetToDataRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
     result.push(obj);
   }
   return result;
+}
+
+function rowsToFields(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  if (rows.length === 0) return [];
+  const headerIndex = buildHeaderIndex(Object.keys(rows[0]));
+  return rows.map((raw) => {
+    const fields: Record<string, unknown> = {};
+    for (const [header, value] of Object.entries(raw)) {
+      const field = headerIndex.get(header);
+      if (field) fields[field] = value;
+    }
+    return fields;
+  });
+}
+
+export async function previewWorkbookFromBuffer(
+  buffer: Buffer,
+  sheetName?: string
+): Promise<ImportPreview> {
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const defaultSheet = pickDefaultSheetName(workbook);
+  const sheets = workbook.SheetNames.map((name) => {
+    const info = analyzeSheet(name, workbook.Sheets[name]);
+    return { ...info, isDefault: info.name === defaultSheet };
+  });
+
+  const resolved = resolveSheet(workbook, sheetName ?? defaultSheet ?? undefined);
+  let unknownValues: UnknownValues = { statuses: [], sources: [], nextActions: [] };
+
+  if (resolved) {
+    const rows = sheetToDataRows(resolved.sheet);
+    const fields = rowsToFields(rows);
+    unknownValues = await collectUnknownValues(fields);
+  }
+
+  return {
+    sheets,
+    defaultSheet,
+    unknownValues,
+    canImport: !hasUnknownValues(unknownValues),
+  };
 }
 
 export async function importLeadsFromBuffer(
@@ -243,15 +280,28 @@ export async function importLeadsFromBuffer(
   }
 
   const rows = sheetToDataRows(sheet);
-
   const report: ImportReport = { imported: 0, updated: 0, skipped: 0, errors: [], sheetUsed };
   if (rows.length === 0) return report;
 
+  const fieldsList = rowsToFields(rows);
+  const unknownValues = await collectUnknownValues(fieldsList);
+  const mappings = options.mappings ?? {};
+
+  if (hasUnknownValues(unknownValues)) {
+    const missing = validateMappingsCoverUnknown(unknownValues, mappings);
+    if (missing.length > 0) {
+      throw badRequest(
+        `Valores não mapeados: ${missing.join("; ")}. Resolva no preview antes de importar.`
+      );
+    }
+  }
+
   const headerIndex = buildHeaderIndex(Object.keys(rows[0]));
   const userCache = new Map<string, string>();
+  const lookupCache = new Map<string, string | null>();
 
   for (let i = 0; i < rows.length; i++) {
-    const rowNumber = i + 2; // +1 cabeçalho, +1 base-1
+    const rowNumber = i + 2;
     const raw = rows[i];
 
     const fields: Record<string, unknown> = {};
@@ -275,18 +325,41 @@ export async function importLeadsFromBuffer(
           tx
         );
 
+        const sourceId = await resolveSourceId(
+          fields.source ? String(fields.source) : undefined,
+          mappings,
+          tx,
+          lookupCache
+        );
+        const salesStatusId = await resolveStatusId(
+          fields.salesStatus ? String(fields.salesStatus) : undefined,
+          mappings,
+          tx,
+          lookupCache
+        );
+        const nextActionId = await resolveActionId(
+          fields.nextAction ? String(fields.nextAction) : undefined,
+          mappings,
+          tx,
+          lookupCache
+        );
+
         const externalCode = fields.externalCode ? String(fields.externalCode).trim() : undefined;
         const closed = parseDecimal(fields.closedAmount as string | number | null);
         const createdAt = parseDate(fields.createdAt as string | number | Date | null);
         const updatedAt = parseDate(fields.updatedAt as string | number | Date | null);
 
+        const fechadoStatus = closed && closed.greaterThan(0)
+          ? await tx.leadStatus.findUnique({ where: { slug: "fechado" } })
+          : null;
+
         const data = {
           name,
           phone: normalizePhone(fields.phone as string | null),
-          source: fields.source ? String(fields.source) : undefined,
+          sourceId,
           assignedToUserId,
-          salesStatus: fields.salesStatus ? String(fields.salesStatus) : undefined,
-          nextAction: fields.nextAction ? String(fields.nextAction) : undefined,
+          salesStatusId: fechadoStatus ? fechadoStatus.id : salesStatusId,
+          nextActionId,
           nextFollowUpAt: parseDate(fields.nextFollowUpAt as string | number | null),
           notes: fields.notes ? String(fields.notes) : undefined,
           offeredAmount: parseDecimal(fields.offeredAmount as string | number | null),
@@ -316,7 +389,6 @@ export async function importLeadsFromBuffer(
           leadId = created.id;
         }
 
-        // Linhas com valor fechado geram compra e incrementam a meta vigente.
         if (closed && closed.greaterThan(0)) {
           const purchaseDate = parseDate(fields.updatedAt as string | number | null) ?? new Date();
           await tx.purchase.create({

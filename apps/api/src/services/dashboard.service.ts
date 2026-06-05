@@ -9,7 +9,7 @@ export async function getDashboardSummary() {
     getCurrentGoal(),
     prisma.lead.count(),
     prisma.lead.groupBy({
-      by: ["salesStatus"],
+      by: ["salesStatusId"],
       _count: { _all: true },
     }),
     prisma.lead.findMany({
@@ -17,8 +17,8 @@ export async function getDashboardSummary() {
       select: {
         id: true,
         name: true,
-        nextAction: true,
         nextFollowUpAt: true,
+        nextAction: { select: { id: true, slug: true, name: true } },
         assignedTo: { select: { id: true, name: true } },
       },
       orderBy: { nextFollowUpAt: "asc" },
@@ -26,8 +26,16 @@ export async function getDashboardSummary() {
     }),
   ]);
 
+  const statusIds = grouped.map((g) => g.salesStatusId).filter(Boolean) as string[];
+  const statuses = await prisma.leadStatus.findMany({
+    where: { id: { in: statusIds } },
+    select: { id: true, slug: true, name: true },
+  });
+  const statusMap = new Map(statuses.map((s) => [s.id, s]));
+
   const leadsByStatus = grouped.map((g) => ({
-    status: g.salesStatus ?? "Sem status",
+    status: g.salesStatusId ? (statusMap.get(g.salesStatusId)?.name ?? "Sem status") : "Sem status",
+    slug: g.salesStatusId ? (statusMap.get(g.salesStatusId)?.slug ?? null) : null,
     count: g._count._all,
   }));
 

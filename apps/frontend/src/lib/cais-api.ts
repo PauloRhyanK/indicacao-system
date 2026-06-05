@@ -1,19 +1,16 @@
 import { apiFetch } from "@/lib/api/client";
 
-export type LeadStatus =
-  | "Novo"
-  | "Em Contato"
-  | "Proposta Enviada"
-  | "Convertido"
-  | "Perdido";
+export interface LookupItem {
+  id: string;
+  slug: string;
+  name: string;
+}
 
-export const LEAD_STATUSES: LeadStatus[] = [
-  "Novo",
-  "Em Contato",
-  "Proposta Enviada",
-  "Convertido",
-  "Perdido",
-];
+export interface Lookups {
+  statuses: LookupItem[];
+  sources: LookupItem[];
+  nextActions: LookupItem[];
+}
 
 export interface Profile {
   id: string;
@@ -26,7 +23,9 @@ export interface Lead {
   id: string;
   name: string;
   phone: string;
-  status: LeadStatus;
+  salesStatus: LookupItem | null;
+  source: LookupItem | null;
+  nextAction: LookupItem | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -70,34 +69,6 @@ export interface ReferralChainResult {
   tree_truncated: boolean;
 }
 
-// ---- Status mapping (UI <-> API) ----
-
-const STATUS_TO_API: Record<LeadStatus, string> = {
-  Novo: "Novo",
-  "Em Contato": "Em negociação",
-  "Proposta Enviada": "Follow-up",
-  Convertido: "Fechado",
-  Perdido: "Perdido",
-};
-
-const STATUS_FROM_API: Record<string, LeadStatus> = {
-  Novo: "Novo",
-  "Em negociação": "Em Contato",
-  "Em negociacao": "Em Contato",
-  "Follow-up": "Proposta Enviada",
-  Fechado: "Convertido",
-  Perdido: "Perdido",
-};
-
-export function toApiStatus(status: LeadStatus): string {
-  return STATUS_TO_API[status] ?? status;
-}
-
-export function fromApiStatus(status: string | null | undefined): LeadStatus {
-  if (!status) return "Novo";
-  return STATUS_FROM_API[status] ?? (status as LeadStatus);
-}
-
 function mapRole(role: string): Profile["role"] {
   if (role === "ADMIN") return "admin";
   return "assessor";
@@ -108,7 +79,11 @@ function decimalToNumber(value: unknown): number {
   return Number(value);
 }
 
-// ---- Backend response types ----
+interface ApiLookup {
+  id: string;
+  slug: string;
+  name: string;
+}
 
 interface ApiUser {
   id: string;
@@ -123,7 +98,9 @@ interface ApiLead {
   externalCode?: string | null;
   name: string;
   phone?: string | null;
-  salesStatus?: string | null;
+  salesStatus?: ApiLookup | null;
+  source?: ApiLookup | null;
+  nextAction?: ApiLookup | null;
   notes?: string | null;
   assignedToUserId?: string | null;
   createdAt: string;
@@ -168,12 +145,19 @@ interface ApiTreeResponse {
   tree_truncated: boolean;
 }
 
+function mapLookup(item?: ApiLookup | null): LookupItem | null {
+  if (!item) return null;
+  return { id: item.id, slug: item.slug, name: item.name };
+}
+
 function mapLead(api: ApiLead): Lead {
   return {
     id: api.id,
     name: api.name,
     phone: api.phone ?? "",
-    status: fromApiStatus(api.salesStatus),
+    salesStatus: mapLookup(api.salesStatus),
+    source: mapLookup(api.source),
+    nextAction: mapLookup(api.nextAction),
     notes: api.notes ?? null,
     created_by: api.assignedToUserId ?? null,
     created_at: api.createdAt,
@@ -245,6 +229,49 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+export function isLeadClosed(lead: Lead): boolean {
+  return lead.salesStatus?.slug === "fechado";
+}
+
+// ---- Lookups ----
+
+export async function fetchLookups(): Promise<Lookups> {
+  const res = await apiFetch<{ data: Lookups }>("/settings/lookups");
+  return res.data;
+}
+
+export type LookupType = "status" | "source" | "action";
+
+const LOOKUP_ROUTES: Record<LookupType, string> = {
+  status: "lead-statuses",
+  source: "lead-sources",
+  action: "next-actions",
+};
+
+export async function createLookup(type: LookupType, name: string): Promise<LookupItem> {
+  const res = await apiFetch<{ data: LookupItem }>(`/settings/${LOOKUP_ROUTES[type]}`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  return res.data;
+}
+
+export async function updateLookup(
+  type: LookupType,
+  id: string,
+  name: string,
+): Promise<LookupItem> {
+  const res = await apiFetch<{ data: LookupItem }>(`/settings/${LOOKUP_ROUTES[type]}/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+  return res.data;
+}
+
+export async function deleteLookup(type: LookupType, id: string): Promise<void> {
+  await apiFetch(`/settings/${LOOKUP_ROUTES[type]}/${id}`, { method: "DELETE" });
+}
+
 // ---- Queries ----
 
 export async function fetchLeads(): Promise<Lead[]> {
@@ -299,7 +326,9 @@ export async function fetchReferrals(): Promise<Referral[]> {
 export interface NewLeadInput {
   name: string;
   phone: string;
-  status: LeadStatus;
+  salesStatusSlug?: string;
+  sourceSlug?: string;
+  nextActionSlug?: string;
   notes?: string;
   referrer_type?: "user" | "lead" | null;
   referrer_id?: string | null;
@@ -310,7 +339,9 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
   const body: Record<string, unknown> = {
     name: input.name.trim(),
     phone: input.phone.trim(),
-    salesStatus: toApiStatus(input.status),
+    salesStatusSlug: input.salesStatusSlug,
+    sourceSlug: input.sourceSlug,
+    nextActionSlug: input.nextActionSlug,
     notes: input.notes?.trim() || undefined,
     assignedToUserId: input.created_by ?? undefined,
   };
@@ -331,17 +362,18 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
 
 export async function updateLead(
   id: string,
-  patch: Partial<Pick<Lead, "name" | "phone" | "status" | "notes">>,
+  patch: Partial<{
+    name: string;
+    phone: string;
+    salesStatusSlug: string;
+    sourceSlug: string;
+    nextActionSlug: string;
+    notes: string;
+  }>,
 ): Promise<void> {
-  const body: Record<string, unknown> = {};
-  if (patch.name !== undefined) body.name = patch.name;
-  if (patch.phone !== undefined) body.phone = patch.phone;
-  if (patch.status !== undefined) body.salesStatus = toApiStatus(patch.status);
-  if (patch.notes !== undefined) body.notes = patch.notes;
-
   await apiFetch(`/leads/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(body),
+    body: JSON.stringify(patch),
   });
 }
 
@@ -375,20 +407,48 @@ export interface SheetInfo {
   isDefault: boolean;
 }
 
+export interface UnknownValues {
+  statuses: string[];
+  sources: string[];
+  nextActions: string[];
+}
+
 export interface ImportPreview {
   sheets: SheetInfo[];
   defaultSheet: string | null;
+  unknownValues: UnknownValues;
+  canImport: boolean;
 }
 
-async function buildImportForm(file: File, sheetName?: string): Promise<FormData> {
+export type MappingAction =
+  | { action: "map"; targetSlug: string }
+  | { action: "create"; name: string };
+
+export interface ImportMappings {
+  statuses?: Record<string, MappingAction>;
+  sources?: Record<string, MappingAction>;
+  nextActions?: Record<string, MappingAction>;
+}
+
+async function buildImportForm(
+  file: File,
+  sheetName?: string,
+  mappings?: ImportMappings,
+): Promise<FormData> {
   const form = new FormData();
   form.append("file", file);
   if (sheetName) form.append("sheetName", sheetName);
+  if (mappings && Object.keys(mappings).length > 0) {
+    form.append("mappings", JSON.stringify(mappings));
+  }
   return form;
 }
 
-export async function previewImportSheets(file: File): Promise<ImportPreview> {
-  const form = await buildImportForm(file);
+export async function previewImportSheets(
+  file: File,
+  sheetName?: string,
+): Promise<ImportPreview> {
+  const form = await buildImportForm(file, sheetName);
   return apiFetch<ImportPreview>("/leads/import/preview", {
     method: "POST",
     body: form,
@@ -398,8 +458,9 @@ export async function previewImportSheets(file: File): Promise<ImportPreview> {
 export async function importLeadsFromExcel(
   file: File,
   sheetName?: string,
+  mappings?: ImportMappings,
 ): Promise<ImportReport> {
-  const form = await buildImportForm(file, sheetName);
+  const form = await buildImportForm(file, sheetName, mappings);
   return apiFetch<ImportReport>("/leads/import", {
     method: "POST",
     body: form,

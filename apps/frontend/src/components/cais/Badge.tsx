@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import type { LeadStatus } from "@/lib/cais-api";
 
 const base =
   "inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap";
@@ -26,20 +25,27 @@ export function Badge({
   return <span className={cn(base, variants[variant], className)}>{children}</span>;
 }
 
-const statusVariant: Record<string, BadgeVariant> = {
-  Novo: "gray",
-  "Em Contato": "amber",
-  "Proposta Enviada": "gold",
-  Convertido: "green",
-  Perdido: "red",
-  // Status BASE_CRM mapeados diretamente quando exibidos sem adapter
-  "Em negociação": "amber",
-  "Em negociacao": "amber",
-  "Follow-up": "gold",
-  Fechado: "green",
+const slugVariant: Record<string, BadgeVariant> = {
+  fechado: "green",
+  perdido: "red",
+  "em-negociacao": "amber",
+  "follow-up": "gold",
+  pensando: "amber",
+  "proposta-enviada": "gold",
+  "reuniao-agendada": "gray",
+  "reuniao-realizada": "gray",
+  "sem-retorno": "red",
+  reagendar: "amber",
+  "mandar-proposta": "gold",
 };
 
-export function StatusBadge({ status }: { status: LeadStatus | string }) {
-  const variant = statusVariant[status] ?? "gray";
+export function StatusBadge({
+  status,
+  slug,
+}: {
+  status: string;
+  slug?: string | null;
+}) {
+  const variant = (slug && slugVariant[slug]) ?? "gray";
   return <Badge variant={variant}>{status}</Badge>;
 }

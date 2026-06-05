@@ -1,24 +1,74 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
-import { notFound } from "../utils/httpError.js";
+import { badRequest, notFound } from "../utils/httpError.js";
 import { normalizePhone } from "../utils/format.js";
 import { getReferrerOf, upsertReferral } from "./referral.service.js";
+import { findBySlug } from "./lookup.service.js";
 import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from "../schemas/lead.schema.js";
 
 const assignedToSelect = {
   select: { id: true, name: true, email: true },
 } as const;
 
+const lookupSelect = {
+  select: { id: true, slug: true, name: true },
+} as const;
+
+const leadInclude = {
+  assignedTo: assignedToSelect,
+  source: lookupSelect,
+  salesStatus: lookupSelect,
+  nextAction: lookupSelect,
+} as const;
+
 function toDecimal(value?: number) {
   return value === undefined ? undefined : new Prisma.Decimal(value);
+}
+
+async function resolveLookupIds(input: {
+  sourceId?: string;
+  sourceSlug?: string;
+  salesStatusId?: string;
+  salesStatusSlug?: string;
+  nextActionId?: string;
+  nextActionSlug?: string;
+}) {
+  let sourceId = input.sourceId;
+  let salesStatusId = input.salesStatusId;
+  let nextActionId = input.nextActionId;
+
+  if (input.sourceSlug) {
+    const found = await findBySlug("source", input.sourceSlug);
+    if (!found) throw badRequest(`Origem "${input.sourceSlug}" não encontrada`);
+    sourceId = found.id;
+  }
+  if (input.salesStatusSlug) {
+    const found = await findBySlug("status", input.salesStatusSlug);
+    if (!found) throw badRequest(`Status "${input.salesStatusSlug}" não encontrado`);
+    salesStatusId = found.id;
+  }
+  if (input.nextActionSlug) {
+    const found = await findBySlug("action", input.nextActionSlug);
+    if (!found) throw badRequest(`Ação "${input.nextActionSlug}" não encontrada`);
+    nextActionId = found.id;
+  }
+
+  return { sourceId, salesStatusId, nextActionId };
 }
 
 export async function listLeads(query: ListLeadsQuery) {
   const { page, limit, search, status, source, assignedTo } = query;
 
+  const statusFilter = status
+    ? { salesStatus: { slug: status } }
+    : {};
+  const sourceFilter = source
+    ? { source: { slug: source } }
+    : {};
+
   const where: Prisma.LeadWhereInput = {
-    ...(status ? { salesStatus: status } : {}),
-    ...(source ? { source } : {}),
+    ...statusFilter,
+    ...sourceFilter,
     ...(assignedTo ? { assignedToUserId: assignedTo } : {}),
     ...(search
       ? {
@@ -35,7 +85,7 @@ export async function listLeads(query: ListLeadsQuery) {
     prisma.lead.count({ where }),
     prisma.lead.findMany({
       where,
-      include: { assignedTo: assignedToSelect },
+      include: leadInclude,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
@@ -57,7 +107,7 @@ export async function getLeadById(id: string) {
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
-      assignedTo: assignedToSelect,
+      ...leadInclude,
       purchases: { orderBy: { purchaseDate: "desc" } },
     },
   });
@@ -69,6 +119,7 @@ export async function getLeadById(id: string) {
 
 export async function createLead(input: CreateLeadInput) {
   const { referrer, ...data } = input;
+  const lookupIds = await resolveLookupIds(data);
 
   return prisma.$transaction(async (tx) => {
     const lead = await tx.lead.create({
@@ -76,15 +127,16 @@ export async function createLead(input: CreateLeadInput) {
         externalCode: data.externalCode,
         name: data.name,
         phone: normalizePhone(data.phone),
-        source: data.source,
+        sourceId: lookupIds.sourceId,
         assignedToUserId: data.assignedToUserId,
-        salesStatus: data.salesStatus,
-        nextAction: data.nextAction,
+        salesStatusId: lookupIds.salesStatusId,
+        nextActionId: lookupIds.nextActionId,
         nextFollowUpAt: data.nextFollowUpAt,
         notes: data.notes,
         offeredAmount: toDecimal(data.offeredAmount),
         closedAmount: toDecimal(data.closedAmount),
       },
+      include: leadInclude,
     });
 
     if (referrer) {
@@ -100,6 +152,7 @@ export async function updateLead(id: string, input: UpdateLeadInput) {
   if (!existing) throw notFound("Lead não encontrado");
 
   const { referrer, ...data } = input;
+  const lookupIds = await resolveLookupIds(data);
 
   return prisma.$transaction(async (tx) => {
     const lead = await tx.lead.update({
@@ -108,15 +161,16 @@ export async function updateLead(id: string, input: UpdateLeadInput) {
         ...(data.externalCode !== undefined ? { externalCode: data.externalCode } : {}),
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.phone !== undefined ? { phone: normalizePhone(data.phone) } : {}),
-        ...(data.source !== undefined ? { source: data.source } : {}),
+        ...(lookupIds.sourceId !== undefined ? { sourceId: lookupIds.sourceId } : {}),
         ...(data.assignedToUserId !== undefined ? { assignedToUserId: data.assignedToUserId } : {}),
-        ...(data.salesStatus !== undefined ? { salesStatus: data.salesStatus } : {}),
-        ...(data.nextAction !== undefined ? { nextAction: data.nextAction } : {}),
+        ...(lookupIds.salesStatusId !== undefined ? { salesStatusId: lookupIds.salesStatusId } : {}),
+        ...(lookupIds.nextActionId !== undefined ? { nextActionId: lookupIds.nextActionId } : {}),
         ...(data.nextFollowUpAt !== undefined ? { nextFollowUpAt: data.nextFollowUpAt } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
         ...(data.offeredAmount !== undefined ? { offeredAmount: toDecimal(data.offeredAmount) } : {}),
         ...(data.closedAmount !== undefined ? { closedAmount: toDecimal(data.closedAmount) } : {}),
       },
+      include: leadInclude,
     });
 
     if (referrer) {

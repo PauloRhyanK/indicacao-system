@@ -30,15 +30,45 @@ model User {
   @@map("users")
 }
 
+model LeadStatus {
+  id   String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+
+  leads Lead[]
+
+  @@map("lead_statuses")
+}
+
+model LeadSource {
+  id   String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+
+  leads Lead[]
+
+  @@map("lead_sources")
+}
+
+model NextAction {
+  id   String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+
+  leads Lead[]
+
+  @@map("next_actions")
+}
+
 model Lead {
   id               String    @id @default(uuid()) @db.Uuid
   externalCode     String?   @unique @map("external_code")
   name             String
   phone            String?
-  source           String?
+  sourceId         String?   @map("source_id") @db.Uuid
   assignedToUserId String?   @map("assigned_to_user_id") @db.Uuid
-  salesStatus      String?   @map("sales_status")
-  nextAction       String?   @map("next_action")
+  salesStatusId    String?   @map("sales_status_id") @db.Uuid
+  nextActionId     String?   @map("next_action_id") @db.Uuid
   nextFollowUpAt   DateTime? @map("next_follow_up_at")
   notes            String?
   offeredAmount    Decimal?  @map("offered_amount") @db.Decimal(15, 2)
@@ -46,13 +76,16 @@ model Lead {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  assignedTo       User?      @relation("AssignedConsultant", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  purchases        Purchase[]
-  referralsAsLead  Referral[] @relation("ReferredLead")
+  source       LeadSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  salesStatus  LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
+  nextAction   NextAction? @relation(fields: [nextActionId], references: [id], onDelete: SetNull)
+  assignedTo   User?       @relation("AssignedConsultant", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  purchases    Purchase[]
+  referralsAsLead Referral[] @relation("ReferredLead")
 
   @@index([externalCode])
-  @@index([salesStatus])
-  @@index([source])
+  @@index([salesStatusId])
+  @@index([sourceId])
   @@index([nextFollowUpAt])
   @@index([assignedToUserId])
   @@map("leads")
