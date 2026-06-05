@@ -358,3 +358,50 @@ export async function registerSale(input: {
     }),
   });
 }
+
+export interface ImportReport {
+  imported: number;
+  updated: number;
+  skipped: number;
+  errors: { row: number; message: string }[];
+  sheetUsed?: string;
+}
+
+export interface SheetInfo {
+  name: string;
+  hasValidHeaders: boolean;
+  matchedColumns: number;
+  dataRowCount: number;
+  isDefault: boolean;
+}
+
+export interface ImportPreview {
+  sheets: SheetInfo[];
+  defaultSheet: string | null;
+}
+
+async function buildImportForm(file: File, sheetName?: string): Promise<FormData> {
+  const form = new FormData();
+  form.append("file", file);
+  if (sheetName) form.append("sheetName", sheetName);
+  return form;
+}
+
+export async function previewImportSheets(file: File): Promise<ImportPreview> {
+  const form = await buildImportForm(file);
+  return apiFetch<ImportPreview>("/leads/import/preview", {
+    method: "POST",
+    body: form,
+  });
+}
+
+export async function importLeadsFromExcel(
+  file: File,
+  sheetName?: string,
+): Promise<ImportReport> {
+  const form = await buildImportForm(file, sheetName);
+  return apiFetch<ImportReport>("/leads/import", {
+    method: "POST",
+    body: form,
+  });
+}

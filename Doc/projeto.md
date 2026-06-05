@@ -56,6 +56,66 @@ Planilha operacional recebida (`BASE_CRM`). Mapeamento coluna a coluna com o DDL
 
 ---
 
+### 📁 Planilha de referência validada
+
+Arquivo: `Doc/Referências/Consórcio CAIS_MESADIGITAL.xlsx`
+
+**Abas do arquivo:**
+
+| Aba | Uso |
+| --- | --- |
+| `PAINEL` | Dashboard executivo (KPIs calculados a partir da BASE_CRM) |
+| **`BASE_CRM`** | **Fonte de importação** — mini CRM de oportunidades |
+| `CONFIGURAÇÕES` | Parâmetros internos da planilha |
+| `_APOIO` | Tabelas auxiliares para fórmulas do painel |
+
+**Layout da aba BASE_CRM:** as primeiras 5 linhas são título, instruções e legenda visual. O cabeçalho da tabela está na **linha 6**; os dados começam na **linha 7** (`OP-0001` … `OP-0056`). O importador detecta automaticamente a linha de cabeçalho (colunas **ID** + **Nome do cliente**) e prioriza a aba `BASE_CRM`.
+
+**Colunas confirmadas (13 — idênticas ao modelo BASE_CRM):**
+
+| # | Coluna na planilha | Campo MVP |
+| --- | --- | --- |
+| 1 | ID | `leads.external_code` |
+| 2 | Data do registro | `leads.created_at` |
+| 3 | Nome do cliente | `leads.name` |
+| 4 | Telefone | `leads.phone` (só dígitos) |
+| 5 | Origem do lead | `leads.source` |
+| 6 | Responsável pela reunião | `leads.assigned_to_user_id` |
+| 7 | Status atual da oportunidade | `leads.sales_status` |
+| 8 | Próxima ação | `leads.next_action` |
+| 9 | Data do próximo follow-up | `leads.next_follow_up_at` |
+| 10 | Observações | `leads.notes` |
+| 11 | Valor da carta ofertada | `leads.offered_amount` |
+| 12 | Valor fechado | `leads.closed_amount` + `purchases` |
+| 13 | Última atualização | `leads.updated_at` |
+
+**Valores reais encontrados na planilha (jun/2026):**
+
+| Campo | Valores |
+| --- | --- |
+| Origem do lead | Base interna, Prospecção ativa, Evento mulheres, Base Lucas, MPA |
+| Status | Fechado, Perdido, Em negociação, Follow-up, Pensando, Reagendar, Reunião agendada, Sem retorno |
+| Responsável | Lucas/Carlos, Patrick/Carlos, Patrick |
+| Volume | 56 oportunidades (`OP-0001`–`OP-0056`) |
+
+**Comportamento do importador (`POST /api/v1/leads/import`):**
+
+1. Aceita `.xlsx` / `.xls` via multipart (`campo file`).
+2. Localiza aba `BASE_CRM` (fallback: primeira aba com cabeçalho reconhecível).
+3. Deduplica por `external_code` (reimportação atualiza o registro existente).
+4. Resolve consultor por nome; cria usuário placeholder se não existir.
+5. Linhas sem nome são ignoradas; demais erros retornam no relatório `{ imported, updated, skipped, errors[] }`.
+6. Frontend: botão **Importar Excel** na página de Leads, com seleção de aba (default automático).
+
+**Seleção de aba (auto-detect):**
+
+1. Varre **todas** as abas do arquivo.
+2. Em cada aba, procura uma linha com colunas **ID** + **Nome do cliente** (cabeçalho pode não ser a linha 1).
+3. Sugere por padrão: aba chamada `BASE_CRM`, ou a aba com mais colunas reconhecidas e mais linhas de dados.
+4. O usuário pode escolher outra aba no modal antes de importar (`POST /leads/import/preview` lista as opções).
+
+---
+
 ### 🛠️ Entregáveis Estruturados (Passo a Passo)
 
 Já li os arquivos `cais_cri_btg.html` e `cais_troca_ativos_5.html`. Eles utilizam a biblioteca Tailwind CSS, a fonte 'General Sans', e um padrão de cores muito elegante (Azul Profundo, Azul Marinho, Ouro) e componentes bem definidos.

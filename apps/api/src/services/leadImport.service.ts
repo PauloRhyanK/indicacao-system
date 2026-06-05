@@ -8,6 +8,24 @@ export interface ImportReport {
   updated: number;
   skipped: number;
   errors: { row: number; message: string }[];
+  sheetUsed?: string;
+}
+
+export interface SheetInfo {
+  name: string;
+  hasValidHeaders: boolean;
+  matchedColumns: number;
+  dataRowCount: number;
+  isDefault: boolean;
+}
+
+export interface ImportPreview {
+  sheets: SheetInfo[];
+  defaultSheet: string | null;
+}
+
+export interface ImportOptions {
+  sheetName?: string;
 }
 
 /** Remove acentos e normaliza para comparação de cabeçalhos. */
@@ -86,17 +104,147 @@ async function resolveAssignedUser(
   return created.id;
 }
 
-export async function importLeadsFromBuffer(buffer: Buffer): Promise<ImportReport> {
+/** Localiza a melhor aba automaticamente (nome BASE_CRM ou mais colunas reconhecidas). */
+function pickDefaultSheetName(workbook: XLSX.WorkBook): string | null {
+  const analyzed = workbook.SheetNames.map((name) =>
+    analyzeSheet(name, workbook.Sheets[name])
+  );
+  const valid = analyzed.filter((s) => s.hasValidHeaders);
+  if (valid.length === 0) return null;
+
+  const baseCrm = valid.find((s) => normalizeHeader(s.name) === "base_crm");
+  if (baseCrm) return baseCrm.name;
+
+  return valid.sort(
+    (a, b) => b.matchedColumns - a.matchedColumns || b.dataRowCount - a.dataRowCount
+  )[0].name;
+}
+
+function analyzeSheet(
+  name: string,
+  sheet: XLSX.WorkSheet
+): Omit<SheetInfo, "isDefault"> {
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { defval: null, header: 1 });
+  const headerIdx = findHeaderRowIndex(matrix);
+  const headers =
+    headerIdx >= 0
+      ? matrix[headerIdx]
+          .map((h) => (h == null ? "" : String(h).trim()))
+          .filter(Boolean)
+      : [];
+  const matchedColumns = buildHeaderIndex(headers).size;
+  const dataRowCount =
+    headerIdx >= 0
+      ? matrix
+          .slice(headerIdx + 1)
+          .filter((r) => r.some((c) => c != null && String(c).trim() !== "")).length
+      : 0;
+
+  return { name, hasValidHeaders: headerIdx >= 0, matchedColumns, dataRowCount };
+}
+
+export function previewWorkbookFromBuffer(buffer: Buffer): ImportPreview {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
-    return { imported: 0, updated: 0, skipped: 0, errors: [{ row: 0, message: "Planilha vazia" }] };
+  const defaultSheet = pickDefaultSheetName(workbook);
+  const sheets = workbook.SheetNames.map((name) => {
+    const info = analyzeSheet(name, workbook.Sheets[name]);
+    return { ...info, isDefault: info.name === defaultSheet };
+  });
+  return { sheets, defaultSheet };
+}
+
+/** Resolve a aba alvo: explícita ou auto-detectada pelos cabeçalhos BASE_CRM. */
+function resolveSheet(
+  workbook: XLSX.WorkBook,
+  sheetName?: string
+): { sheet: XLSX.WorkSheet; sheetUsed: string } | null {
+  if (sheetName) {
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) return null;
+    return { sheet, sheetUsed: sheetName };
   }
 
-  const sheet = workbook.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+  const autoName = pickDefaultSheetName(workbook);
+  if (autoName) {
+    return { sheet: workbook.Sheets[autoName], sheetUsed: autoName };
+  }
 
-  const report: ImportReport = { imported: 0, updated: 0, skipped: 0, errors: [] };
+  const fallback = workbook.SheetNames[0];
+  if (!fallback) return null;
+  return { sheet: workbook.Sheets[fallback], sheetUsed: fallback };
+}
+
+/** Encontra a linha de cabeçalho (ID + Nome) — planilha CAIS tem título nas primeiras linhas. */
+function findHeaderRowIndex(rows: unknown[][]): number {
+  for (let i = 0; i < rows.length; i++) {
+    const norms = rows[i].map((c) => (c == null ? "" : normalizeHeader(String(c))));
+    const hasId = norms.some((n) => n === "id");
+    const hasName = norms.some((n) => n.includes("nome") && n.includes("cliente"));
+    if (hasId && hasName) return i;
+  }
+  return -1;
+}
+
+/** Converte linhas da planilha em objetos keyed pelo cabeçalho original. */
+function sheetToDataRows(sheet: XLSX.WorkSheet): Record<string, unknown>[] {
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { defval: null, header: 1 });
+  const headerIdx = findHeaderRowIndex(matrix);
+  if (headerIdx < 0) {
+    return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+  }
+
+  const headers = matrix[headerIdx].map((h) => (h == null ? "" : String(h).trim()));
+  const result: Record<string, unknown>[] = [];
+
+  for (let i = headerIdx + 1; i < matrix.length; i++) {
+    const row = matrix[i];
+    if (!row.some((c) => c != null && String(c).trim() !== "")) continue;
+
+    const obj: Record<string, unknown> = {};
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      if (header) obj[header] = row[j] ?? null;
+    }
+    result.push(obj);
+  }
+  return result;
+}
+
+export async function importLeadsFromBuffer(
+  buffer: Buffer,
+  options: ImportOptions = {}
+): Promise<ImportReport> {
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const resolved = resolveSheet(workbook, options.sheetName);
+  if (!resolved) {
+    return {
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      errors: [{ row: 0, message: "Planilha vazia" }],
+    };
+  }
+
+  const { sheet, sheetUsed } = resolved;
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, { defval: null, header: 1 });
+  if (findHeaderRowIndex(matrix) < 0) {
+    return {
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      sheetUsed,
+      errors: [
+        {
+          row: 0,
+          message: `A aba "${sheetUsed}" não possui cabeçalhos BASE_CRM (ID + Nome do cliente)`,
+        },
+      ],
+    };
+  }
+
+  const rows = sheetToDataRows(sheet);
+
+  const report: ImportReport = { imported: 0, updated: 0, skipped: 0, errors: [], sheetUsed };
   if (rows.length === 0) return report;
 
   const headerIndex = buildHeaderIndex(Object.keys(rows[0]));
@@ -129,6 +277,8 @@ export async function importLeadsFromBuffer(buffer: Buffer): Promise<ImportRepor
 
         const externalCode = fields.externalCode ? String(fields.externalCode).trim() : undefined;
         const closed = parseDecimal(fields.closedAmount as string | number | null);
+        const createdAt = parseDate(fields.createdAt as string | number | Date | null);
+        const updatedAt = parseDate(fields.updatedAt as string | number | Date | null);
 
         const data = {
           name,
@@ -141,6 +291,8 @@ export async function importLeadsFromBuffer(buffer: Buffer): Promise<ImportRepor
           notes: fields.notes ? String(fields.notes) : undefined,
           offeredAmount: parseDecimal(fields.offeredAmount as string | number | null),
           closedAmount: closed,
+          ...(createdAt ? { createdAt } : {}),
+          ...(updatedAt ? { updatedAt } : {}),
         };
 
         let leadId: string;

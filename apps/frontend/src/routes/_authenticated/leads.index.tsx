@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
 import { NewLeadForm } from "@/components/cais/NewLeadForm";
+import { ImportExcelDialog } from "@/components/cais/ImportExcelDialog";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
@@ -32,6 +33,7 @@ function LeadsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | LeadStatus>("all");
   const [newOpen, setNewOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [saleFor, setSaleFor] = useState<Lead | null>(null);
 
@@ -63,9 +65,14 @@ function LeadsPage() {
           <h1 className="text-[26px] font-semibold text-azul-profundo">Leads</h1>
           <p className="text-[14px] text-slate-500">Gerencie e acompanhe suas indicações.</p>
         </div>
-        <Button variant="gold" onClick={() => setNewOpen(true)}>
-          + Novo Lead
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={() => setImportOpen(true)}>
+            Importar Excel
+          </Button>
+          <Button variant="gold" onClick={() => setNewOpen(true)}>
+            + Novo Lead
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -182,6 +189,7 @@ function LeadsPage() {
       )}
 
       <NewLeadForm open={newOpen} onClose={() => setNewOpen(false)} />
+      <ImportExcelDialog open={importOpen} onClose={() => setImportOpen(false)} />
       {saleFor && (
         <RegisterSaleDialog
           open={!!saleFor}
