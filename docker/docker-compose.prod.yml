@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cais_postgres_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cais}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-cais_indicacoes}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cais_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cais} -d ${POSTGRES_DB:-cais_indicacoes}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    container_name: cais_api_prod
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cais}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cais_indicacoes}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      PORT: 3001
+      NODE_ENV: production
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+    ports:
+      # Exposto apenas ao host para o NGINX já existente na VPS fazer proxy_pass.
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cais_internal
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Frontend (apps/web) — habilitar na Sprint 3, quando o build existir.
+  # frontend:
+  #   build:
+  #     context: ..
+  #     dockerfile: apps/web/Dockerfile
+  #   container_name: cais_frontend_prod
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:8080:80"
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - cais_internal
+
+networks:
+  cais_internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
