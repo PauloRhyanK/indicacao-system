@@ -1,7 +1,7 @@
-### 🔍 Investigação Ativa (Preciso que respondas a isto para fecharmos o cronograma final)
+### ✅ Decisões de Escopo (Fechadas)
 
-1. **Integração:** Este banco PostgreSQL vai funcionar de forma 100% isolada neste MVP, ou precisaremos de sincronizar estes leads com algum CRM legado (RD Station, Salesforce, HubSpot) no curto prazo? *(Isso muda drasticamente o tempo de backend).*
-2. **Volumetria e Paginação:** Qual é a expectativa de volume de leads para os primeiros 3 meses? A árvore de indicações terá limite de níveis (ex: premiar até o 3º nível de quem indicou) ou será teoricamente infinita? *(Árvores infinitas exigem queries recursivas pesadas que precisam de ser cacheadas).*
+1. **Integração:** O MVP opera de forma **isolada** com **importação inicial via planilha Excel** (BASE_CRM). Integrações com CRM legado (RD Station, Salesforce, HubSpot) ficam **fora do escopo imediato**, mas o schema deve prever campos de rastreio (`external_code`, `source`) para facilitar uma fase 2.
+2. **Volumetria e Árvore de Indicações:** Volume nos primeiros 3 meses é **indefinido**. A query recursiva da árvore terá **limite simbólico de 10 níveis**; se ultrapassar, a API retorna os dados parciais e avisa o usuário. Métricas de volumetria real serão analisadas depois do go-live.
 
 ---
 
@@ -10,10 +10,49 @@
 
 | Risco                                             | Impacto                                                                                                                                                     | Estratégia de Mitigação                                                                                                                                                               |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. Queries Recursivas na Árvore de Indicações** | **Alto:** Bancos SQL lidam mal com hierarquias infinitas (polimorfismo entre leads e usuários indicando). A performance pode afundar quando a base crescer. | Criar uma tabela de junção `referrals` e usar a extensão `ltree` do PostgreSQL ou *Recursive CTEs* limitadas a N níveis de profundidade no backend.                                   |
+| **1. Queries Recursivas na Árvore de Indicações** | **Alto:** Bancos SQL lidam mal com hierarquias infinitas (polimorfismo entre leads e usuários indicando). A performance pode afundar quando a base crescer. | Criar tabela `referrals` e usar *Recursive CTEs* com **limite fixo de 10 níveis** no backend. Se a profundidade real exceder o limite, retornar flag `tree_truncated: true` na API para o frontend avisar o usuário. |
 | **2. Alucinação de IA no Frontend (Loveable)**    | **Médio:** Ferramentas *no-code/AI* tendem a quebrar ao gerenciar estados complexos, como renderizar uma árvore visual de nós pais e filhos.                | O prompt do Loveable deve focar primeiro na estrutura tabular. A árvore deve ser construída como uma lista hierárquica simples (accordions) antes de tentar um grafo visual complexo. |
-| **3. Polimorfismo na Indicação**                  | **Alto:** Permitir que um "Lead" ou um "Usuário" seja o indicador quebra as chaves estrangeiras tradicionais (Foreign Keys) no SQL.                         | Abstrair a entidade indicadora. A tabela `leads` terá campos `referred_by_type` (Enum: USER, LEAD) e `referred_by_id`. O ORM do backend cuidará da integridade.                       |
+| **3. Polimorfismo na Indicação**                  | **Alto:** Permitir que um "Lead" ou um "Usuário" seja o indicador quebra as chaves estrangeiras tradicionais (Foreign Keys) no SQL.                         | Tabela dedicada `referrals` com `referrer_type` + `referrer_id` (sem FK polimórfica rígida). Validação de integridade no backend/ORM.                       |
 
+
+---
+
+### 📊 Análise BASE_CRM vs Schema MVP
+
+Planilha operacional recebida (`BASE_CRM`). Mapeamento coluna a coluna com o DDL proposto e lacunas identificadas.
+
+| Coluna BASE_CRM | Campo sugerido no MVP | Status | Observação |
+| --- | --- | --- | --- |
+| **ID** (ex: OP-0001) | `leads.external_code` | **Faltava** | Código legível para referência humana e importação Excel. UUID interno permanece como PK. |
+| **Data do registro** | `leads.created_at` | ✅ Coberto | Mapeia direto na importação. |
+| **Nome do cliente** | `leads.name` | ✅ Coberto | — |
+| **Telefone** | `leads.phone` | ✅ Coberto | Normalizar formato na importação (DDI, máscara). |
+| **Origem do lead** | `leads.source` | **Faltava** | Ex.: "Base interna", "Indicação", "Marketing". Essencial para analytics de canal. |
+| **Responsável pela reunião** | `leads.assigned_to_user_id` (FK → `users`) | **Faltava** | Consultor responsável (ex.: "Lucas/Carlos"). Pode exigir cadastro prévio de usuários na importação. |
+| **Status atual da oportunidade** | `leads.sales_status` | ✅ Coberto | Usar enum ou lookup alinhado aos valores da planilha ("Fechado", "Em negociação", etc.). |
+| **Próxima ação** | `leads.next_action` | **Faltava** | Texto curto do próximo passo comercial. |
+| **Data do próximo follow-up** | `leads.next_follow_up_at` | **Faltava** | Agenda do vendedor; indexar para listagens de "follow-ups do dia". |
+| **Observações** | `leads.notes` | ✅ Coberto | Campo de texto livre. |
+| **Valor da carta ofertada** | `leads.offered_amount` | **Faltava** | Pipeline em negociação; distinto de venda fechada. |
+| **Valor fechado** | `purchases.amount` + `leads.closed_amount` | ⚠️ Parcial | `purchases` registra cada venda; `closed_amount` espelha o valor da planilha quando status = Fechado (denormalizado para importação). |
+| **Última atualização** | `leads.updated_at` | **Faltava** | Auditoria e detecção de registros estagnados. |
+
+**Campos do schema original sem equivalente direto na BASE_CRM:**
+
+| Entidade MVP | Uso | Relação com a planilha |
+| --- | --- | --- |
+| `referrals` | Cadeia de indicações (USER ou LEAD → lead) | Inferir quando `source = "Indicação"`; na importação inicial pode ficar vazio até cadastro manual. |
+| `purchases` | Histórico de vendas de consórcio | Criar registro quando `Valor fechado` > 0 e status = Fechado. |
+| `goals` | Meta global de vendas | Não existe na planilha; entidade administrativa do dashboard. |
+| `users` | Login e consultores | Necessário para `assigned_to_user_id` e indicadores do tipo USER. |
+
+**Regras de importação Excel (MVP):**
+
+1. `external_code` ← coluna **ID** (chave de deduplicação na reimportação).
+2. `source`, `sales_status`, `next_action`, datas e valores ← mapeamento 1:1 conforme tabela acima.
+3. `assigned_to_user_id` ← resolver por nome do **Responsável pela reunião** (criar usuário placeholder se não existir, ou fila de revisão pós-importação).
+4. Se **Origem** = "Indicação" e houver coluna futura com nome do indicador, popular `referrals`; na planilha atual isso não vem explícito.
+5. Linhas com **Valor fechado** preenchido geram registro em `purchases` e incrementam `goals.current_amount`.
 
 ---
 
@@ -30,13 +69,18 @@ Aqui estão os artefatos solicitados para darmos início imediato:
 > "Atue como um Arquiteto de Banco de Dados PostgreSQL. Crie o script DDL completo para um MVP de um Programa de Indicações.
 > **Regras de Negócio:**
 >
-> 1. Tabela `users`: (id, name, email, password_hash, role, created_at).
-> 2. Tabela `leads`: (id, name, phone, sales_status, notes, created_at).
-> 3. Tabela `referrals`: Lida com o polimorfismo. Campos: id, `referred_lead_id` (FK para leads), `referrer_type` (Enum: 'USER' ou 'LEAD'), `referrer_id` (UUID correspondente à tabela correta), created_at.
-> 4. Tabela `purchases`: Registra vendas de consórcio. Campos: id, `lead_id` (FK), amount (decimal), purchase_date.
-> 5. Tabela `goals`: Acompanha a meta. Campos: id, target_amount, current_amount, start_date, end_date.
+> 1. Tabela `users`: (id UUID PK, name, email, password_hash, role, created_at).
+> 2. Tabela `leads`: (id UUID PK, **external_code** VARCHAR UNIQUE — ex. OP-0001 da planilha BASE_CRM, name, phone, **source** — origem do lead, **assigned_to_user_id** FK nullable → users, sales_status, **next_action**, **next_follow_up_at**, notes, **offered_amount** DECIMAL nullable, **closed_amount** DECIMAL nullable, created_at, **updated_at**).
+> 3. Tabela `referrals`: Polimorfismo. Campos: id, `referred_lead_id` (FK → leads), `referrer_type` (Enum: 'USER' ou 'LEAD'), `referrer_id` (UUID), created_at.
+> 4. Tabela `purchases`: Vendas de consórcio. Campos: id, `lead_id` (FK), amount (decimal), purchase_date, created_at.
+> 5. Tabela `goals`: Meta global. Campos: id, target_amount, current_amount, start_date, end_date.
 >
-> **Output esperado:** Código SQL puro com criação de UUIDs nativos do Postgres, constraints, índices nas foreign keys e um comentário sobre como fazer uma query recursiva (CTE) para buscar a árvore de indicações de uma compra."
+> **Requisitos técnicos:**
+> - UUIDs nativos (`gen_random_uuid()`), enums tipados, constraints e índices em todas as FKs.
+> - Índice em `leads.external_code`, `leads.next_follow_up_at`, `leads.sales_status`, `leads.source`.
+> - Trigger ou default para `leads.updated_at` ON UPDATE.
+> - Comentário SQL com CTE recursiva para árvore de indicações **limitada a 10 níveis**, retornando flag quando truncada.
+> - Comentário sobre endpoint de importação Excel mapeando colunas BASE_CRM → tabelas acima."
 
 #### 2. Prompt para Extração da Identidade Visual
 
@@ -66,7 +110,7 @@ Como solicitaste, aqui está o prompt estruturado (embora eu já tenha processad
 > **Páginas a criar (Crie um roteador simples com abas no topo):**
 >
 > 1. **Dashboard Inicial:** Um Card KPI gigante (estilo `.kpi-card`) mostrando o progresso da Meta de Vendas (Valor atual vs Valor Alvo) com uma barra de progresso verde/ouro.
-> 2. **Gestão de Leads:** Uma tabela elegante de leads (Nome, Celular, Status, Indicado Por). Deve ter um header com campo de busca. Um botão lateral "Adicionar Lead" que abre um modal.
+> 2. **Gestão de Leads:** Tabela com colunas alinhadas à BASE_CRM: Nome, Celular, Status, Origem, Responsável, Próxima Ação, Follow-up, Valor Ofertado. Botão **Importar Excel** e **Adicionar Lead** (modal).
 > 3. **Detalhes do Lead:** Ao clicar num lead, ver uma tela com seus dados, campo de "Observações", um botão "Registrar Compra de Consórcio" e, abaixo, uma UI em formato de "Accordion" ou "Árvore de Diretórios" mostrando quem o indicou e quem ele já indicou.
 >
 > Mantenha o código limpo, modularizando a Tabela, o Modal e a Árvore de indicações em componentes separados."
@@ -75,7 +119,7 @@ Como solicitaste, aqui está o prompt estruturado (embora eu já tenha processad
 
 - **Linguagem & ORM:** TypeScript executado em **Node.js** (recomendo Express ou Fastify para leveza no MVP) associado ao **Prisma ORM**.
 - **Por que Prisma?** Ele lida perfeitamente com TypeScript, cria os *schemas* com tipagem segura e facilitará imenso a criação de queries relacionais complexas (necessárias para a árvore de indicação) no PostgreSQL.
-- **Endpoints Chave:** CRUD de Leads, Cadastro de Compra (este endpoint atualiza a tabela `purchases` e adiciona o valor à tabela `goals`), e um endpoint `GET /leads/:id/tree` (que roda a query recursiva para entregar a árvore montada ao frontend).
+- **Endpoints Chave:** CRUD de Leads, **POST /leads/import** (upload Excel BASE_CRM), Cadastro de Compra (atualiza `purchases` e `goals`), e **GET /leads/:id/tree?maxDepth=10** (CTE recursiva com flag `tree_truncated` se exceder o limite).
 
 #### 5. Infraestrutura (VPS via Docker)
 
@@ -90,15 +134,14 @@ Subir tudo num monorepo usando Docker Compose para facilitar a vida da tua equip
 
 ### 📅 Estimativa Macro Preliminar (Assumindo 2 Devs Plenos)
 
-*Nota: Este cronograma será ajustado com base nas tuas respostas às minhas perguntas acima.*
+*Escopo fechado com importação Excel e limite de 10 níveis na árvore.*
 
 
 | Épico (Metodologia Ágil)                        | Esforço Estimado | Foco Principal                                                                  | Gargalos / Encarecedores                                                                 |
 | ----------------------------------------------- | ---------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| **Sprint 1: Fundação & BD**                     | 1 Semana         | Setup Docker, Schema Postgres, Modelos Prisma, Auth Básico de Usuários.         | Configurar o polimorfismo das indicações (Referrals) de forma robusta.                   |
-| **Sprint 2: Core Business API**                 | 1 Semana         | CRUD Leads, Registro de Vendas, Progressão de Metas.                            | Garantir que o rollback funcione se uma compra falhar no meio.                           |
-| **Sprint 3: Front-end (Loveable) & Integração** | 1.5 Semanas      | Geração das telas base, modal, listagens, integração via Axios/Fetch com a API. | Customizar o Loveable para respeitar os detalhes refinados do HTML enviado.              |
-| **Sprint 4: A Árvore de Indicações**            | 1 Semana         | Desenvolver a query recursiva no backend e renderizar a árvore visual no front. | **Este é o ponto que vai encarecer o orçamento.** A lógica da árvore é chata de debugar. |
+| **Sprint 1: Fundação & BD**                     | 1 Semana         | Setup Docker, Schema Postgres (incl. campos BASE_CRM), Modelos Prisma, Auth Básico. | Polimorfismo de `referrals` e mapeamento de importação Excel.                            |
+| **Sprint 2: Core Business API**                 | 1 Semana         | CRUD Leads, Import Excel, Registro de Vendas, Metas.                               | Resolver consultor na importação; rollback transacional em compras.                      |
+| **Sprint 3: Front-end (Loveable) & Integração** | 1.5 Semanas      | Telas base, modal, listagens, upload Excel, integração com API.                   | Colunas extras da BASE_CRM na tabela; customização visual do HTML de referência.         |
+| **Sprint 4: A Árvore de Indicações**            | 1 Semana         | CTE recursiva (max 10 níveis) + árvore visual + aviso de truncamento.               | UX do aviso quando a contagem ultrapassa o limite simbólico.                             |
 
-
-Fico a aguardar as tuas respostas sobre a Integração e a Volumetria para cravarmos este escopo e avançarmos para o código! Como preferes seguir?
+**Total preliminar:** ~4,5 semanas (2 devs plenos), sem integração CRM externa na fase 1.
