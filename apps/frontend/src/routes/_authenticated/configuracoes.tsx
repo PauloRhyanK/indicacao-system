@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Badge } from "@/components/cais/Badge";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchMe } from "@/lib/api/auth";
 import { fetchMetaPeriod, fetchProfiles, formatBRL, formatDate } from "@/lib/cais-api";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -18,7 +18,9 @@ function ConfiguracoesPage() {
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
+    fetchMe()
+      .then((u) => setEmail(u.email))
+      .catch(() => setEmail(""));
   }, []);
 
   return (

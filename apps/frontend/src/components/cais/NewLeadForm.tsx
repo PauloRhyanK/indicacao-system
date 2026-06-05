@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "./Button";
 import { Field, inputClass, SlideOver } from "./SlideOver";
 import {

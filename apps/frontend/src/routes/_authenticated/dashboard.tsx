@@ -16,7 +16,7 @@ import { KPICard } from "@/components/cais/KPICard";
 import { Badge } from "@/components/cais/Badge";
 import { SectionHeader } from "@/components/cais/Feedback";
 import { PageLoader } from "@/components/cais/Feedback";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchMe } from "@/lib/api/auth";
 import {
   fetchLeads,
   fetchSales,
@@ -50,16 +50,9 @@ function Dashboard() {
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      const id = data.user?.id;
-      if (!id) return;
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("name")
-        .eq("id", id)
-        .maybeSingle();
-      if (p?.name) setUserName(p.name.split(" ")[0]);
-    });
+    fetchMe()
+      .then((u) => setUserName(u.name.split(" ")[0]))
+      .catch(() => setUserName("Assessor"));
   }, []);
 
   const [progressW, setProgressW] = useState(0);

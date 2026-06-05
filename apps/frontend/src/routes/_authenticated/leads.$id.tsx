@@ -95,7 +95,11 @@ function LeadDetail() {
         {chain.isLoading ? (
           <PageLoader />
         ) : (
-          <ReferralChain chain={chain.data ?? []} currentLeadName={l.name} />
+          <ReferralChain
+            chain={chain.data?.chain ?? []}
+            currentLeadName={l.name}
+            treeTruncated={chain.data?.tree_truncated}
+          />
         )}
       </div>
 

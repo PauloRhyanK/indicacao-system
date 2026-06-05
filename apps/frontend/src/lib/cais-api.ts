@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/lib/api/client";
 
 export type LeadStatus =
   | "Novo"
@@ -56,6 +56,170 @@ export interface ChainNode {
   node_name: string;
 }
 
+export interface Referral {
+  id: string;
+  lead_id: string;
+  referrer_type: "user" | "lead";
+  referrer_user_id: string | null;
+  referrer_lead_id: string | null;
+  created_at: string;
+}
+
+export interface ReferralChainResult {
+  chain: ChainNode[];
+  tree_truncated: boolean;
+}
+
+// ---- Status mapping (UI <-> API) ----
+
+const STATUS_TO_API: Record<LeadStatus, string> = {
+  Novo: "Novo",
+  "Em Contato": "Em negociação",
+  "Proposta Enviada": "Follow-up",
+  Convertido: "Fechado",
+  Perdido: "Perdido",
+};
+
+const STATUS_FROM_API: Record<string, LeadStatus> = {
+  Novo: "Novo",
+  "Em negociação": "Em Contato",
+  "Em negociacao": "Em Contato",
+  "Follow-up": "Proposta Enviada",
+  Fechado: "Convertido",
+  Perdido: "Perdido",
+};
+
+export function toApiStatus(status: LeadStatus): string {
+  return STATUS_TO_API[status] ?? status;
+}
+
+export function fromApiStatus(status: string | null | undefined): LeadStatus {
+  if (!status) return "Novo";
+  return STATUS_FROM_API[status] ?? (status as LeadStatus);
+}
+
+function mapRole(role: string): Profile["role"] {
+  if (role === "ADMIN") return "admin";
+  return "assessor";
+}
+
+function decimalToNumber(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  return Number(value);
+}
+
+// ---- Backend response types ----
+
+interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+interface ApiLead {
+  id: string;
+  externalCode?: string | null;
+  name: string;
+  phone?: string | null;
+  salesStatus?: string | null;
+  notes?: string | null;
+  assignedToUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApiPurchase {
+  id: string;
+  leadId: string;
+  amount: unknown;
+  purchaseDate: string;
+  createdAt: string;
+}
+
+interface ApiGoal {
+  id: string;
+  targetAmount: unknown;
+  currentAmount: unknown;
+  startDate: string;
+  endDate: string;
+}
+
+interface ApiReferral {
+  id: string;
+  referredLeadId: string;
+  referrerType: "USER" | "LEAD";
+  referrerId: string;
+  referredLeadName?: string;
+  referrerName?: string | null;
+  createdAt: string;
+}
+
+interface ApiTreeNode {
+  id: string;
+  name: string;
+  type: "USER" | "LEAD";
+  depth: number;
+}
+
+interface ApiTreeResponse {
+  ancestors: ApiTreeNode[];
+  tree_truncated: boolean;
+}
+
+function mapLead(api: ApiLead): Lead {
+  return {
+    id: api.id,
+    name: api.name,
+    phone: api.phone ?? "",
+    status: fromApiStatus(api.salesStatus),
+    notes: api.notes ?? null,
+    created_by: api.assignedToUserId ?? null,
+    created_at: api.createdAt,
+    updated_at: api.updatedAt,
+  };
+}
+
+function mapProfile(api: ApiUser): Profile {
+  return {
+    id: api.id,
+    name: api.name,
+    role: mapRole(api.role),
+    created_at: api.createdAt,
+  };
+}
+
+function mapSale(api: ApiPurchase): Sale {
+  return {
+    id: api.id,
+    lead_id: api.leadId,
+    sale_value: decimalToNumber(api.amount),
+    sold_by: null,
+    sold_at: api.purchaseDate,
+  };
+}
+
+function mapReferral(api: ApiReferral): Referral {
+  return {
+    id: api.id,
+    lead_id: api.referredLeadId,
+    referrer_type: api.referrerType === "USER" ? "user" : "lead",
+    referrer_user_id: api.referrerType === "USER" ? api.referrerId : null,
+    referrer_lead_id: api.referrerType === "LEAD" ? api.referrerId : null,
+    created_at: api.createdAt,
+  };
+}
+
+function formatPeriodLabel(start: string, end: string): string {
+  const s = new Date(start);
+  const months = [
+    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+    "Jul", "Ago", "Set", "Out", "Nov", "Dez",
+  ];
+  return `${months[s.getMonth()]} ${s.getFullYear()} — ${new Date(end).toLocaleDateString("pt-BR")}`;
+}
+
 export function formatBRL(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -84,71 +248,53 @@ export function formatDateTime(iso: string): string {
 // ---- Queries ----
 
 export async function fetchLeads(): Promise<Lead[]> {
-  const { data, error } = await supabase
-    .from("leads")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data as Lead[];
+  const res = await apiFetch<{ data: ApiLead[] }>("/leads?limit=100");
+  return res.data.map(mapLead);
 }
 
 export async function fetchLead(id: string): Promise<Lead> {
-  const { data, error } = await supabase
-    .from("leads")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (error) throw error;
-  return data as Lead;
+  const res = await apiFetch<{ data: ApiLead }>(`/leads/${id}`);
+  return mapLead(res.data);
 }
 
 export async function fetchProfiles(): Promise<Profile[]> {
-  const { data, error } = await supabase.from("profiles").select("*").order("name");
-  if (error) throw error;
-  return data as Profile[];
+  const res = await apiFetch<{ data: ApiUser[] }>("/users");
+  return res.data.map(mapProfile);
 }
 
 export async function fetchSales(): Promise<Sale[]> {
-  const { data, error } = await supabase.from("sales").select("*");
-  if (error) throw error;
-  return data as Sale[];
+  const res = await apiFetch<{ data: ApiPurchase[] }>("/purchases");
+  return res.data.map(mapSale);
 }
 
 export async function fetchMetaPeriod(): Promise<MetaPeriod | null> {
-  const { data, error } = await supabase
-    .from("meta_periods")
-    .select("*")
-    .order("start_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data as MetaPeriod | null;
+  const res = await apiFetch<{ data: ApiGoal | null }>("/goals/current");
+  if (!res.data) return null;
+  const g = res.data;
+  return {
+    id: g.id,
+    period_label: formatPeriodLabel(g.startDate, g.endDate),
+    target_value: decimalToNumber(g.targetAmount),
+    start_date: g.startDate,
+    end_date: g.endDate,
+  };
 }
 
-export async function fetchReferralChain(leadId: string): Promise<ChainNode[]> {
-  const { data, error } = await supabase.rpc("get_referral_chain", {
-    p_lead_id: leadId,
-  });
-  if (error) throw error;
-  return (data ?? []) as ChainNode[];
-}
-
-export interface Referral {
-  id: string;
-  lead_id: string;
-  referrer_type: "user" | "lead";
-  referrer_user_id: string | null;
-  referrer_lead_id: string | null;
-  created_at: string;
+export async function fetchReferralChain(leadId: string): Promise<ReferralChainResult> {
+  const res = await apiFetch<ApiTreeResponse>(`/leads/${leadId}/tree?maxDepth=10`);
+  const chain: ChainNode[] = res.ancestors.map((a) => ({
+    level: a.depth,
+    node_type: a.type === "USER" ? "user" : "lead",
+    node_id: a.id,
+    node_name: a.name,
+  }));
+  return { chain, tree_truncated: res.tree_truncated };
 }
 
 export async function fetchReferrals(): Promise<Referral[]> {
-  const { data, error } = await supabase.from("referrals").select("*");
-  if (error) throw error;
-  return data as Referral[];
+  const res = await apiFetch<{ data: ApiReferral[] }>("/referrals");
+  return res.data.map(mapReferral);
 }
-
-
 
 export interface NewLeadInput {
   name: string;
@@ -161,38 +307,42 @@ export interface NewLeadInput {
 }
 
 export async function createLead(input: NewLeadInput): Promise<Lead> {
-  const { data, error } = await supabase
-    .from("leads")
-    .insert({
-      name: input.name,
-      phone: input.phone,
-      status: input.status,
-      notes: input.notes || null,
-      created_by: input.created_by ?? null,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  const lead = data as Lead;
+  const body: Record<string, unknown> = {
+    name: input.name.trim(),
+    phone: input.phone.trim(),
+    salesStatus: toApiStatus(input.status),
+    notes: input.notes?.trim() || undefined,
+    assignedToUserId: input.created_by ?? undefined,
+  };
 
   if (input.referrer_type && input.referrer_id) {
-    const { error: refErr } = await supabase.from("referrals").insert({
-      lead_id: lead.id,
-      referrer_type: input.referrer_type,
-      referrer_user_id: input.referrer_type === "user" ? input.referrer_id : null,
-      referrer_lead_id: input.referrer_type === "lead" ? input.referrer_id : null,
-    });
-    if (refErr) throw refErr;
+    body.referrer = {
+      type: input.referrer_type === "user" ? "USER" : "LEAD",
+      id: input.referrer_id,
+    };
   }
-  return lead;
+
+  const res = await apiFetch<{ data: ApiLead }>("/leads", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return mapLead(res.data);
 }
 
 export async function updateLead(
   id: string,
   patch: Partial<Pick<Lead, "name" | "phone" | "status" | "notes">>,
 ): Promise<void> {
-  const { error } = await supabase.from("leads").update(patch).eq("id", id);
-  if (error) throw error;
+  const body: Record<string, unknown> = {};
+  if (patch.name !== undefined) body.name = patch.name;
+  if (patch.phone !== undefined) body.phone = patch.phone;
+  if (patch.status !== undefined) body.salesStatus = toApiStatus(patch.status);
+  if (patch.notes !== undefined) body.notes = patch.notes;
+
+  await apiFetch(`/leads/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }
 
 export async function registerSale(input: {
@@ -200,10 +350,11 @@ export async function registerSale(input: {
   sale_value: number;
   sold_by?: string | null;
 }): Promise<void> {
-  const { error } = await supabase.from("sales").insert({
-    lead_id: input.lead_id,
-    sale_value: input.sale_value,
-    sold_by: input.sold_by ?? null,
+  await apiFetch(`/leads/${input.lead_id}/purchases`, {
+    method: "POST",
+    body: JSON.stringify({
+      amount: input.sale_value,
+      purchaseDate: new Date().toISOString(),
+    }),
   });
-  if (error) throw error;
 }

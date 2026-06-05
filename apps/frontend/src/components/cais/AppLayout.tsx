@@ -6,7 +6,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { logout } from "@/lib/api/auth";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -23,8 +23,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isActive = (to: string) =>
     pathname === to || pathname.startsWith(to + "/");
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    logout();
     navigate({ to: "/login", replace: true });
   };
 

@@ -51,9 +51,11 @@ function Node({ node }: { node: DisplayNode }) {
 export function ReferralChain({
   chain,
   currentLeadName,
+  treeTruncated,
 }: {
   chain: ChainNode[];
   currentLeadName: string;
+  treeTruncated?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -101,6 +103,11 @@ export function ReferralChain({
         >
           Recolher cadeia
         </button>
+      )}
+      {treeTruncated && (
+        <p className="text-[12px] text-status-amber">
+          A cadeia de indicações excede o limite de profundidade exibido (10 níveis).
+        </p>
       )}
     </div>
   );

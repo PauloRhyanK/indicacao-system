@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { login, isAuthenticated } from "@/lib/api/auth";
 import { Button } from "@/components/cais/Button";
 import { inputClass } from "@/components/cais/SlideOver";
 
@@ -25,22 +25,21 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard", replace: true });
-    });
+    if (isAuthenticated()) navigate({ to: "/dashboard", replace: true });
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
+    try {
+      await login(email, password);
+      navigate({ to: "/dashboard", replace: true });
+    } catch {
       setError("E-mail ou senha inválidos.");
-      return;
+    } finally {
+      setLoading(false);
     }
-    navigate({ to: "/dashboard", replace: true });
   };
 
   return (

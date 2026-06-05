@@ -49,3 +49,9 @@ export async function listPurchases(leadId: string) {
     orderBy: { purchaseDate: "desc" },
   });
 }
+
+export async function listAllPurchases() {
+  return prisma.purchase.findMany({
+    orderBy: { purchaseDate: "desc" },
+  });
+}

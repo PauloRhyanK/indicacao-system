@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createPurchaseSchema } from "../schemas/purchase.schema.js";
-import { listPurchases, registerPurchase } from "../services/purchase.service.js";
+import { listAllPurchases, listPurchases, registerPurchase } from "../services/purchase.service.js";
 
 export async function postPurchase(request: FastifyRequest, reply: FastifyReply) {
   const { leadId } = request.params as { leadId: string };
@@ -12,5 +12,10 @@ export async function postPurchase(request: FastifyRequest, reply: FastifyReply)
 export async function getPurchases(request: FastifyRequest, reply: FastifyReply) {
   const { leadId } = request.params as { leadId: string };
   const purchases = await listPurchases(leadId);
+  return reply.send({ data: purchases });
+}
+
+export async function getAllPurchases(_request: FastifyRequest, reply: FastifyReply) {
+  const purchases = await listAllPurchases();
   return reply.send({ data: purchases });
 }

@@ -26,14 +26,20 @@ export function Badge({
   return <span className={cn(base, variants[variant], className)}>{children}</span>;
 }
 
-const statusVariant: Record<LeadStatus, BadgeVariant> = {
+const statusVariant: Record<string, BadgeVariant> = {
   Novo: "gray",
   "Em Contato": "amber",
   "Proposta Enviada": "gold",
   Convertido: "green",
   Perdido: "red",
+  // Status BASE_CRM mapeados diretamente quando exibidos sem adapter
+  "Em negociação": "amber",
+  "Em negociacao": "amber",
+  "Follow-up": "gold",
+  Fechado: "green",
 };
 
-export function StatusBadge({ status }: { status: LeadStatus }) {
-  return <Badge variant={statusVariant[status]}>{status}</Badge>;
+export function StatusBadge({ status }: { status: LeadStatus | string }) {
+  const variant = statusVariant[status] ?? "gray";
+  return <Badge variant={variant}>{status}</Badge>;
 }

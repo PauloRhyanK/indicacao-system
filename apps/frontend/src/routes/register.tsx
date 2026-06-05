@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { register } from "@/lib/api/auth";
 import { Button } from "@/components/cais/Button";
 import { inputClass } from "@/components/cais/SlideOver";
 
@@ -29,20 +29,14 @@ function RegisterPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { name },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      await register(name, email, password);
+      navigate({ to: "/dashboard", replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar conta.");
+    } finally {
+      setLoading(false);
     }
-    navigate({ to: "/dashboard", replace: true });
   };
 
   return (
@@ -60,7 +54,7 @@ function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-              Nome completo
+              Nome
             </label>
             <input
               type="text"
@@ -99,7 +93,9 @@ function RegisterPage() {
             />
           </div>
 
-          {error && <p className="text-[12px] text-status-red">{error}</p>}
+          {error && (
+            <p className="text-[12px] text-status-red">{error}</p>
+          )}
 
           <Button type="submit" variant="primary" block disabled={loading}>
             {loading ? "Criando..." : "Criar conta"}

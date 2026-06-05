@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
+import { UserRole } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
-import { unauthorized } from "../utils/httpError.js";
-import type { LoginInput } from "../schemas/auth.schema.js";
+import { conflict, unauthorized } from "../utils/httpError.js";
+import type { LoginInput, RegisterInput } from "../schemas/auth.schema.js";
 
 export async function validateCredentials(input: LoginInput) {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
@@ -11,6 +12,20 @@ export async function validateCredentials(input: LoginInput) {
   if (!valid) throw unauthorized("Credenciais inválidas");
 
   return user;
+}
+
+export async function registerUser(input: RegisterInput) {
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing) throw conflict("Já existe um usuário com este e-mail");
+
+  return prisma.user.create({
+    data: {
+      name: input.name,
+      email: input.email,
+      passwordHash: await bcrypt.hash(input.password, 10),
+      role: UserRole.CONSULTANT,
+    },
+  });
 }
 
 export function publicUser(user: {

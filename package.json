@@ -5,6 +5,8 @@
   "description": "MVP de Programa de Indicações para Consórcios — monorepo",
   "scripts": {
     "dev": "pnpm --filter api dev",
+    "dev:frontend": "pnpm --filter tanstack_start_ts dev",
+    "dev:all": "concurrently -n api,web -c blue,green \"pnpm --filter api dev\" \"pnpm --filter tanstack_start_ts dev\"",
     "build": "pnpm --filter api build",
     "docker:dev": "docker compose -f docker/docker-compose.dev.yml up -d",
     "docker:dev:down": "docker compose -f docker/docker-compose.dev.yml down",
@@ -18,5 +20,8 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@9.12.0"
+  "packageManager": "pnpm@9.12.0",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
 }

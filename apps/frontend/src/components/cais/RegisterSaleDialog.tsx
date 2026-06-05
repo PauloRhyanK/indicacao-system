@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "./Button";
 import { inputClass } from "./SlideOver";
 import { registerSale } from "@/lib/cais-api";
@@ -20,14 +19,11 @@ export function RegisterSaleDialog({
   const [value, setValue] = useState("");
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const { data } = await supabase.auth.getUser();
-      return registerSale({
+    mutationFn: () =>
+      registerSale({
         lead_id: leadId,
         sale_value: Number(value),
-        sold_by: data.user?.id ?? null,
-      });
-    },
+      }),
     onSuccess: () => {
       qc.invalidateQueries();
       setValue("");
