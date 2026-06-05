@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CONSULTANT
+}
+
+enum ReferrerType {
+  USER
+  LEAD
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(CONSULTANT)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  assignedLeads Lead[] @relation("AssignedConsultant")
+
+  @@map("users")
+}
+
+model Lead {
+  id               String    @id @default(uuid()) @db.Uuid
+  externalCode     String?   @unique @map("external_code")
+  name             String
+  phone            String?
+  source           String?
+  assignedToUserId String?   @map("assigned_to_user_id") @db.Uuid
+  salesStatus      String?   @map("sales_status")
+  nextAction       String?   @map("next_action")
+  nextFollowUpAt   DateTime? @map("next_follow_up_at")
+  notes            String?
+  offeredAmount    Decimal?  @map("offered_amount") @db.Decimal(15, 2)
+  closedAmount     Decimal?  @map("closed_amount") @db.Decimal(15, 2)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  assignedTo       User?      @relation("AssignedConsultant", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  purchases        Purchase[]
+  referralsAsLead  Referral[] @relation("ReferredLead")
+
+  @@index([externalCode])
+  @@index([salesStatus])
+  @@index([source])
+  @@index([nextFollowUpAt])
+  @@index([assignedToUserId])
+  @@map("leads")
+}
+
+model Referral {
+  id             String       @id @default(uuid()) @db.Uuid
+  referredLeadId String       @map("referred_lead_id") @db.Uuid
+  referrerType   ReferrerType @map("referrer_type")
+  referrerId     String       @map("referrer_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  referredLead Lead @relation("ReferredLead", fields: [referredLeadId], references: [id], onDelete: Cascade)
+
+  @@unique([referredLeadId])
+  @@index([referrerType, referrerId])
+  @@map("referrals")
+}
+
+model Purchase {
+  id           String   @id @default(uuid()) @db.Uuid
+  leadId       String   @map("lead_id") @db.Uuid
+  amount       Decimal  @db.Decimal(15, 2)
+  purchaseDate DateTime @map("purchase_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("purchases")
+}
+
+model Goal {
+  id            String   @id @default(uuid()) @db.Uuid
+  targetAmount  Decimal  @map("target_amount") @db.Decimal(15, 2)
+  currentAmount Decimal  @default(0) @map("current_amount") @db.Decimal(15, 2)
+  startDate     DateTime @map("start_date")
+  endDate       DateTime @map("end_date")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([startDate, endDate])
+  @@map("goals")
+}
