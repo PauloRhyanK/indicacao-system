@@ -9,6 +9,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   CORS_ORIGIN: z.string().default("*"),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
+  TV_API_TOKEN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

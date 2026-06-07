@@ -144,6 +144,22 @@ async function main() {
     });
   }
 
+  const defaultCount = await prisma.metaDailyDefault.count();
+  if (defaultCount === 0) {
+    const weekdayAmounts: { weekday: number; amount: string }[] = [
+      { weekday: 0, amount: "20000.00" },
+      { weekday: 1, amount: "40000.00" },
+      { weekday: 2, amount: "40000.00" },
+      { weekday: 3, amount: "40000.00" },
+      { weekday: 4, amount: "40000.00" },
+      { weekday: 5, amount: "40000.00" },
+      { weekday: 6, amount: "20000.00" },
+    ];
+    for (const d of weekdayAmounts) {
+      await prisma.metaDailyDefault.create({ data: d });
+    }
+  }
+
   const leadRoot = await prisma.lead.upsert({
     where: { externalCode: "OP-0001" },
     update: {},

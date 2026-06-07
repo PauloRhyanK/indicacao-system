@@ -23,6 +23,7 @@ import {
   fetchProfiles,
   fetchReferrals,
   fetchMetaPeriod,
+  fetchDailyGoalToday,
   fetchLookups,
   formatBRL,
   isLeadClosed,
@@ -49,6 +50,7 @@ function Dashboard() {
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
+  const dailyGoal = useQuery({ queryKey: ["daily-goal-today"], queryFn: fetchDailyGoalToday });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   useEffect(() => {
@@ -58,18 +60,25 @@ function Dashboard() {
   }, []);
 
   const [progressW, setProgressW] = useState(0);
+  const [dailyProgressW, setDailyProgressW] = useState(0);
 
-  const volume = useMemo(
-    () => (sales.data ?? []).reduce((s, x) => s + Number(x.sale_value), 0),
-    [sales.data],
-  );
+  const volume = meta.data?.current_value ?? 0;
   const target = meta.data?.target_value ?? 0;
   const pct = target ? Math.min(100, (volume / target) * 100) : 0;
+
+  const dailyTarget = dailyGoal.data?.target ?? 0;
+  const dailyCurrent = dailyGoal.data?.current ?? 0;
+  const dailyPct = dailyGoal.data?.percent ?? 0;
 
   useEffect(() => {
     const t = setTimeout(() => setProgressW(pct), 150);
     return () => clearTimeout(t);
   }, [pct]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDailyProgressW(dailyPct), 150);
+    return () => clearTimeout(t);
+  }, [dailyPct]);
 
   const total = leads.data?.length ?? 0;
   const converted = (leads.data ?? []).filter(isLeadClosed).length;
@@ -112,7 +121,7 @@ function Dashboard() {
       .sort((a, b) => b.conv - a.conv || b.vol - a.vol);
   }, [profiles.data, referrals.data, leads.data, sales.data]);
 
-  if (leads.isLoading || sales.isLoading || meta.isLoading) {
+  if (leads.isLoading || sales.isLoading || meta.isLoading || dailyGoal.isLoading) {
     return (
       <AppLayout>
         <PageLoader />
@@ -149,6 +158,30 @@ function Dashboard() {
         </div>
         {meta.data && (
           <div className="mt-1 text-[11px] text-slate-500">{meta.data.period_label}</div>
+        )}
+      </div>
+
+      <div className="mb-8 rounded-lg border-l-[3px] border-azul-medio bg-slate-50 px-[22px] py-[18px]">
+        <SectionHeader>Meta do Dia</SectionHeader>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+          <div
+            className="h-full rounded-full bg-azul-medio transition-[width] duration-1000 ease-out"
+            style={{ width: `${dailyProgressW}%` }}
+          />
+        </div>
+        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-[13px] text-slate-700">
+            {formatBRL(dailyCurrent)} de {formatBRL(dailyTarget)}
+          </span>
+          <span className="text-[13px] font-semibold text-azul-profundo">
+            {dailyPct.toFixed(1)}%
+          </span>
+        </div>
+        {dailyGoal.data && (
+          <div className="mt-1 text-[11px] text-slate-500">
+            {dailyGoal.data.presetLabel}
+            {dailyGoal.data.hasOverride ? " · dia com override" : ""}
+          </div>
         )}
       </div>
 

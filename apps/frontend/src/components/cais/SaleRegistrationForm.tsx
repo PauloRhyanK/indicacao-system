@@ -181,6 +181,7 @@ export function SaleRegistrationForm({
       qc.invalidateQueries({ queryKey: ["leads-all"] });
 
       qc.invalidateQueries({ queryKey: ["meta"] });
+      qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
 
 
 

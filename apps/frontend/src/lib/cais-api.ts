@@ -90,8 +90,58 @@ export interface MetaPeriod {
   id: string;
   period_label: string;
   target_value: number;
+  current_value: number;
   start_date: string;
   end_date: string;
+}
+
+export type DailyPresetSlug = "normal" | "peak" | "reduced" | "sprint";
+
+export interface DailyGoalPreset {
+  slug: DailyPresetSlug;
+  label: string;
+  multiplier: number;
+}
+
+export interface DailyGoalDefault {
+  weekday: number;
+  amount: number;
+}
+
+export interface DailyGoalOverride {
+  date: string;
+  amount: number | null;
+  presetSlug: DailyPresetSlug | null;
+}
+
+export interface DailyGoalToday {
+  date: string;
+  weekday: number;
+  baseAmount: number;
+  presetSlug: DailyPresetSlug;
+  presetLabel: string;
+  presetMultiplier: number;
+  target: number;
+  current: number;
+  percent: number;
+  hasOverride: boolean;
+  overrideAmount: number | null;
+  periodGoal: {
+    id: string;
+    targetAmount: number;
+    currentAmount: number;
+    startDate: string;
+    endDate: string;
+  } | null;
+  presets: DailyGoalPreset[];
+  todaySalesCount: number;
+  recentSales: {
+    id: string;
+    leadName: string;
+    sellerName: string;
+    saleValue: number;
+    soldAt: string;
+  }[];
 }
 
 export interface ChainNode {
@@ -428,9 +478,83 @@ export async function fetchMetaPeriod(): Promise<MetaPeriod | null> {
     id: g.id,
     period_label: formatPeriodLabel(g.startDate, g.endDate),
     target_value: decimalToNumber(g.targetAmount),
+    current_value: decimalToNumber(g.currentAmount),
     start_date: g.startDate,
     end_date: g.endDate,
   };
+}
+
+export async function updateGoalPeriod(
+  id: string,
+  patch: Partial<{ target_value: number; start_date: string; end_date: string }>,
+): Promise<void> {
+  await apiFetch(`/goals/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      ...(patch.target_value !== undefined ? { targetAmount: patch.target_value } : {}),
+      ...(patch.start_date !== undefined ? { startDate: patch.start_date } : {}),
+      ...(patch.end_date !== undefined ? { endDate: patch.end_date } : {}),
+    }),
+  });
+}
+
+export async function fetchDailyGoalToday(): Promise<DailyGoalToday> {
+  const res = await apiFetch<{ data: DailyGoalToday }>("/goals/daily/today", {}, false);
+  return res.data;
+}
+
+export async function fetchDailyDefaults(): Promise<DailyGoalDefault[]> {
+  const res = await apiFetch<{ data: DailyGoalDefault[] }>("/goals/daily/defaults");
+  return res.data;
+}
+
+export async function saveDailyDefaults(defaults: DailyGoalDefault[]): Promise<DailyGoalDefault[]> {
+  const res = await apiFetch<{ data: DailyGoalDefault[] }>("/goals/daily/defaults", {
+    method: "PUT",
+    body: JSON.stringify({ defaults }),
+  });
+  return res.data;
+}
+
+export async function fetchDailyOverrides(month: string): Promise<DailyGoalOverride[]> {
+  const res = await apiFetch<{ data: DailyGoalOverride[] }>(
+    `/goals/daily/overrides?month=${encodeURIComponent(month)}`,
+  );
+  return res.data;
+}
+
+export async function saveDailyOverride(
+  date: string,
+  patch: { amount?: number; presetSlug?: DailyPresetSlug },
+): Promise<DailyGoalOverride> {
+  const res = await apiFetch<{ data: DailyGoalOverride }>(`/goals/daily/overrides/${date}`, {
+    method: "PUT",
+    body: JSON.stringify(patch),
+  });
+  return res.data;
+}
+
+export async function deleteDailyOverride(date: string): Promise<void> {
+  await apiFetch(`/goals/daily/overrides/${date}`, { method: "DELETE" });
+}
+
+export async function applyDailyPresetToday(
+  presetSlug: DailyPresetSlug,
+  tvToken?: string,
+): Promise<DailyGoalToday> {
+  const headers: Record<string, string> = {};
+  if (tvToken) headers["X-TV-Token"] = tvToken;
+
+  const res = await apiFetch<{ data: DailyGoalToday }>(
+    "/goals/daily/today/preset",
+    {
+      method: "POST",
+      body: JSON.stringify({ presetSlug }),
+      headers,
+    },
+    !tvToken,
+  );
+  return res.data;
 }
 
 export async function fetchReferralChain(leadId: string): Promise<ReferralChainResult> {

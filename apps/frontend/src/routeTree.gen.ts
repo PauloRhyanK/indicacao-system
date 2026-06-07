@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TvRouteImport } from './routes/tv'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -16,10 +17,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 import { Route as AuthenticatedIndicacoesRouteImport } from './routes/_authenticated/indicacoes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
+import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
 
+const TvRoute = TvRouteImport.update({
+  id: '/tv',
+  path: '/tv',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -54,8 +62,8 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedConfiguracoesRoute =
-  AuthenticatedConfiguracoesRouteImport.update({
+const AuthenticatedConfiguracoesRouteRoute =
+  AuthenticatedConfiguracoesRouteRouteImport.update({
     id: '/configuracoes',
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
@@ -65,32 +73,49 @@ const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
   path: '/leads/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesIndexRoute =
+  AuthenticatedConfiguracoesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
 const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   id: '/leads/$id',
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesMetasRoute =
+  AuthenticatedConfiguracoesMetasRouteImport.update({
+    id: '/metas',
+    path: '/metas',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/tv': typeof TvRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/tv': typeof TvRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRoutesById {
@@ -99,11 +124,14 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
-  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/tv': typeof TvRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
+  '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRouteTypes {
@@ -112,22 +140,27 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/tv'
     | '/configuracoes'
     | '/dashboard'
     | '/indicacoes'
     | '/vendas'
+    | '/configuracoes/metas'
     | '/leads/$id'
+    | '/configuracoes/'
     | '/leads/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/register'
-    | '/configuracoes'
+    | '/tv'
     | '/dashboard'
     | '/indicacoes'
     | '/vendas'
+    | '/configuracoes/metas'
     | '/leads/$id'
+    | '/configuracoes'
     | '/leads'
   id:
     | '__root__'
@@ -135,11 +168,14 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/register'
+    | '/tv'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
     | '/_authenticated/indicacoes'
     | '/_authenticated/vendas'
+    | '/_authenticated/configuracoes/metas'
     | '/_authenticated/leads/$id'
+    | '/_authenticated/configuracoes/'
     | '/_authenticated/leads/'
   fileRoutesById: FileRoutesById
 }
@@ -148,10 +184,18 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  TvRoute: typeof TvRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tv': {
+      id: '/tv'
+      path: '/tv'
+      fullPath: '/tv'
+      preLoaderRoute: typeof TvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -205,7 +249,7 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
       fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/leads/': {
@@ -215,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/': {
+      id: '/_authenticated/configuracoes/'
+      path: '/'
+      fullPath: '/configuracoes/'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesIndexRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
     '/_authenticated/leads/$id': {
       id: '/_authenticated/leads/$id'
       path: '/leads/$id'
@@ -222,11 +273,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/metas': {
+      id: '/_authenticated/configuracoes/metas'
+      path: '/metas'
+      fullPath: '/configuracoes/metas'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesMetasRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
   }
 }
 
+interface AuthenticatedConfiguracoesRouteRouteChildren {
+  AuthenticatedConfiguracoesMetasRoute: typeof AuthenticatedConfiguracoesMetasRoute
+  AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
+}
+
+const AuthenticatedConfiguracoesRouteRouteChildren: AuthenticatedConfiguracoesRouteRouteChildren =
+  {
+    AuthenticatedConfiguracoesMetasRoute: AuthenticatedConfiguracoesMetasRoute,
+    AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
+  }
+
+const AuthenticatedConfiguracoesRouteRouteWithChildren =
+  AuthenticatedConfiguracoesRouteRoute._addFileChildren(
+    AuthenticatedConfiguracoesRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedConfiguracoesRouteRoute: typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIndicacoesRoute: typeof AuthenticatedIndicacoesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
@@ -235,7 +309,8 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedConfiguracoesRouteRoute:
+    AuthenticatedConfiguracoesRouteRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIndicacoesRoute: AuthenticatedIndicacoesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
@@ -251,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  TvRoute: TvRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
