@@ -163,21 +163,32 @@ function Dashboard() {
 
       <div className="mb-8 rounded-lg border-l-[3px] border-azul-medio bg-slate-50 px-[22px] py-[18px]">
         <SectionHeader>Meta do Dia</SectionHeader>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
-          <div
-            className="h-full rounded-full bg-azul-medio transition-[width] duration-1000 ease-out"
-            style={{ width: `${dailyProgressW}%` }}
-          />
-        </div>
-        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-[13px] text-slate-700">
-            {formatBRL(dailyCurrent)} de {formatBRL(dailyTarget)}
-          </span>
-          <span className="text-[13px] font-semibold text-azul-profundo">
-            {dailyPct.toFixed(1)}%
-          </span>
-        </div>
-        {dailyGoal.data && (
+        {dailyTarget > 0 ? (
+          <>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-azul-medio transition-[width] duration-1000 ease-out"
+                style={{ width: `${dailyProgressW}%` }}
+              />
+            </div>
+            <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-[13px] text-slate-700">
+                {formatBRL(dailyCurrent)} de {formatBRL(dailyTarget)}
+              </span>
+              <span className="text-[13px] font-semibold text-azul-profundo">
+                {dailyPct.toFixed(1)}%
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="mt-1">
+            <p className="text-[22px] font-semibold text-azul-profundo">{formatBRL(dailyCurrent)}</p>
+            <p className="mt-1 text-[13px] text-slate-500">
+              {dailyCurrent > 0 ? "vendido hoje · sem meta definida" : "sem meta definida · nenhuma venda hoje"}
+            </p>
+          </div>
+        )}
+        {dailyGoal.data && dailyTarget > 0 && (
           <div className="mt-1 text-[11px] text-slate-500">
             {dailyGoal.data.presetLabel}
             {dailyGoal.data.hasOverride ? " · dia com override" : ""}

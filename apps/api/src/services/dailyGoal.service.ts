@@ -14,8 +14,38 @@ export const DAILY_PRESETS = {
 
 export type DailyPresetSlug = keyof typeof DAILY_PRESETS;
 
-function toDateOnly(date: Date): Date {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+const BUSINESS_TZ = "America/Sao_Paulo";
+
+function calendarPartsInTz(date: Date, timeZone = BUSINESS_TZ) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = Number(parts.find((p) => p.type === "year")!.value);
+  const m = Number(parts.find((p) => p.type === "month")!.value);
+  const d = Number(parts.find((p) => p.type === "day")!.value);
+  return { y, m, d };
+}
+
+function weekdayInTz(date: Date, timeZone = BUSINESS_TZ): number {
+  const label = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(date);
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return map[label] ?? 0;
+}
+
+/** Meia-noite a meia-noite no fuso de São Paulo. */
+function dayBoundsBusiness(date: Date) {
+  const { y, m, d } = calendarPartsInTz(date);
+  const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
+  const end = new Date(Date.UTC(y, m - 1, d + 1, 3, 0, 0, 0));
+  return { start, end };
+}
+
+function toDateOnlyBusiness(date: Date): Date {
+  const { y, m, d } = calendarPartsInTz(date);
+  return new Date(Date.UTC(y, m - 1, d));
 }
 
 function parseDateParam(dateStr: string): Date {
@@ -33,13 +63,6 @@ function parseDateParam(dateStr: string): Date {
     throw badRequest("Data inválida");
   }
   return parsed;
-}
-
-function dayBoundsUtc(date: Date) {
-  const start = toDateOnly(date);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { start, end };
 }
 
 function decimalToNumber(value: Prisma.Decimal | null | undefined): number {
@@ -118,7 +141,7 @@ export async function deleteOverride(dateStr: string) {
 }
 
 export async function getDailyProgress(date: Date) {
-  const { start, end } = dayBoundsUtc(date);
+  const { start, end } = dayBoundsBusiness(date);
   const agg = await prisma.purchase.aggregate({
     where: { purchaseDate: { gte: start, lt: end } },
     _sum: { amount: true },
@@ -127,8 +150,8 @@ export async function getDailyProgress(date: Date) {
 }
 
 export async function resolveDailyTarget(date: Date) {
-  const dateOnly = toDateOnly(date);
-  const weekday = dateOnly.getUTCDay();
+  const dateOnly = toDateOnlyBusiness(date);
+  const weekday = weekdayInTz(date);
 
   const [override, defaultRow] = await Promise.all([
     prisma.metaDailyOverride.findUnique({ where: { date: dateOnly } }),
@@ -164,7 +187,7 @@ export async function resolveDailyTarget(date: Date) {
 
 export async function getDailyTodaySummary() {
   const today = new Date();
-  const { start, end } = dayBoundsUtc(today);
+  const { start, end } = dayBoundsBusiness(today);
   const resolved = await resolveDailyTarget(today);
   const current = await getDailyProgress(today);
   const percent = resolved.target > 0 ? Math.min(100, (current / resolved.target) * 100) : 0;
@@ -221,7 +244,7 @@ export async function getDailyTodaySummary() {
 
 export async function applyPresetToday(presetSlug: DailyPresetSlug) {
   if (!DAILY_PRESETS[presetSlug]) throw badRequest("Preset inválido");
-  const today = toDateOnly(new Date());
+  const today = toDateOnlyBusiness(new Date());
   const dateStr = today.toISOString().slice(0, 10);
 
   await prisma.metaDailyOverride.upsert({

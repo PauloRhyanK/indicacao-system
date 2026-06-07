@@ -11,6 +11,10 @@
  *
  * Presets: normal | peak | reduced | sprint
  *
+ * Som na celebração (Web Audio, sem arquivo):
+ *   VITE_TV_SOUND=festa|fanfare|chime|cash|triumph
+ *   Ou escolha na coluna esquerda da TV (salvo no navegador).
+ *
  * React Query na TV:
  *   useQuery({ queryKey: ["daily-goal-today"], queryFn: fetchDailyGoalToday, refetchInterval: 30_000 })
  */
