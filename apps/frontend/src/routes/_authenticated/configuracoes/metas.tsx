@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { AdminOnlyNotice } from "@/components/cais/AdminOnlyNotice";
 import { PeriodGoalCard } from "@/components/cais/PeriodGoalCard";
 import { WeeklyDefaultsGrid } from "@/components/cais/WeeklyDefaultsGrid";
 import { DailyGoalCalendar } from "@/components/cais/DailyGoalCalendar";
+import { useIsAdmin } from "@/lib/use-is-admin";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/metas")({
   head: () => ({ meta: [{ title: "Metas — CAIS" }] }),
@@ -10,6 +12,8 @@ export const Route = createFileRoute("/_authenticated/configuracoes/metas")({
 });
 
 function MetasPage() {
+  const canEdit = useIsAdmin();
+
   return (
     <>
       <Link
@@ -26,11 +30,13 @@ function MetasPage() {
         </p>
       </div>
 
+      {!canEdit && <AdminOnlyNotice />}
+
       <div className="space-y-6">
-        <PeriodGoalCard />
+        <PeriodGoalCard readOnly={!canEdit} />
         <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
-          <WeeklyDefaultsGrid />
-          <DailyGoalCalendar />
+          <WeeklyDefaultsGrid readOnly={!canEdit} />
+          <DailyGoalCalendar readOnly={!canEdit} />
         </div>
       </div>
     </>

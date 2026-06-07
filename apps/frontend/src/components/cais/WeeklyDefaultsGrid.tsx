@@ -8,6 +8,7 @@ import {
   saveDailyDefaults,
   type DailyGoalDefault,
 } from "@/lib/cais-api";
+import { cn } from "@/lib/utils";
 
 const WEEKDAYS: { weekday: number; label: string }[] = [
   { weekday: 0, label: "Domingo" },
@@ -23,7 +24,7 @@ function emptyDefaults(): DailyGoalDefault[] {
   return WEEKDAYS.map((d) => ({ weekday: d.weekday, amount: 0 }));
 }
 
-export function WeeklyDefaultsGrid() {
+export function WeeklyDefaultsGrid({ readOnly = false }: { readOnly?: boolean }) {
   const qc = useQueryClient();
   const defaultsQuery = useQuery({
     queryKey: ["daily-defaults"],
@@ -33,7 +34,7 @@ export function WeeklyDefaultsGrid() {
   const [rows, setRows] = useState<DailyGoalDefault[]>(emptyDefaults());
 
   useEffect(() => {
-    if (!defaultsQuery.data?.length) return;
+    if (!defaultsQuery.data) return;
     const map = new Map(defaultsQuery.data.map((d) => [d.weekday, d.amount]));
     setRows(
       WEEKDAYS.map((d) => ({
@@ -51,6 +52,15 @@ export function WeeklyDefaultsGrid() {
     },
   });
 
+  const errorMessage =
+    defaultsQuery.isError
+      ? "Não foi possível carregar a grade semanal."
+      : mutation.isError
+        ? mutation.error instanceof Error
+          ? mutation.error.message
+          : "Não foi possível salvar a grade semanal."
+        : null;
+
   return (
     <div className="h-full min-w-0 rounded-md border border-slate-200 bg-branco p-5">
       <SectionHeader>Grade Semanal Padrão</SectionHeader>
@@ -60,7 +70,7 @@ export function WeeklyDefaultsGrid() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          mutation.mutate();
+          if (!readOnly) mutation.mutate();
         }}
       >
         <div className="grid grid-cols-2 gap-3">
@@ -76,7 +86,8 @@ export function WeeklyDefaultsGrid() {
                   min="0"
                   step="0.01"
                   required
-                  className={inputClass}
+                  readOnly={readOnly}
+                  className={cn(inputClass, readOnly && "cursor-default bg-slate-50 text-slate-700")}
                   value={row?.amount ?? 0}
                   onChange={(e) =>
                     setRows((prev) =>
@@ -92,11 +103,19 @@ export function WeeklyDefaultsGrid() {
             );
           })}
         </div>
-        <div className="mt-4">
+        {!readOnly && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="submit" variant="gold" disabled={mutation.isPending || defaultsQuery.isLoading}>
             {mutation.isPending ? "Salvando..." : "Salvar grade semanal"}
           </Button>
+          {mutation.isSuccess && !mutation.isPending && (
+            <span className="text-[13px] text-status-green">Grade salva com sucesso.</span>
+          )}
+          {errorMessage && (
+            <span className="text-[13px] text-status-red">{errorMessage}</span>
+          )}
         </div>
+        )}
       </form>
     </div>
   );

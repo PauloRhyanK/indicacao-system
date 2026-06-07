@@ -25,7 +25,7 @@ function toDateStr(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export function DailyGoalCalendar() {
+export function DailyGoalCalendar({ readOnly = false }: { readOnly?: boolean }) {
   const qc = useQueryClient();
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState<Date | undefined>();
@@ -123,12 +123,14 @@ export function DailyGoalCalendar() {
                 type="number"
                 min="0"
                 step="0.01"
-                className={inputClass}
+                readOnly={readOnly}
+                className={cn(inputClass, readOnly && "cursor-default bg-white text-slate-700")}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Substitui o padrão do dia"
               />
             </label>
+            {!readOnly && (
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="gold"
@@ -147,6 +149,7 @@ export function DailyGoalCalendar() {
                 </Button>
               )}
             </div>
+            )}
           </div>
         )}
       </div>

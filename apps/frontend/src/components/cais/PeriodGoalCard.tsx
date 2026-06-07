@@ -9,8 +9,9 @@ import {
   updateGoalPeriod,
 } from "@/lib/cais-api";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-export function PeriodGoalCard() {
+export function PeriodGoalCard({ readOnly = false }: { readOnly?: boolean }) {
   const qc = useQueryClient();
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
 
@@ -68,7 +69,8 @@ export function PeriodGoalCard() {
             min="0"
             step="0.01"
             required
-            className={inputClass}
+            readOnly={readOnly}
+            className={cn(inputClass, readOnly && "cursor-default bg-slate-50 text-slate-700")}
             value={target}
             onChange={(e) => setTarget(e.target.value)}
           />
@@ -78,7 +80,8 @@ export function PeriodGoalCard() {
           <input
             type="date"
             required
-            className={inputClass}
+            readOnly={readOnly}
+            className={cn(inputClass, readOnly && "cursor-default bg-slate-50 text-slate-700")}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
@@ -88,16 +91,19 @@ export function PeriodGoalCard() {
           <input
             type="date"
             required
-            className={inputClass}
+            readOnly={readOnly}
+            className={cn(inputClass, readOnly && "cursor-default bg-slate-50 text-slate-700")}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
         </label>
+        {!readOnly && (
         <div className="sm:col-span-3">
           <Button type="submit" variant="gold" disabled={mutation.isPending}>
             {mutation.isPending ? "Salvando..." : "Salvar meta do período"}
           </Button>
         </div>
+        )}
       </form>
       <p className="mt-2 text-[11px] text-slate-500">
         Período: {formatDate(meta.data.start_date)} — {formatDate(meta.data.end_date)}
