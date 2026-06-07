@@ -35,7 +35,7 @@ export function PersonalPerformanceTab() {
 
   useEffect(() => {
     fetchMe()
-      .then((u) => setUserName(u.name.split(" ")[0]))
+      .then((s) => setUserName(s.user.name.split(" ")[0]))
       .catch(() => setUserName("Assessor"));
   }, []);
 

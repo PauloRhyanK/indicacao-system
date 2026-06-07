@@ -1,23 +1,36 @@
 import { apiFetch, clearToken, setToken } from "./client";
 
+export interface AuthRole {
+  id: string;
+  name: string;
+  isSystem: boolean;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "CONSULTANT";
+  roles: AuthRole[];
   createdAt: string;
+}
+
+export interface AuthSession {
+  user: AuthUser;
+  permissions: string[];
 }
 
 interface AuthResponse {
   token: string;
   user: AuthUser;
+  permissions: string[];
 }
 
 interface MeResponse {
   user: AuthUser;
+  permissions: string[];
 }
 
-export async function login(email: string, password: string): Promise<AuthUser> {
+export async function login(email: string, password: string): Promise<AuthSession> {
   const data = await apiFetch<AuthResponse>(
     "/auth/login",
     {
@@ -27,14 +40,14 @@ export async function login(email: string, password: string): Promise<AuthUser> 
     false,
   );
   setToken(data.token);
-  return data.user;
+  return { user: data.user, permissions: data.permissions };
 }
 
 export async function register(
   name: string,
   email: string,
   password: string,
-): Promise<AuthUser> {
+): Promise<AuthSession> {
   const data = await apiFetch<AuthResponse>(
     "/auth/register",
     {
@@ -44,12 +57,12 @@ export async function register(
     false,
   );
   setToken(data.token);
-  return data.user;
+  return { user: data.user, permissions: data.permissions };
 }
 
-export async function fetchMe(): Promise<AuthUser> {
+export async function fetchMe(): Promise<AuthSession> {
   const data = await apiFetch<MeResponse>("/auth/me");
-  return data.user;
+  return { user: data.user, permissions: data.permissions };
 }
 
 export function logout(): void {

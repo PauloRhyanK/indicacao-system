@@ -15,10 +15,12 @@ export function DomainManagerTable({
   type,
   title,
   items,
+  readOnly = false,
 }: {
   type: LookupType;
   title: string;
   items: LookupItem[];
+  readOnly?: boolean;
 }) {
   const qc = useQueryClient();
   const [newName, setNewName] = useState("");
@@ -88,26 +90,30 @@ export function DomainManagerTable({
                   <span className="ml-2 text-[11px] text-slate-400">{item.slug}</span>
                 </div>
                 <div className="flex gap-1">
-                  <button
-                    type="button"
-                    className="rounded p-1 text-slate-500 hover:bg-slate-100"
-                    onClick={() => {
-                      setEditingId(item.id);
-                      setEditName(item.name);
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded p-1 text-red-500 hover:bg-red-50"
-                    onClick={() => {
-                      if (confirm(`Remover "${item.name}"?`)) deleteMut.mutate(item.id);
-                    }}
-                    disabled={deleteMut.isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {!readOnly && (
+                    <>
+                      <button
+                        type="button"
+                        className="rounded p-1 text-slate-500 hover:bg-slate-100"
+                        onClick={() => {
+                          setEditingId(item.id);
+                          setEditName(item.name);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded p-1 text-red-500 hover:bg-red-50"
+                        onClick={() => {
+                          if (confirm(`Remover "${item.name}"?`)) deleteMut.mutate(item.id);
+                        }}
+                        disabled={deleteMut.isPending}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -118,27 +124,29 @@ export function DomainManagerTable({
         )}
       </ul>
 
-      <div className="flex gap-2">
-        <input
-          className={inputClass + " flex-1"}
-          placeholder="Novo valor..."
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && newName.trim()) {
-              e.preventDefault();
-              createMut.mutate(newName.trim());
-            }
-          }}
-        />
-        <Button
-          variant="ghost"
-          disabled={!newName.trim() || createMut.isPending}
-          onClick={() => createMut.mutate(newName.trim())}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex gap-2">
+          <input
+            className={inputClass + " flex-1"}
+            placeholder="Novo valor..."
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newName.trim()) {
+                e.preventDefault();
+                createMut.mutate(newName.trim());
+              }
+            }}
+          />
+          <Button
+            variant="ghost"
+            disabled={!newName.trim() || createMut.isPending}
+            onClick={() => createMut.mutate(newName.trim())}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {(createMut.isError || updateMut.isError || deleteMut.isError) && (
         <p className="mt-2 text-[12px] text-red-600">

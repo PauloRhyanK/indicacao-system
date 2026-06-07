@@ -12,6 +12,10 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Produção na Vercel: preset vercel gera .vercel/output (Build Output API v3).
+  nitro: {
+    preset: "vercel",
+  },
   vite: {
     server: {
       proxy: {

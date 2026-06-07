@@ -6,8 +6,8 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     if (!isAuthenticated()) throw redirect({ to: "/login" });
     try {
-      const user = await fetchMe();
-      return { user };
+      const session = await fetchMe();
+      return { user: session.user, permissions: session.permissions };
     } catch {
       throw redirect({ to: "/login" });
     }

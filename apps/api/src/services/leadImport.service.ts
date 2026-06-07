@@ -106,10 +106,19 @@ async function resolveAssignedUser(
       name: name.trim(),
       email: placeholderEmail,
       passwordHash: "!import-placeholder",
-      role: "CONSULTANT",
     },
     select: { id: true },
   });
+
+  const colaboradorRole = await tx.role.findUnique({
+    where: { name: "Colaborador" },
+    select: { id: true },
+  });
+  if (colaboradorRole) {
+    await tx.userRole.create({
+      data: { userId: created.id, roleId: colaboradorRole.id },
+    });
+  }
   cache.set(key, created.id);
   return created.id;
 }

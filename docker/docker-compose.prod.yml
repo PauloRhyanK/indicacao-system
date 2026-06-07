@@ -46,20 +46,6 @@ services:
       retries: 3
       start_period: 20s
 
-  # Frontend (apps/web) — habilitar na Sprint 3, quando o build existir.
-  # frontend:
-  #   build:
-  #     context: ..
-  #     dockerfile: apps/web/Dockerfile
-  #   container_name: cais_frontend_prod
-  #   restart: unless-stopped
-  #   ports:
-  #     - "127.0.0.1:8080:80"
-  #   depends_on:
-  #     - api
-  #   networks:
-  #     - cais_internal
-
 networks:
   cais_internal:
     driver: bridge

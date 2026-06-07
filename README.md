@@ -7,9 +7,10 @@ MVP de um Programa de Indicações para Consórcios. Monorepo gerido com **pnpm*
 ```
 apps/
   api/        # Backend Fastify + Prisma + Zod
+  frontend/   # Frontend TanStack Start (Vercel em produção)
 docker/
   docker-compose.dev.yml    # Postgres + pgAdmin (infra de dev)
-  docker-compose.prod.yml   # Postgres + API (produção)
+  docker-compose.prod.yml   # Postgres + API (produção na VPS)
 Doc/          # Documentação de produto e referências
 ```
 
@@ -74,16 +75,20 @@ Todos sob o prefixo `/api/v1`. Exceto `/health` e `/auth/login`, exigem `Authori
 | PATCH | `/goals/:id` | Atualiza meta (ADMIN) |
 | GET | `/dashboard/summary` | KPIs do dashboard |
 
-## Produção (VPS com NGINX existente)
+## Produção
+
+Arquitetura: **frontend na Vercel** + **backend e Postgres na VPS via Docker**.
+
+### Backend (VPS)
 
 ```bash
-# Variáveis obrigatórias no ambiente / .env: POSTGRES_PASSWORD, JWT_SECRET
+# Variáveis obrigatórias no ambiente / .env: POSTGRES_PASSWORD, JWT_SECRET, CORS_ORIGIN
 pnpm docker:prod
 ```
 
 Sobe Postgres (rede interna) + API (exposta em `127.0.0.1:3001`). As migrations são aplicadas automaticamente no boot do container (`prisma migrate deploy`).
 
-Configure o NGINX já instalado na VPS para fazer proxy:
+Configure o NGINX já instalado na VPS para expor a API publicamente:
 
 ```nginx
 location /api/ {
@@ -93,4 +98,16 @@ location /api/ {
 }
 ```
 
-O frontend (`apps/web`) será adicionado na Sprint 3 — há um bloco comentado em `docker/docker-compose.prod.yml` pronto para habilitar.
+Defina `CORS_ORIGIN` com a URL do frontend na Vercel (ex.: `https://cais-indicacoes.vercel.app`).
+
+### Frontend (Vercel)
+
+1. Importe o repositório na Vercel.
+2. **Root Directory:** `apps/frontend`
+3. Framework: TanStack Start (detectado automaticamente com Nitro).
+4. Variáveis de ambiente:
+   - `VITE_API_URL` — URL pública da API (ex.: `https://api.seudominio.com.br/api/v1`)
+   - `VITE_TV_TOKEN` / `VITE_TV_SOUND` — opcionais, para a tela TV
+5. Deploy.
+
+Em dev local, o proxy Vite (`/api/v1` → `localhost:3001`) continua funcionando sem alterar `VITE_API_URL`.

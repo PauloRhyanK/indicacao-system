@@ -7,29 +7,69 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  CONSULTANT
-}
-
 enum ReferrerType {
   USER
   LEAD
 }
 
 model User {
-  id                    String   @id @default(uuid()) @db.Uuid
-  name                  String
-  email                 String   @unique
-  phone                 String?
-  passwordHash          String   @map("password_hash")
-  role                  UserRole @default(CONSULTANT)
-  personalDailyTarget   Decimal? @map("personal_daily_target") @db.Decimal(14, 2)
-  createdAt             DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(uuid()) @db.Uuid
+  name                String
+  email               String   @unique
+  phone               String?
+  passwordHash        String   @map("password_hash")
+  personalDailyTarget Decimal? @map("personal_daily_target") @db.Decimal(14, 2)
+  createdAt           DateTime @default(now()) @map("created_at")
 
-  assignedLeads Lead[] @relation("AssignedConsultant")
+  assignedLeads Lead[]     @relation("AssignedConsultant")
+  userRoles     UserRole[]
 
   @@map("users")
+}
+
+model Permission {
+  key         String  @id
+  label       String
+  description String?
+  groupName   String  @map("group_name")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  isSystem  Boolean  @default(false) @map("is_system")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId         String @map("role_id") @db.Uuid
+  permissionKey  String @map("permission_key")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+
+  @@id([roleId, permissionKey])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @map("user_id") @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
 }
 
 model LeadStatus {

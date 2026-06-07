@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { AdminOnlyNotice } from "@/components/cais/AdminOnlyNotice";
+import { ArrowLeft } from "lucide-react";
+import { ReadOnlyNotice } from "@/components/cais/ReadOnlyNotice";
 import { PersonalDailyGoalCard } from "@/components/cais/PersonalDailyGoalCard";
 import { PeriodGoalCard } from "@/components/cais/PeriodGoalCard";
 import { WeeklyDefaultsGrid } from "@/components/cais/WeeklyDefaultsGrid";
 import { DailyGoalCalendar } from "@/components/cais/DailyGoalCalendar";
-import { useIsAdmin } from "@/lib/use-is-admin";
+import { usePermissions } from "@/lib/use-permissions";
 import { fetchPersonalDashboard } from "@/lib/cais-api";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/metas")({
@@ -15,7 +15,9 @@ export const Route = createFileRoute("/_authenticated/configuracoes/metas")({
 });
 
 function MetasPage() {
-  const canEdit = useIsAdmin();
+  const { can } = usePermissions();
+  const canEditGlobal = can("meta.configure_global");
+  const canEditDay = can("meta.configure_day");
   const personal = useQuery({
     queryKey: ["personal-dashboard"],
     queryFn: fetchPersonalDashboard,
@@ -43,12 +45,14 @@ function MetasPage() {
           companyDailyTarget={personal.data?.companyDailyTarget}
         />
 
-        {!canEdit && <AdminOnlyNotice />}
+        {!canEditGlobal && !canEditDay && (
+          <ReadOnlyNotice message="Apenas usuários com permissão de configuração de metas podem alterar os valores abaixo." />
+        )}
 
-        <PeriodGoalCard readOnly={!canEdit} />
+        <PeriodGoalCard readOnly={!canEditGlobal} />
         <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
-          <WeeklyDefaultsGrid readOnly={!canEdit} />
-          <DailyGoalCalendar readOnly={!canEdit} />
+          <WeeklyDefaultsGrid readOnly={!canEditDay} />
+          <DailyGoalCalendar readOnly={!canEditDay} />
         </div>
       </div>
     </>

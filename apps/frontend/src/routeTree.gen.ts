@@ -21,6 +21,7 @@ import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_a
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
 
 const TvRoute = TvRouteImport.update({
@@ -84,6 +85,12 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesPapeisRoute =
+  AuthenticatedConfiguracoesPapeisRouteImport.update({
+    id: '/papeis',
+    path: '/papeis',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesMetasRoute =
   AuthenticatedConfiguracoesMetasRouteImport.update({
     id: '/metas',
@@ -101,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
+  '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
@@ -114,6 +122,7 @@ export interface FileRoutesByTo {
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
+  '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
@@ -130,6 +139,7 @@ export interface FileRoutesById {
   '/_authenticated/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
+  '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/indicacoes'
     | '/vendas'
     | '/configuracoes/metas'
+    | '/configuracoes/papeis'
     | '/leads/$id'
     | '/configuracoes/'
     | '/leads/'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/indicacoes'
     | '/vendas'
     | '/configuracoes/metas'
+    | '/configuracoes/papeis'
     | '/leads/$id'
     | '/configuracoes'
     | '/leads'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
     | '/_authenticated/indicacoes'
     | '/_authenticated/vendas'
     | '/_authenticated/configuracoes/metas'
+    | '/_authenticated/configuracoes/papeis'
     | '/_authenticated/leads/$id'
     | '/_authenticated/configuracoes/'
     | '/_authenticated/leads/'
@@ -273,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes/papeis': {
+      id: '/_authenticated/configuracoes/papeis'
+      path: '/papeis'
+      fullPath: '/configuracoes/papeis'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesPapeisRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
     '/_authenticated/configuracoes/metas': {
       id: '/_authenticated/configuracoes/metas'
       path: '/metas'
@@ -285,12 +305,15 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedConfiguracoesRouteRouteChildren {
   AuthenticatedConfiguracoesMetasRoute: typeof AuthenticatedConfiguracoesMetasRoute
+  AuthenticatedConfiguracoesPapeisRoute: typeof AuthenticatedConfiguracoesPapeisRoute
   AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
 }
 
 const AuthenticatedConfiguracoesRouteRouteChildren: AuthenticatedConfiguracoesRouteRouteChildren =
   {
     AuthenticatedConfiguracoesMetasRoute: AuthenticatedConfiguracoesMetasRoute,
+    AuthenticatedConfiguracoesPapeisRoute:
+      AuthenticatedConfiguracoesPapeisRoute,
     AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
   }
 

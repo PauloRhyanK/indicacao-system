@@ -16,7 +16,8 @@ export interface Lookups {
 export interface Profile {
   id: string;
   name: string;
-  role: "admin" | "assessor" | "gestor";
+  email: string;
+  roles: { id: string; name: string; isSystem: boolean }[];
   created_at: string;
 }
 
@@ -232,9 +233,14 @@ export interface ReferralChainResult {
   tree_truncated: boolean;
 }
 
-function mapRole(role: string): Profile["role"] {
-  if (role === "ADMIN") return "admin";
-  return "assessor";
+function mapProfile(api: ApiUser): Profile {
+  return {
+    id: api.id,
+    name: api.name,
+    email: api.email,
+    roles: api.roles ?? [],
+    created_at: api.createdAt,
+  };
 }
 
 function decimalToNumber(value: unknown): number {
@@ -252,7 +258,7 @@ interface ApiUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  roles: { id: string; name: string; isSystem: boolean }[];
   createdAt: string;
 }
 
@@ -369,15 +375,6 @@ function buildLeadsQuery(filters?: LeadsFilters): string {
   }
   const qs = params.toString();
   return qs ? `?${qs}` : "";
-}
-
-function mapProfile(api: ApiUser): Profile {
-  return {
-    id: api.id,
-    name: api.name,
-    role: mapRole(api.role),
-    created_at: api.createdAt,
-  };
 }
 
 function mapSale(api: ApiPurchase): Sale {
@@ -811,4 +808,91 @@ export async function importLeadsFromExcel(
     method: "POST",
     body: form,
   });
+}
+
+export interface PermissionDef {
+  key: string;
+  label: string;
+  description?: string;
+  groupName: string;
+}
+
+export interface PermissionGroup {
+  groupName: string;
+  permissions: PermissionDef[];
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+  isSystem: boolean;
+  createdAt: string;
+  permissionKeys: string[];
+  userCount: number;
+}
+
+export async function fetchPermissionsCatalog(): Promise<PermissionGroup[]> {
+  const res = await apiFetch<{ data: PermissionGroup[] }>("/permissions/catalog");
+  return res.data;
+}
+
+export async function fetchRoles(): Promise<RoleSummary[]> {
+  const res = await apiFetch<{ data: RoleSummary[] }>("/roles");
+  return res.data;
+}
+
+export async function createRole(name: string): Promise<RoleSummary> {
+  const res = await apiFetch<{ data: RoleSummary }>("/roles", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  return res.data;
+}
+
+export async function updateRoleName(id: string, name: string): Promise<void> {
+  await apiFetch(`/roles/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteRole(id: string): Promise<void> {
+  await apiFetch(`/roles/${id}`, { method: "DELETE" });
+}
+
+export async function updateRolePermissions(
+  id: string,
+  permissionKeys: string[],
+): Promise<RoleSummary> {
+  const res = await apiFetch<{ data: RoleSummary }>(`/roles/${id}/permissions`, {
+    method: "PUT",
+    body: JSON.stringify({ permissionKeys }),
+  });
+  return res.data;
+}
+
+export async function updateUserRoles(
+  userId: string,
+  roleIds: string[],
+): Promise<{ id: string; name: string; isSystem: boolean }[]> {
+  const res = await apiFetch<{
+    data: { id: string; name: string; isSystem: boolean }[];
+  }>(`/users/${userId}/roles`, {
+    method: "PUT",
+    body: JSON.stringify({ roleIds }),
+  });
+  return res.data;
+}
+
+export async function createTeamUser(input: {
+  name: string;
+  email: string;
+  password: string;
+  roleIds: string[];
+}): Promise<Profile> {
+  const res = await apiFetch<{ data: ApiUser }>("/users", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return mapProfile(res.data);
 }

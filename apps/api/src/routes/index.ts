@@ -8,11 +8,13 @@ import { referralRoutes } from "./referral.routes.js";
 import { purchaseRoutes } from "./purchase.routes.js";
 import { settingsRoutes } from "./settings.routes.js";
 import { dashboardRoutes } from "./dashboard.routes.js";
+import { roleRoutes } from "./role.routes.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(userRoutes);
+  await app.register(roleRoutes);
   await app.register(dashboardRoutes);
   await app.register(settingsRoutes);
   await app.register(leadRoutes);

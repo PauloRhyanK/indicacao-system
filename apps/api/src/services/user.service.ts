@@ -1,23 +1,43 @@
 import bcrypt from "bcryptjs";
-import { Prisma, type UserRole } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { conflict, notFound } from "../utils/httpError.js";
+import { setUserRoles } from "./permission.service.js";
 import type { CreateUserInput } from "../schemas/user.schema.js";
 
 const publicSelect = {
   id: true,
   name: true,
   email: true,
-  role: true,
   createdAt: true,
+  userRoles: {
+    select: {
+      role: { select: { id: true, name: true, isSystem: true } },
+    },
+  },
 } as const;
 
-export async function listUsers(role?: UserRole) {
-  return prisma.user.findMany({
-    where: role ? { role } : undefined,
+function mapUser(row: {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+  userRoles: { role: { id: string; name: string; isSystem: boolean } }[];
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    createdAt: row.createdAt,
+    roles: row.userRoles.map((ur) => ur.role),
+  };
+}
+
+export async function listUsers() {
+  const users = await prisma.user.findMany({
     select: publicSelect,
     orderBy: { name: "asc" },
   });
+  return users.map(mapUser);
 }
 
 export async function updatePersonalDailyTarget(userId: string, amount: number | null) {
@@ -27,8 +47,7 @@ export async function updatePersonalDailyTarget(userId: string, amount: number |
   return prisma.user.update({
     where: { id: userId },
     data: {
-      personalDailyTarget:
-        amount !== null && amount !== undefined ? new Prisma.Decimal(amount) : null,
+      personalDailyTarget: amount !== null && amount !== undefined ? amount : null,
     },
     select: {
       id: true,
@@ -37,17 +56,24 @@ export async function updatePersonalDailyTarget(userId: string, amount: number |
   });
 }
 
-export async function createUser(input: CreateUserInput) {
+export async function createUser(input: CreateUserInput, actorUserId: string) {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw conflict("Já existe um usuário com este e-mail");
 
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name: input.name,
       email: input.email,
       passwordHash: await bcrypt.hash(input.password, 10),
-      role: input.role,
     },
+    select: { id: true },
+  });
+
+  await setUserRoles(user.id, input.roleIds, actorUserId);
+
+  const full = await prisma.user.findUnique({
+    where: { id: user.id },
     select: publicSelect,
   });
+  return full ? mapUser(full) : null;
 }

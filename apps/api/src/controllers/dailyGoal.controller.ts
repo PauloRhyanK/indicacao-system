@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { env } from "../config/env.js";
+import { userHasAnyPermission } from "../services/permission.service.js";
 import {
   applyDailyPresetSchema,
   monthQuerySchema,
@@ -60,7 +61,7 @@ async function canApplyPreset(request: FastifyRequest): Promise<boolean> {
 
   try {
     await request.jwtVerify();
-    return request.user.role === "ADMIN";
+    return userHasAnyPermission(request.user.sub, ["meta.configure_day"]);
   } catch {
     return false;
   }
@@ -68,7 +69,7 @@ async function canApplyPreset(request: FastifyRequest): Promise<boolean> {
 
 export async function postDailyPresetToday(request: FastifyRequest, reply: FastifyReply) {
   if (!(await canApplyPreset(request))) {
-    throw unauthorized("Token de TV ou perfil ADMIN necessário");
+    throw unauthorized("Token de TV ou permissão meta.configure_day necessária");
   }
   const input = applyDailyPresetSchema.parse(request.body);
   const data = await applyPresetToday(input.presetSlug);

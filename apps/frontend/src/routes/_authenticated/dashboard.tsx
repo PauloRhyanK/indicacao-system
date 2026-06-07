@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/cais/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PersonalPerformanceTab } from "@/components/cais/dashboard/PersonalPerformanceTab";
 import { OverviewTab } from "@/components/cais/dashboard/OverviewTab";
+import { usePermissions } from "@/lib/use-permissions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -11,6 +12,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const { can } = usePermissions();
+  const showOverview = can("dashboard.general");
+
+  if (!showOverview) {
+    return (
+      <AppLayout>
+        <PersonalPerformanceTab />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <Tabs defaultValue="performance" className="w-full">

@@ -9,7 +9,7 @@ import {
   removeDailyOverride,
 } from "../controllers/dailyGoal.controller.js";
 import { getCurrent, getSummary, patchGoal } from "../controllers/goal.controller.js";
-import { authenticate, authorize } from "../middlewares/auth.js";
+import { authenticate, requirePermission } from "../middlewares/auth.js";
 
 export async function goalRoutes(app: FastifyInstance) {
   app.get("/goals/daily/today", getDailyToday);
@@ -19,13 +19,29 @@ export async function goalRoutes(app: FastifyInstance) {
     protectedApp.addHook("preHandler", authenticate);
 
     protectedApp.get("/goals/current", getCurrent);
-    protectedApp.patch("/goals/:id", { preHandler: [authorize("ADMIN")] }, patchGoal);
+    protectedApp.patch(
+      "/goals/:id",
+      { preHandler: [requirePermission("meta.configure_global")] },
+      patchGoal,
+    );
     protectedApp.get("/dashboard/summary", getSummary);
 
     protectedApp.get("/goals/daily/defaults", getDailyDefaults);
-    protectedApp.put("/goals/daily/defaults", { preHandler: [authorize("ADMIN")] }, putDailyDefaults);
+    protectedApp.put(
+      "/goals/daily/defaults",
+      { preHandler: [requirePermission("meta.configure_day")] },
+      putDailyDefaults,
+    );
     protectedApp.get("/goals/daily/overrides", getDailyOverrides);
-    protectedApp.put("/goals/daily/overrides/:date", { preHandler: [authorize("ADMIN")] }, putDailyOverride);
-    protectedApp.delete("/goals/daily/overrides/:date", { preHandler: [authorize("ADMIN")] }, removeDailyOverride);
+    protectedApp.put(
+      "/goals/daily/overrides/:date",
+      { preHandler: [requirePermission("meta.configure_day")] },
+      putDailyOverride,
+    );
+    protectedApp.delete(
+      "/goals/daily/overrides/:date",
+      { preHandler: [requirePermission("meta.configure_day")] },
+      removeDailyOverride,
+    );
   });
 }

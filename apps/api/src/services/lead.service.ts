@@ -4,6 +4,11 @@ import { badRequest, notFound } from "../utils/httpError.js";
 import { normalizePhone } from "../utils/format.js";
 import { getReferrerOf, upsertReferral } from "./referral.service.js";
 import { findBySlug } from "./lookup.service.js";
+import {
+  assertLeadEditable,
+  assertLeadReadable,
+  leadListFilter,
+} from "./permission.service.js";
 import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from "../schemas/lead.schema.js";
 
 const assignedToSelect = {
@@ -76,7 +81,10 @@ function decimalRange(field: "offeredAmount" | "closedAmount", min?: number, max
   return { [field]: range };
 }
 
-export async function listLeads(query: ListLeadsQuery) {
+export async function listLeads(
+  query: ListLeadsQuery,
+  access?: { userId: string; perms: Set<string> },
+) {
   const {
     page,
     limit,
@@ -99,6 +107,7 @@ export async function listLeads(query: ListLeadsQuery) {
   } = query;
 
   const where: Prisma.LeadWhereInput = {
+    ...(access ? leadListFilter(access.perms, access.userId) : {}),
     ...(status ? { salesStatus: { slug: status } } : {}),
     ...(source ? { source: { slug: source } } : {}),
     ...(nextAction ? { nextAction: { slug: nextAction } } : {}),
@@ -142,7 +151,13 @@ export async function listLeads(query: ListLeadsQuery) {
   };
 }
 
-export async function getLeadById(id: string) {
+export async function getLeadById(
+  id: string,
+  access?: { userId: string; perms: Set<string> },
+) {
+  if (access) {
+    await assertLeadReadable(id, access.userId, access.perms);
+  }
   const lead = await prisma.lead.findUnique({
     where: { id },
     include: {
@@ -186,7 +201,14 @@ export async function createLead(input: CreateLeadInput) {
   });
 }
 
-export async function updateLead(id: string, input: UpdateLeadInput) {
+export async function updateLead(
+  id: string,
+  input: UpdateLeadInput,
+  access?: { userId: string; perms: Set<string> },
+) {
+  if (access) {
+    await assertLeadEditable(id, access.userId, access.perms);
+  }
   const existing = await prisma.lead.findUnique({ where: { id }, select: { id: true } });
   if (!existing) throw notFound("Lead não encontrado");
 

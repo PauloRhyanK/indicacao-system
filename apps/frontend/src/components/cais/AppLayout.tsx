@@ -11,15 +11,16 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
+import { usePermissions } from "@/lib/use-permissions";
 import { cn } from "@/lib/utils";
 import caisLogo from "@/assets/cais-logo.png";
 
-const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/leads", label: "Leads", icon: Users },
-  { to: "/vendas", label: "Registrar Venda", icon: ShoppingCart },
-  { to: "/indicacoes", label: "Indicações", icon: Network },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
+const navItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: null },
+  { to: "/leads", label: "Leads", icon: Users, permission: ["leads.view_all", "leads.view_own"] as const },
+  { to: "/vendas", label: "Registrar Venda", icon: ShoppingCart, permission: ["sales.create"] as const },
+  { to: "/indicacoes", label: "Indicações", icon: Network, permission: ["leads.view_all", "leads.view_own"] as const },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, permission: null },
 ] as const;
 
 const STORAGE_KEY = "cais-sidebar-expanded";
@@ -27,7 +28,12 @@ const STORAGE_KEY = "cais-sidebar-expanded";
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const { canAny } = usePermissions();
   const [expanded, setExpanded] = useState(true);
+
+  const nav = navItems.filter(
+    (item) => !item.permission || canAny(...item.permission),
+  );
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
