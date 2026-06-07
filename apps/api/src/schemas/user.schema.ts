@@ -8,3 +8,9 @@ export const createUserSchema = z.object({
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
+
+export const personalDailyTargetSchema = z.object({
+  amount: z.coerce.number().nonnegative().nullable(),
+});
+
+export type PersonalDailyTargetInput = z.infer<typeof personalDailyTargetSchema>;

@@ -7,11 +7,13 @@ import { goalRoutes } from "./goal.routes.js";
 import { referralRoutes } from "./referral.routes.js";
 import { purchaseRoutes } from "./purchase.routes.js";
 import { settingsRoutes } from "./settings.routes.js";
+import { dashboardRoutes } from "./dashboard.routes.js";
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(healthRoutes);
   await app.register(authRoutes);
   await app.register(userRoutes);
+  await app.register(dashboardRoutes);
   await app.register(settingsRoutes);
   await app.register(leadRoutes);
   await app.register(goalRoutes);

@@ -144,6 +144,50 @@ export interface DailyGoalToday {
   }[];
 }
 
+export interface PersonalDashboardSale {
+  id: string;
+  leadName: string;
+  consortiumType: string | null;
+  amount: number;
+  soldAt: string;
+}
+
+export interface PersonalDashboardLead {
+  id: string;
+  name: string;
+  statusName: string;
+  statusSlug: string | null;
+  nextAction: string | null;
+  nextFollowUpAt: string | null;
+}
+
+export interface PersonalDashboard {
+  personalDailyTarget: number | null;
+  companyDailyTarget: number;
+  resolvedDailyTarget: number;
+  targetSource: "personal" | "company";
+  mySalesToday: number;
+  mySalesTodayCount: number;
+  dailyPercent: number;
+  remaining: number;
+  streakDays: number;
+  rankPosition: number | null;
+  rankTotal: number;
+  activeLeadsCount: number;
+  followUpLeadsCount: number;
+  myConversionRate: number;
+  teamAvgConversionRate: number;
+  avgTicket: number;
+  todaySales: PersonalDashboardSale[];
+  activeLeads: PersonalDashboardLead[];
+  insight: {
+    remaining: number;
+    avgTicket: number;
+    followUpCount: number;
+    message: string;
+  };
+}
+
 export interface ChainNode {
   level: number;
   node_type: "user" | "lead";
@@ -501,6 +545,22 @@ export async function updateGoalPeriod(
 export async function fetchDailyGoalToday(): Promise<DailyGoalToday> {
   const res = await apiFetch<{ data: DailyGoalToday }>("/goals/daily/today", {}, false);
   return res.data;
+}
+
+export async function fetchPersonalDashboard(): Promise<PersonalDashboard> {
+  const res = await apiFetch<{ data: PersonalDashboard }>("/dashboard/personal");
+  return res.data;
+}
+
+export async function updatePersonalDailyTarget(amount: number | null): Promise<number | null> {
+  const res = await apiFetch<{ data: { amount: number | null } }>(
+    "/users/me/personal-daily-target",
+    {
+      method: "PATCH",
+      body: JSON.stringify({ amount }),
+    },
+  );
+  return res.data.amount;
 }
 
 export async function fetchDailyDefaults(): Promise<DailyGoalDefault[]> {

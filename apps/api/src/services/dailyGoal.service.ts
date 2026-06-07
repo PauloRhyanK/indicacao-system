@@ -36,7 +36,7 @@ function weekdayInTz(date: Date, timeZone = BUSINESS_TZ): number {
 }
 
 /** Meia-noite a meia-noite no fuso de São Paulo. */
-function dayBoundsBusiness(date: Date) {
+export function dayBoundsBusiness(date: Date) {
   const { y, m, d } = calendarPartsInTz(date);
   const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
   const end = new Date(Date.UTC(y, m - 1, d + 1, 3, 0, 0, 0));
