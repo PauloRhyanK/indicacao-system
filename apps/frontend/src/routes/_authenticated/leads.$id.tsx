@@ -1,14 +1,17 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { StatusBadge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
+import { EditLeadForm } from "@/components/cais/EditLeadForm";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
 import { ReferralChain } from "@/components/cais/ReferralChain";
+import { BonusChainCard } from "@/components/cais/BonusChainCard";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import {
+  fetchBonusChain,
   fetchLead,
   fetchReferralChain,
   formatDate,
@@ -24,11 +27,16 @@ export const Route = createFileRoute("/_authenticated/leads/$id")({
 function LeadDetail() {
   const { id } = useParams({ from: "/_authenticated/leads/$id" });
   const [saleOpen, setSaleOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const lead = useQuery({ queryKey: ["lead", id], queryFn: () => fetchLead(id) });
   const chain = useQuery({
     queryKey: ["chain", id],
     queryFn: () => fetchReferralChain(id),
+  });
+  const bonusChain = useQuery({
+    queryKey: ["bonus-chain", id],
+    queryFn: () => fetchBonusChain(id),
   });
 
   if (lead.isLoading) {
@@ -66,11 +74,17 @@ function LeadDetail() {
             slug={l.salesStatus?.slug}
           />
         </div>
-        {!isLeadClosed(l) && (
-          <Button variant="gold" onClick={() => setSaleOpen(true)}>
-            Registrar Venda
+        <div className="flex flex-wrap items-center gap-2">
+          {!isLeadClosed(l) && (
+            <Button variant="gold" onClick={() => setSaleOpen(true)}>
+              Registrar Venda
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4" />
+            Editar
           </Button>
-        )}
+        </div>
       </div>
       <p className="mb-6 text-[12px] text-slate-500">
         Criado em {formatDate(l.created_at)}
@@ -100,6 +114,17 @@ function LeadDetail() {
             <dd className="text-[14px] text-azul-profundo">{l.notes ?? "—"}</dd>
           </div>
         </dl>
+      </div>
+
+      <div className="mb-6">
+        {bonusChain.isLoading ? (
+          <PageLoader />
+        ) : (
+          <BonusChainCard
+            chain={bonusChain.data?.chain ?? []}
+            treeTruncated={bonusChain.data?.tree_truncated}
+          />
+        )}
       </div>
 
       <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
@@ -145,6 +170,8 @@ function LeadDetail() {
         leadId={l.id}
         leadName={l.name}
       />
+
+      <EditLeadForm open={editOpen} onClose={() => setEditOpen(false)} lead={l} />
     </AppLayout>
   );
 }

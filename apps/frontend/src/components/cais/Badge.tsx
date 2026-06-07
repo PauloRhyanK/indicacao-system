@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const base =
-  "inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap";
+  "inline-flex max-w-full min-w-0 items-center truncate text-[11px] font-medium px-2 py-0.5 rounded-full";
 
 const variants = {
   green: "bg-[#DCFCE7] text-[#166534]",
@@ -16,13 +16,19 @@ export type BadgeVariant = keyof typeof variants;
 export function Badge({
   variant = "gray",
   className,
+  title,
   children,
 }: {
   variant?: BadgeVariant;
   className?: string;
+  title?: string;
   children: React.ReactNode;
 }) {
-  return <span className={cn(base, variants[variant], className)}>{children}</span>;
+  return (
+    <span className={cn(base, variants[variant], className)} title={title}>
+      {children}
+    </span>
+  );
 }
 
 const slugVariant: Record<string, BadgeVariant> = {
@@ -42,10 +48,26 @@ const slugVariant: Record<string, BadgeVariant> = {
 export function StatusBadge({
   status,
   slug,
+  className,
+  compact = false,
 }: {
   status: string;
   slug?: string | null;
+  className?: string;
+  compact?: boolean;
 }) {
-  const variant = (slug && slugVariant[slug]) ?? "gray";
-  return <Badge variant={variant}>{status}</Badge>;
+  const variant: BadgeVariant = (slug && slugVariant[slug]) || "gray";
+  return (
+    <Badge
+      variant={variant}
+      className={cn(
+        compact &&
+          "inline-block h-6 max-w-full truncate rounded-md px-2 py-0 text-[11px] leading-6",
+        className,
+      )}
+      title={status}
+    >
+      {status}
+    </Badge>
+  );
 }

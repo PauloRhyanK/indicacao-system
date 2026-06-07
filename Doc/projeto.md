@@ -139,8 +139,11 @@ Aqui estão os artefatos solicitados para darmos início imediato:
 > 1. `users`: (id UUID PK, name, email, password_hash, role, created_at).
 > 2. `leads`: (id UUID PK, external_code VARCHAR UNIQUE, name, phone, **source_id** FK → lead_sources, assigned_to_user_id FK → users, **sales_status_id** FK → lead_statuses, **next_action_id** FK nullable → next_actions, next_follow_up_at, notes, offered_amount DECIMAL nullable, closed_amount DECIMAL nullable, created_at, updated_at).
 > 3. `referrals`: Polimorfismo — id, referred_lead_id (FK → leads), referrer_type (Enum USER/LEAD), referrer_id (UUID), created_at.
-> 4. `purchases`: id, lead_id (FK), amount, purchase_date, created_at.
-> 5. `goals`: id, target_amount, current_amount, start_date, end_date.
+> 4. `consortium_types` (Módulo Vendas): (id UUID PK, slug VARCHAR UNIQUE, name VARCHAR). Seed: Imóvel, Automóvel, Pesados, Náutico, Serviços.
+> 5. `purchases`: id, lead_id (FK), amount, **consortium_type_id** FK nullable → consortium_types, purchase_date, created_at.
+> 6. `goals`: id, target_amount, current_amount, start_date, end_date.
+>
+> **Campo adicional em `users`:** `phone` VARCHAR nullable — exibido na cadeia de bonificação quando o indicador é consultor (tipo USER).
 >
 > **INSERTs iniciais (planilha Cais):**
 >
@@ -191,7 +194,22 @@ Como solicitaste, aqui está o prompt estruturado (embora eu já tenha processad
 
 - **Linguagem & ORM:** TypeScript executado em **Node.js** (recomendo Express ou Fastify para leveza no MVP) associado ao **Prisma ORM**.
 - **Por que Prisma?** Ele lida perfeitamente com TypeScript, cria os *schemas* com tipagem segura e facilitará imenso a criação de queries relacionais complexas (necessárias para a árvore de indicação) no PostgreSQL.
-- **Endpoints Chave:** CRUD de Leads, **POST /leads/import** (upload Excel BASE_CRM), Cadastro de Compra (atualiza `purchases` e `goals`), e **GET /leads/:id/tree?maxDepth=10** (CTE recursiva com flag `tree_truncated` se exceder o limite).
+- **Endpoints Chave:** CRUD de Leads, **POST /leads/import** (upload Excel BASE_CRM), **POST /leads/:leadId/purchases** (registra venda com `consortiumTypeId`, fecha lead, incrementa meta e retorna `purchase` + `bonusChain`), **GET /leads/:id/bonus-chain** (cadeia de premiação com telefone), **GET /settings/consortium-types** (CRUD parametrizável), e **GET /leads/:id/tree?maxDepth=10** (CTE recursiva com flag `tree_truncated` se exceder o limite).
+
+#### 6. Registro de Venda e Bonificação (Módulo implementado)
+
+**Fluxo `POST /leads/:leadId/purchases`:**
+
+1. Valida lead e tipo de consórcio (opcional via `consortiumTypeId` ou `consortiumTypeSlug`).
+2. Transação: insere `purchases`, atualiza lead para status `fechado` (soma `closed_amount`), incrementa `goals.current_amount`.
+3. Após commit: `bonusChain.service.ts` executa CTE de **ancestors** (até 10 níveis) retornando `name` + `phone` (`users.phone` ou `leads.phone`).
+4. Resposta: `{ purchase, bonusChain, tree_truncated }`.
+
+**Frontend:**
+
+- Aba **/vendas** no menu + atalho modal em Leads.
+- `SaleRegistrationForm` compartilhado (lead selecionável ou pré-preenchido).
+- `BonusChainCard` exibe premiados por nível; confetti (`canvas-confetti`) com cores CAIS e overlay "Parabéns! Meta Impulsionada!" — auto-remove após ~4s para evitar vazamento de memória.
 
 #### 5. Infraestrutura (VPS via Docker)
 

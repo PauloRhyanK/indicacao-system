@@ -29,6 +29,14 @@ const LEAD_SOURCES = [
   "Evento mulheres",
 ];
 
+const CONSORTIUM_TYPES = [
+  "Imóvel",
+  "Automóvel",
+  "Pesados (Caminhões/Tratores)",
+  "Náutico",
+  "Serviços",
+];
+
 const NEXT_ACTIONS = [
   "Cobrar decisão",
   "Mandar proposta",
@@ -67,6 +75,14 @@ async function seedLookups() {
       create: { slug, name },
     });
   }
+  for (const name of CONSORTIUM_TYPES) {
+    const slug = slugify(name);
+    await prisma.consortiumType.upsert({
+      where: { slug },
+      update: { name },
+      create: { slug, name },
+    });
+  }
 }
 
 async function main() {
@@ -88,10 +104,11 @@ async function main() {
 
   const lucas = await prisma.user.upsert({
     where: { email: "lucas@cais.local" },
-    update: {},
+    update: { phone: "5511999880001" },
     create: {
       name: "Lucas",
       email: "lucas@cais.local",
+      phone: "5511999880001",
       passwordHash: await bcrypt.hash("consultor123", 10),
       role: UserRole.CONSULTANT,
     },
@@ -99,10 +116,11 @@ async function main() {
 
   const carlos = await prisma.user.upsert({
     where: { email: "carlos@cais.local" },
-    update: {},
+    update: { phone: "5511999880002" },
     create: {
       name: "Carlos",
       email: "carlos@cais.local",
+      phone: "5511999880002",
       passwordHash: await bcrypt.hash("consultor123", 10),
       role: UserRole.CONSULTANT,
     },

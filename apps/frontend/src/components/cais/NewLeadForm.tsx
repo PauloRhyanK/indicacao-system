@@ -5,7 +5,7 @@ import { Field, inputClass, SlideOver } from "./SlideOver";
 import {
   createLead,
   fetchProfiles,
-  fetchLeads,
+  fetchAllLeads,
   fetchLookups,
 } from "@/lib/cais-api";
 
@@ -24,7 +24,7 @@ export function NewLeadForm({
 }) {
   const qc = useQueryClient();
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
-  const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
+  const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   const [name, setName] = useState("");

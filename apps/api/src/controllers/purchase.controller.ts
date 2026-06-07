@@ -5,8 +5,8 @@ import { listAllPurchases, listPurchases, registerPurchase } from "../services/p
 export async function postPurchase(request: FastifyRequest, reply: FastifyReply) {
   const { leadId } = request.params as { leadId: string };
   const input = createPurchaseSchema.parse(request.body);
-  const purchase = await registerPurchase(leadId, input);
-  return reply.status(201).send({ data: purchase });
+  const result = await registerPurchase(leadId, input);
+  return reply.status(201).send({ data: result });
 }
 
 export async function getPurchases(request: FastifyRequest, reply: FastifyReply) {

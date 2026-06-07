@@ -10,6 +10,7 @@ export interface Lookups {
   statuses: LookupItem[];
   sources: LookupItem[];
   nextActions: LookupItem[];
+  consortiumTypes: LookupItem[];
 }
 
 export interface Profile {
@@ -19,24 +20,69 @@ export interface Profile {
   created_at: string;
 }
 
+export interface AssignedUser {
+  id: string;
+  name: string;
+}
+
 export interface Lead {
   id: string;
   name: string;
   phone: string;
+  external_code: string | null;
   salesStatus: LookupItem | null;
   source: LookupItem | null;
   nextAction: LookupItem | null;
   notes: string | null;
+  next_follow_up_at: string | null;
+  offered_amount: number | null;
+  closed_amount: number | null;
+  assigned_to: AssignedUser | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
 }
 
+export interface LeadsFilters {
+  search?: string;
+  status?: string;
+  source?: string;
+  nextAction?: string;
+  assignedTo?: string;
+  followUpFrom?: string;
+  followUpTo?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
+  offeredMin?: number;
+  offeredMax?: number;
+  closedMin?: number;
+  closedMax?: number;
+  notes?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface LeadsPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface LeadsListResult {
+  leads: Lead[];
+  pagination: LeadsPagination;
+}
+
 export interface Sale {
   id: string;
   lead_id: string;
+  lead_name: string;
+  lead_phone: string | null;
   sale_value: number;
-  sold_by: string | null;
+  consortium_type: string | null;
   sold_at: string;
 }
 
@@ -53,6 +99,29 @@ export interface ChainNode {
   node_type: "user" | "lead";
   node_id: string;
   node_name: string;
+}
+
+export interface BonusChainNode {
+  level: number;
+  nodeType: "USER" | "LEAD";
+  nodeId: string;
+  name: string;
+  phone: string | null;
+}
+
+export interface BonusChainResult {
+  chain: BonusChainNode[];
+  tree_truncated: boolean;
+}
+
+export interface ApiPurchase {
+  id: string;
+  leadId: string;
+  amount: unknown;
+  purchaseDate: string;
+  createdAt: string;
+  consortiumType?: ApiLookup | null;
+  lead?: { id: string; name: string; phone: string | null } | null;
 }
 
 export interface Referral {
@@ -93,6 +162,12 @@ interface ApiUser {
   createdAt: string;
 }
 
+interface ApiAssignedUser {
+  id: string;
+  name: string;
+  email?: string;
+}
+
 interface ApiLead {
   id: string;
   externalCode?: string | null;
@@ -102,17 +177,13 @@ interface ApiLead {
   source?: ApiLookup | null;
   nextAction?: ApiLookup | null;
   notes?: string | null;
+  nextFollowUpAt?: string | null;
+  offeredAmount?: unknown | null;
+  closedAmount?: unknown | null;
+  assignedTo?: ApiAssignedUser | null;
   assignedToUserId?: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-interface ApiPurchase {
-  id: string;
-  leadId: string;
-  amount: unknown;
-  purchaseDate: string;
-  createdAt: string;
 }
 
 interface ApiGoal {
@@ -150,19 +221,60 @@ function mapLookup(item?: ApiLookup | null): LookupItem | null {
   return { id: item.id, slug: item.slug, name: item.name };
 }
 
+function mapAssignedTo(api: ApiLead): AssignedUser | null {
+  if (api.assignedTo) return { id: api.assignedTo.id, name: api.assignedTo.name };
+  return null;
+}
+
 function mapLead(api: ApiLead): Lead {
+  const assigned = mapAssignedTo(api);
   return {
     id: api.id,
     name: api.name,
     phone: api.phone ?? "",
+    external_code: api.externalCode ?? null,
     salesStatus: mapLookup(api.salesStatus),
     source: mapLookup(api.source),
     nextAction: mapLookup(api.nextAction),
     notes: api.notes ?? null,
-    created_by: api.assignedToUserId ?? null,
+    next_follow_up_at: api.nextFollowUpAt ?? null,
+    offered_amount: api.offeredAmount != null ? decimalToNumber(api.offeredAmount) : null,
+    closed_amount: api.closedAmount != null ? decimalToNumber(api.closedAmount) : null,
+    assigned_to: assigned,
+    created_by: assigned?.id ?? api.assignedToUserId ?? null,
     created_at: api.createdAt,
     updated_at: api.updatedAt,
   };
+}
+
+function buildLeadsQuery(filters?: LeadsFilters): string {
+  const params = new URLSearchParams();
+  if (!filters) return "?limit=100";
+  const entries: [string, string | number | undefined][] = [
+    ["page", filters.page],
+    ["limit", filters.limit ?? 50],
+    ["search", filters.search],
+    ["status", filters.status],
+    ["source", filters.source],
+    ["nextAction", filters.nextAction],
+    ["assignedTo", filters.assignedTo],
+    ["followUpFrom", filters.followUpFrom],
+    ["followUpTo", filters.followUpTo],
+    ["createdFrom", filters.createdFrom],
+    ["createdTo", filters.createdTo],
+    ["updatedFrom", filters.updatedFrom],
+    ["updatedTo", filters.updatedTo],
+    ["offeredMin", filters.offeredMin],
+    ["offeredMax", filters.offeredMax],
+    ["closedMin", filters.closedMin],
+    ["closedMax", filters.closedMax],
+    ["notes", filters.notes],
+  ];
+  for (const [key, value] of entries) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }
 
 function mapProfile(api: ApiUser): Profile {
@@ -178,8 +290,10 @@ function mapSale(api: ApiPurchase): Sale {
   return {
     id: api.id,
     lead_id: api.leadId,
+    lead_name: api.lead?.name ?? "—",
+    lead_phone: api.lead?.phone ?? null,
     sale_value: decimalToNumber(api.amount),
-    sold_by: null,
+    consortium_type: api.consortiumType?.name ?? null,
     sold_at: api.purchaseDate,
   };
 }
@@ -214,7 +328,7 @@ export function formatBRL(value: number): string {
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 }
@@ -222,7 +336,7 @@ export function formatDate(iso: string): string {
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
@@ -240,12 +354,13 @@ export async function fetchLookups(): Promise<Lookups> {
   return res.data;
 }
 
-export type LookupType = "status" | "source" | "action";
+export type LookupType = "status" | "source" | "action" | "consortium";
 
 const LOOKUP_ROUTES: Record<LookupType, string> = {
   status: "lead-statuses",
   source: "lead-sources",
   action: "next-actions",
+  consortium: "consortium-types",
 };
 
 export async function createLookup(type: LookupType, name: string): Promise<LookupItem> {
@@ -274,9 +389,20 @@ export async function deleteLookup(type: LookupType, id: string): Promise<void> 
 
 // ---- Queries ----
 
-export async function fetchLeads(): Promise<Lead[]> {
-  const res = await apiFetch<{ data: ApiLead[] }>("/leads?limit=100");
-  return res.data.map(mapLead);
+export async function fetchLeads(filters?: LeadsFilters): Promise<LeadsListResult> {
+  const res = await apiFetch<{ data: ApiLead[]; pagination: LeadsPagination }>(
+    `/leads${buildLeadsQuery(filters)}`,
+  );
+  return {
+    leads: res.data.map(mapLead),
+    pagination: res.pagination,
+  };
+}
+
+/** Atalho para telas que precisam de todos os leads (até 100). */
+export async function fetchAllLeads(): Promise<Lead[]> {
+  const { leads } = await fetchLeads({ limit: 100 });
+  return leads;
 }
 
 export async function fetchLead(id: string): Promise<Lead> {
@@ -368,6 +494,7 @@ export async function updateLead(
     salesStatusSlug: string;
     sourceSlug: string;
     nextActionSlug: string;
+    nextFollowUpAt: string;
     notes: string;
   }>,
 ): Promise<void> {
@@ -377,18 +504,53 @@ export async function updateLead(
   });
 }
 
+interface ApiRegisterSaleResponse {
+  purchase: ApiPurchase;
+  bonusChain: {
+    level: number;
+    nodeType: "USER" | "LEAD";
+    nodeId: string;
+    name: string;
+    phone: string | null;
+  }[];
+  tree_truncated: boolean;
+}
+
+export interface RegisterSaleResult extends BonusChainResult {
+  purchaseId: string;
+  leadId: string;
+}
+
 export async function registerSale(input: {
   lead_id: string;
   sale_value: number;
+  consortium_type_id?: string;
   sold_by?: string | null;
-}): Promise<void> {
-  await apiFetch(`/leads/${input.lead_id}/purchases`, {
-    method: "POST",
-    body: JSON.stringify({
-      amount: input.sale_value,
-      purchaseDate: new Date().toISOString(),
-    }),
-  });
+}): Promise<RegisterSaleResult> {
+  const res = await apiFetch<{ data: ApiRegisterSaleResponse }>(
+    `/leads/${input.lead_id}/purchases`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        amount: input.sale_value,
+        purchaseDate: new Date().toISOString(),
+        consortiumTypeId: input.consortium_type_id,
+      }),
+    },
+  );
+  return {
+    purchaseId: res.data.purchase.id,
+    leadId: input.lead_id,
+    chain: res.data.bonusChain,
+    tree_truncated: res.data.tree_truncated,
+  };
+}
+
+export async function fetchBonusChain(leadId: string): Promise<BonusChainResult> {
+  const res = await apiFetch<{ data: BonusChainResult }>(
+    `/leads/${leadId}/bonus-chain?maxDepth=10`,
+  );
+  return res.data;
 }
 
 export interface ImportReport {

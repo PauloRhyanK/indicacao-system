@@ -18,7 +18,7 @@ import { SectionHeader } from "@/components/cais/Feedback";
 import { PageLoader } from "@/components/cais/Feedback";
 import { fetchMe } from "@/lib/api/auth";
 import {
-  fetchLeads,
+  fetchAllLeads,
   fetchSales,
   fetchProfiles,
   fetchReferrals,
@@ -44,7 +44,7 @@ function Dashboard() {
   const greeting = useGreeting();
   const [userName, setUserName] = useState("Assessor");
 
-  const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
+  const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads });
   const sales = useQuery({ queryKey: ["sales"], queryFn: fetchSales });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });

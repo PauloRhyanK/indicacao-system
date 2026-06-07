@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import {
   getLead,
   getLeads,
+  getLeadBonusChain,
   getLeadTree,
   patchLead,
   postLead,
@@ -23,6 +24,7 @@ export async function leadRoutes(app: FastifyInstance) {
   app.patch("/leads/:id", patchLead);
   app.delete("/leads/:id", { preHandler: [authorize("ADMIN")] }, removeLead);
   app.get("/leads/:id/tree", getLeadTree);
+  app.get("/leads/:id/bonus-chain", getLeadBonusChain);
 
   app.get("/leads/:leadId/purchases", getPurchases);
   app.post("/leads/:leadId/purchases", postPurchase);

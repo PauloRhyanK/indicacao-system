@@ -1,5 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import {
+  getConsortiumTypes,
+  patchConsortiumType,
+  postConsortiumType,
+  removeConsortiumType,
+} from "../controllers/consortiumType.controller.js";
+import {
   getLookups,
   patchLookup,
   postLookupItem,
@@ -16,6 +22,11 @@ const ROUTE_MAP: Record<string, LookupKind> = {
 
 export async function settingsRoutes(app: FastifyInstance) {
   app.get("/settings/lookups", { preHandler: [authenticate] }, getLookups);
+
+  app.get("/settings/consortium-types", { preHandler: [authenticate] }, getConsortiumTypes);
+  app.post("/settings/consortium-types", { preHandler: [authenticate] }, postConsortiumType);
+  app.patch("/settings/consortium-types/:id", { preHandler: [authenticate] }, patchConsortiumType);
+  app.delete("/settings/consortium-types/:id", { preHandler: [authenticate] }, removeConsortiumType);
 
   for (const [route, kind] of Object.entries(ROUTE_MAP)) {
     app.get(`/settings/${route}`, { preHandler: [authenticate] }, async (_req, reply) => {

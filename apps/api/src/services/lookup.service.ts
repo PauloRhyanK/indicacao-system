@@ -12,12 +12,13 @@ const leadFkMap = {
 } as const;
 
 export async function getAllLookups() {
-  const [statuses, sources, nextActions] = await Promise.all([
+  const [statuses, sources, nextActions, consortiumTypes] = await Promise.all([
     prisma.leadStatus.findMany({ orderBy: { name: "asc" } }),
     prisma.leadSource.findMany({ orderBy: { name: "asc" } }),
     prisma.nextAction.findMany({ orderBy: { name: "asc" } }),
+    prisma.consortiumType.findMany({ orderBy: { name: "asc" } }),
   ]);
-  return { statuses, sources, nextActions };
+  return { statuses, sources, nextActions, consortiumTypes };
 }
 
 export async function listLookups(kind: LookupKind) {

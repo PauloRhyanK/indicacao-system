@@ -1,23 +1,29 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { Filter, X } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
-import { StatusBadge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
 import { NewLeadForm } from "@/components/cais/NewLeadForm";
 import { ImportExcelDialog } from "@/components/cais/ImportExcelDialog";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
+import { LeadsDataGrid } from "@/components/cais/LeadsDataGrid";
+import { LeadsFilterModal } from "@/components/cais/LeadsFilterModal";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
   fetchLeads,
   fetchProfiles,
   fetchReferrals,
   fetchLookups,
-  isLeadClosed,
   type Lead,
+  type LeadsFilters,
 } from "@/lib/cais-api";
+import {
+  countActiveFilters,
+  filterRowLabel,
+  type FilterRow,
+} from "@/lib/leads-filters";
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({ meta: [{ title: "Leads — CAIS" }] }),
@@ -25,22 +31,38 @@ export const Route = createFileRoute("/_authenticated/leads/")({
 });
 
 function LeadsPage() {
-  const navigate = useNavigate();
-  const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
+  const [quickSearch, setQuickSearch] = useState("");
+  const [filters, setFilters] = useState<LeadsFilters>({});
+  const [filterRows, setFilterRows] = useState<FilterRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [saleFor, setSaleFor] = useState<Lead | null>(null);
+
+  const queryFilters = useMemo(
+    () => ({
+      ...filters,
+      search: quickSearch || filters.search,
+      page,
+      limit: pageSize,
+    }),
+    [filters, quickSearch, page, pageSize],
+  );
+
+  const leadsQuery = useQuery({
+    queryKey: ["leads", queryFilters],
+    queryFn: () => fetchLeads(queryFilters),
+  });
 
   const referrerLabel = useMemo(() => {
     const profMap = new Map((profiles.data ?? []).map((p) => [p.id, p.name]));
-    const leadMap = new Map((leads.data ?? []).map((l) => [l.id, l.name]));
+    const leadMap = new Map((leadsQuery.data?.leads ?? []).map((l) => [l.id, l.name]));
     const map = new Map<string, string>();
     (referrals.data ?? []).forEach((r) => {
       if (r.referrer_type === "user" && r.referrer_user_id)
@@ -49,16 +71,29 @@ function LeadsPage() {
         map.set(r.lead_id, leadMap.get(r.referrer_lead_id) ?? "—");
     });
     return map;
-  }, [referrals.data, profiles.data, leads.data]);
+  }, [referrals.data, profiles.data, leadsQuery.data?.leads]);
 
-  const filtered = (leads.data ?? []).filter((l) => {
-    const matchSearch =
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.phone.includes(search);
-    const matchStatus =
-      statusFilter === "all" || l.salesStatus?.slug === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const activeFilterCount = countActiveFilters(filterRows);
+  const activeChips = filterRows.filter((r) => r.field && r.value).map(filterRowLabel);
+
+  const handleApplyFilters = (compiled: LeadsFilters, rows: FilterRow[]) => {
+    setFilters(compiled);
+    setFilterRows(rows);
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage: number, newSize: number) => {
+    setPage(newPage);
+    setPageSize(newSize);
+  };
+
+  const leads = leadsQuery.data?.leads ?? [];
+  const pagination = leadsQuery.data?.pagination ?? {
+    page: 1,
+    limit: pageSize,
+    total: 0,
+    totalPages: 1,
+  };
 
   return (
     <AppLayout>
@@ -77,30 +112,50 @@ function LeadsPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           className={inputClass + " max-w-xs flex-1"}
-          placeholder="Buscar por nome ou celular..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Busca rápida (nome, celular, código)..."
+          value={quickSearch}
+          onChange={(e) => {
+            setQuickSearch(e.target.value);
+            setPage(1);
+          }}
         />
-        <select
-          className={inputClass + " w-auto"}
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Todos os status</option>
-          {(lookups.data?.statuses ?? []).map((s) => (
-            <option key={s.slug} value={s.slug}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <Button variant="ghost" onClick={() => setFilterOpen(true)}>
+          <Filter className="mr-1.5 h-4 w-4" />
+          Filtros
+          {activeFilterCount > 0 && (
+            <span className="ml-1.5 rounded-full bg-ouro/20 px-2 py-0.5 text-[11px] font-semibold text-azul-profundo">
+              {activeFilterCount}
+            </span>
+          )}
+        </Button>
       </div>
 
-      {leads.isLoading ? (
+      {activeChips.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {activeChips.map((chip, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[12px] text-azul-profundo"
+            >
+              {chip}
+            </span>
+          ))}
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-[12px] text-slate-500 hover:text-azul-profundo"
+            onClick={() => handleApplyFilters({}, [])}
+          >
+            <X className="h-3 w-3" /> Limpar filtros
+          </button>
+        </div>
+      )}
+
+      {leadsQuery.isLoading ? (
         <PageLoader />
-      ) : filtered.length === 0 ? (
+      ) : leads.length === 0 ? (
         <EmptyState
           title="Nenhum lead encontrado"
           message="Ajuste os filtros ou cadastre um novo lead para começar."
@@ -111,87 +166,26 @@ function LeadsPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-md border border-slate-200 bg-branco">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-slate-100">
-                {["Nome", "Celular", "Indicado por", "Status", "Observações", ""].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-3 py-2.5 text-left text-[12px] font-semibold uppercase tracking-[0.3px] text-azul-profundo"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((l) => (
-                <tr
-                  key={l.id}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
-                  onClick={() =>
-                    navigate({ to: "/leads/$id", params: { id: l.id } })
-                  }
-                >
-                  <td className="border-b border-slate-200 px-3 py-2.5 text-[13px] font-medium text-azul-profundo">
-                    {l.name}
-                  </td>
-                  <td className="border-b border-slate-200 px-3 py-2.5 text-[13px]">
-                    {l.phone}
-                  </td>
-                  <td className="border-b border-slate-200 px-3 py-2.5 text-[13px]">
-                    {referrerLabel.get(l.id) ?? "—"}
-                  </td>
-                  <td className="border-b border-slate-200 px-3 py-2.5 text-[13px]">
-                    <StatusBadge
-                      status={l.salesStatus?.name ?? "Sem status"}
-                      slug={l.salesStatus?.slug}
-                    />
-                  </td>
-                  <td className="max-w-[220px] truncate border-b border-slate-200 px-3 py-2.5 text-[13px] text-slate-500">
-                    {l.notes ?? "—"}
-                  </td>
-                  <td
-                    className="relative border-b border-slate-200 px-3 py-2.5 text-right"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      className="rounded p-1 text-slate-500 hover:bg-slate-100"
-                      onClick={() => setMenuFor(menuFor === l.id ? null : l.id)}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                    {menuFor === l.id && (
-                      <div className="absolute right-2 top-10 z-10 w-40 rounded-md border border-slate-200 bg-white py-1 text-left shadow-md">
-                        <button
-                          className="block w-full px-3 py-2 text-left text-[13px] hover:bg-slate-100"
-                          onClick={() => navigate({ to: "/leads/$id", params: { id: l.id } })}
-                        >
-                          Ver Detalhes
-                        </button>
-                        {!isLeadClosed(l) && (
-                          <button
-                            className="block w-full px-3 py-2 text-left text-[13px] text-azul-corporativo hover:bg-slate-100"
-                            onClick={() => {
-                              setSaleFor(l);
-                              setMenuFor(null);
-                            }}
-                          >
-                            Registrar Venda
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <LeadsDataGrid
+          leads={leads}
+          pagination={pagination}
+          loading={leadsQuery.isFetching}
+          referrerLabel={referrerLabel}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onRegisterSale={setSaleFor}
+        />
       )}
+
+      <LeadsFilterModal
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        lookups={lookups.data}
+        profiles={profiles.data}
+        initialRows={filterRows}
+        onApply={handleApplyFilters}
+      />
 
       <NewLeadForm open={newOpen} onClose={() => setNewOpen(false)} />
       <ImportExcelDialog open={importOpen} onClose={() => setImportOpen(false)} />

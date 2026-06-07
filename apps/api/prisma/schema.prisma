@@ -21,6 +21,7 @@ model User {
   id           String   @id @default(uuid()) @db.Uuid
   name         String
   email        String   @unique
+  phone        String?
   passwordHash String   @map("password_hash")
   role         UserRole @default(CONSULTANT)
   createdAt    DateTime @default(now()) @map("created_at")
@@ -60,6 +61,16 @@ model NextAction {
   @@map("next_actions")
 }
 
+model ConsortiumType {
+  id   String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+
+  purchases Purchase[]
+
+  @@map("consortium_types")
+}
+
 model Lead {
   id               String    @id @default(uuid()) @db.Uuid
   externalCode     String?   @unique @map("external_code")
@@ -76,12 +87,12 @@ model Lead {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  source       LeadSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
-  salesStatus  LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
-  nextAction   NextAction? @relation(fields: [nextActionId], references: [id], onDelete: SetNull)
-  assignedTo   User?       @relation("AssignedConsultant", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  purchases    Purchase[]
-  referralsAsLead Referral[] @relation("ReferredLead")
+  source          LeadSource?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  salesStatus     LeadStatus?  @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
+  nextAction      NextAction?  @relation(fields: [nextActionId], references: [id], onDelete: SetNull)
+  assignedTo      User?        @relation("AssignedConsultant", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  purchases       Purchase[]
+  referralsAsLead Referral[]   @relation("ReferredLead")
 
   @@index([externalCode])
   @@index([salesStatusId])
@@ -106,15 +117,18 @@ model Referral {
 }
 
 model Purchase {
-  id           String   @id @default(uuid()) @db.Uuid
-  leadId       String   @map("lead_id") @db.Uuid
-  amount       Decimal  @db.Decimal(15, 2)
-  purchaseDate DateTime @map("purchase_date")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  leadId           String    @map("lead_id") @db.Uuid
+  consortiumTypeId String?   @map("consortium_type_id") @db.Uuid
+  amount           Decimal   @db.Decimal(15, 2)
+  purchaseDate     DateTime  @map("purchase_date")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
-  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lead           Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  consortiumType ConsortiumType? @relation(fields: [consortiumTypeId], references: [id], onDelete: SetNull)
 
   @@index([leadId])
+  @@index([consortiumTypeId])
   @@map("purchases")
 }
 

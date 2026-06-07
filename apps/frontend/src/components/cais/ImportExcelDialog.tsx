@@ -157,6 +157,7 @@ export function ImportExcelDialog({
     onSuccess: (result) => {
       setReport(result);
       qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["leads-all"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["meta"] });
       qc.invalidateQueries({ queryKey: ["lookups"] });

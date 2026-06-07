@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/cais/AppLayout";
 import { Badge } from "@/components/cais/Badge";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
 import {
-  fetchLeads,
+  fetchAllLeads,
   fetchProfiles,
   fetchReferrals,
 } from "@/lib/cais-api";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/indicacoes")({
 });
 
 function IndicacoesPage() {
-  const leads = useQuery({ queryKey: ["leads"], queryFn: fetchLeads });
+  const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
 

@@ -56,20 +56,59 @@ async function resolveLookupIds(input: {
   return { sourceId, salesStatusId, nextActionId };
 }
 
-export async function listLeads(query: ListLeadsQuery) {
-  const { page, limit, search, status, source, assignedTo } = query;
+function dateRange(field: "nextFollowUpAt" | "createdAt" | "updatedAt", from?: Date, to?: Date) {
+  if (!from && !to) return {};
+  const range: { gte?: Date; lte?: Date } = {};
+  if (from) range.gte = from;
+  if (to) {
+    const end = new Date(to);
+    end.setHours(23, 59, 59, 999);
+    range.lte = end;
+  }
+  return { [field]: range };
+}
 
-  const statusFilter = status
-    ? { salesStatus: { slug: status } }
-    : {};
-  const sourceFilter = source
-    ? { source: { slug: source } }
-    : {};
+function decimalRange(field: "offeredAmount" | "closedAmount", min?: number, max?: number) {
+  if (min === undefined && max === undefined) return {};
+  const range: { gte?: Prisma.Decimal; lte?: Prisma.Decimal } = {};
+  if (min !== undefined) range.gte = new Prisma.Decimal(min);
+  if (max !== undefined) range.lte = new Prisma.Decimal(max);
+  return { [field]: range };
+}
+
+export async function listLeads(query: ListLeadsQuery) {
+  const {
+    page,
+    limit,
+    search,
+    status,
+    source,
+    nextAction,
+    assignedTo,
+    followUpFrom,
+    followUpTo,
+    createdFrom,
+    createdTo,
+    updatedFrom,
+    updatedTo,
+    offeredMin,
+    offeredMax,
+    closedMin,
+    closedMax,
+    notes,
+  } = query;
 
   const where: Prisma.LeadWhereInput = {
-    ...statusFilter,
-    ...sourceFilter,
+    ...(status ? { salesStatus: { slug: status } } : {}),
+    ...(source ? { source: { slug: source } } : {}),
+    ...(nextAction ? { nextAction: { slug: nextAction } } : {}),
     ...(assignedTo ? { assignedToUserId: assignedTo } : {}),
+    ...dateRange("nextFollowUpAt", followUpFrom, followUpTo),
+    ...dateRange("createdAt", createdFrom, createdTo),
+    ...dateRange("updatedAt", updatedFrom, updatedTo),
+    ...decimalRange("offeredAmount", offeredMin, offeredMax),
+    ...decimalRange("closedAmount", closedMin, closedMax),
+    ...(notes ? { notes: { contains: notes, mode: "insensitive" } } : {}),
     ...(search
       ? {
           OR: [

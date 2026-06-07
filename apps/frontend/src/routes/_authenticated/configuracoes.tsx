@@ -78,7 +78,7 @@ function ConfiguracoesPage() {
             Domínios do Sistema
           </h2>
           <p className="mb-4 text-[13px] text-slate-500">
-            Gerencie os valores permitidos para status, origens e próximas ações dos leads.
+            Gerencie os valores permitidos para status, origens, próximas ações e tipos de consórcio.
           </p>
         </div>
 
@@ -100,6 +100,11 @@ function ConfiguracoesPage() {
               type="action"
               title="Próximas Ações"
               items={lookups.data?.nextActions ?? []}
+            />
+            <DomainManagerTable
+              type="consortium"
+              title="Tipos de Consórcio"
+              items={lookups.data?.consortiumTypes ?? []}
             />
           </>
         )}

@@ -12,6 +12,7 @@ import {
   listLeads,
   updateLead,
 } from "../services/lead.service.js";
+import { getBonusChain } from "../services/bonusChain.service.js";
 import { getReferralTree } from "../services/referralTree.service.js";
 
 export async function getLeads(request: FastifyRequest, reply: FastifyReply) {
@@ -50,4 +51,11 @@ export async function getLeadTree(request: FastifyRequest, reply: FastifyReply) 
   const { maxDepth } = treeQuerySchema.parse(request.query);
   const tree = await getReferralTree(id, maxDepth);
   return reply.send(tree);
+}
+
+export async function getLeadBonusChain(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const { maxDepth } = treeQuerySchema.parse(request.query);
+  const result = await getBonusChain(id, maxDepth);
+  return reply.send({ data: result });
 }

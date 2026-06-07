@@ -27,11 +27,23 @@ export const updateLeadSchema = createLeadSchema.partial();
 
 export const listLeadsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(100).default(50),
   search: z.string().optional(),
   status: z.string().optional(),
   source: z.string().optional(),
+  nextAction: z.string().optional(),
   assignedTo: z.string().uuid().optional(),
+  followUpFrom: z.coerce.date().optional(),
+  followUpTo: z.coerce.date().optional(),
+  createdFrom: z.coerce.date().optional(),
+  createdTo: z.coerce.date().optional(),
+  updatedFrom: z.coerce.date().optional(),
+  updatedTo: z.coerce.date().optional(),
+  offeredMin: z.coerce.number().nonnegative().optional(),
+  offeredMax: z.coerce.number().nonnegative().optional(),
+  closedMin: z.coerce.number().nonnegative().optional(),
+  closedMax: z.coerce.number().nonnegative().optional(),
+  notes: z.string().optional(),
 });
 
 export const treeQuerySchema = z.object({
