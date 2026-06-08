@@ -32,6 +32,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
       TV_API_TOKEN: ${TV_API_TOKEN:-}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy

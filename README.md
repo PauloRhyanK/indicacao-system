@@ -43,7 +43,7 @@ pnpm docker:dev
 # 4. Aplicar migrations
 pnpm db:migrate
 
-# 5. Popular dados de exemplo (admin, consultores, meta, leads)
+# 5. Popular domínios, papéis RBAC e usuário admin (via SEED_ADMIN_* no .env)
 pnpm db:seed
 
 # 6. Rodar a API em modo watch
@@ -54,7 +54,7 @@ pnpm dev
 - Health check: `http://localhost:3001/api/v1/health`
 - pgAdmin: `http://localhost:5050` (login `admin@cais.local` / `admin`)
 
-Credenciais do admin (seed): `admin@cais.local` / `admin123` (ajustáveis via `SEED_ADMIN_*`).
+Credenciais do admin (seed): definidas em `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no `.env`. O seed cria domínios (status, origens…), papéis RBAC, meta inicial e **apenas** o usuário administrador — sem leads nem consultores de exemplo.
 
 ## Endpoints principais
 
