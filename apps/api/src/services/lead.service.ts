@@ -242,7 +242,11 @@ export async function updateLead(
   });
 }
 
-export async function deleteLead(id: string) {
+export async function deleteLead(
+  id: string,
+  access: { userId: string; perms: Set<string> },
+) {
+  await assertLeadReadable(id, access.userId, access.perms);
   const existing = await prisma.lead.findUnique({ where: { id }, select: { id: true } });
   if (!existing) throw notFound("Lead não encontrado");
   await prisma.lead.delete({ where: { id } });

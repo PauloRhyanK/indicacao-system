@@ -685,6 +685,10 @@ export async function updateLead(
   });
 }
 
+export async function deleteLead(id: string): Promise<void> {
+  await apiFetch(`/leads/${id}`, { method: "DELETE" });
+}
+
 interface ApiRegisterSaleResponse {
   purchase: ApiPurchase;
   bonusChain: {

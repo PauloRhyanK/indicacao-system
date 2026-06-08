@@ -1,7 +1,7 @@
-import { createFileRoute, useParams, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useParams, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { StatusBadge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
@@ -11,6 +11,17 @@ import { ReferralChain } from "@/components/cais/ReferralChain";
 import { BonusChainCard } from "@/components/cais/BonusChainCard";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  deleteLead,
   fetchBonusChain,
   fetchLead,
   fetchReferralChain,
@@ -18,6 +29,7 @@ import {
   formatDateTime,
   isLeadClosed,
 } from "@/lib/cais-api";
+import { usePermissions } from "@/lib/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({ meta: [{ title: "Detalhe do Lead — CAIS" }] }),
@@ -26,8 +38,14 @@ export const Route = createFileRoute("/_authenticated/leads/$id")({
 
 function LeadDetail() {
   const { id } = useParams({ from: "/_authenticated/leads/$id" });
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { can } = usePermissions();
+  const canDelete = can("leads.delete");
+
   const [saleOpen, setSaleOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const lead = useQuery({ queryKey: ["lead", id], queryFn: () => fetchLead(id) });
   const chain = useQuery({
@@ -37,6 +55,14 @@ function LeadDetail() {
   const bonusChain = useQuery({
     queryKey: ["bonus-chain", id],
     queryFn: () => fetchBonusChain(id),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteLead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      navigate({ to: "/leads" });
+    },
   });
 
   if (lead.isLoading) {
@@ -84,6 +110,16 @@ function LeadDetail() {
             <Pencil className="h-4 w-4" />
             Editar
           </Button>
+          {canDelete && (
+            <Button
+              variant="ghost"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir
+            </Button>
+          )}
         </div>
       </div>
       <p className="mb-6 text-[12px] text-slate-500">
@@ -172,6 +208,28 @@ function LeadDetail() {
       />
 
       <EditLeadForm open={editOpen} onClose={() => setEditOpen(false)} lead={l} />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{l.name}</strong>? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              {deleteMutation.isPending ? "Excluindo…" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

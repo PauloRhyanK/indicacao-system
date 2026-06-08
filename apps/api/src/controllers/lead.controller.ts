@@ -50,7 +50,7 @@ export async function patchLead(request: FastifyRequest, reply: FastifyReply) {
 
 export async function removeLead(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  await deleteLead(id);
+  await deleteLead(id, accessFrom(request));
   return reply.status(204).send();
 }
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Filter, X } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
@@ -12,6 +12,17 @@ import { LeadsDataGrid } from "@/components/cais/LeadsDataGrid";
 import { LeadsFilterModal } from "@/components/cais/LeadsFilterModal";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  deleteLead,
   fetchLeads,
   fetchProfiles,
   fetchReferrals,
@@ -19,6 +30,7 @@ import {
   type Lead,
   type LeadsFilters,
 } from "@/lib/cais-api";
+import { usePermissions } from "@/lib/use-permissions";
 import {
   countActiveFilters,
   filterRowLabel,
@@ -31,6 +43,10 @@ export const Route = createFileRoute("/_authenticated/leads/")({
 });
 
 function LeadsPage() {
+  const { can } = usePermissions();
+  const canDelete = can("leads.delete");
+  const queryClient = useQueryClient();
+
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
@@ -44,6 +60,15 @@ function LeadsPage() {
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [saleFor, setSaleFor] = useState<Lead | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteLead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setDeleteTarget(null);
+    },
+  });
 
   const queryFilters = useMemo(
     () => ({
@@ -175,6 +200,8 @@ function LeadsPage() {
           pageSize={pageSize}
           onPageChange={handlePageChange}
           onRegisterSale={setSaleFor}
+          canDelete={canDelete}
+          onDelete={setDeleteTarget}
         />
       )}
 
@@ -197,6 +224,31 @@ function LeadsPage() {
           leadName={saleFor.name}
         />
       )}
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir{" "}
+              <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+            >
+              {deleteMutation.isPending ? "Excluindo…" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

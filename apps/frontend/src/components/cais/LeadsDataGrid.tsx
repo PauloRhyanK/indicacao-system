@@ -69,6 +69,8 @@ export function LeadsDataGrid({
   pageSize,
   onPageChange,
   onRegisterSale,
+  canDelete,
+  onDelete,
 }: {
   leads: Lead[];
   pagination: LeadsPagination;
@@ -78,6 +80,8 @@ export function LeadsDataGrid({
   pageSize: number;
   onPageChange: (page: number, pageSize: number) => void;
   onRegisterSale: (lead: Lead) => void;
+  canDelete?: boolean;
+  onDelete?: (lead: Lead) => void;
 }) {
   const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -326,6 +330,17 @@ export function LeadsDataGrid({
                   }}
                 >
                   Registrar Venda
+                </MenuItem>
+              )}
+              {canDelete && onDelete && (
+                <MenuItem
+                  sx={{ fontSize: 13, color: "#dc2626" }}
+                  onClick={() => {
+                    onDelete(menuRow.lead);
+                    closeMenu();
+                  }}
+                >
+                  Excluir
                 </MenuItem>
               )}
             </>

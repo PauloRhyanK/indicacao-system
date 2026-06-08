@@ -307,6 +307,7 @@ export async function importLeadsFromBuffer(
 
   const headerIndex = buildHeaderIndex(Object.keys(rows[0]));
   const userCache = new Map<string, string>();
+  const phoneCache = new Map<string, string>();
   const lookupCache = new Map<string, string | null>();
 
   for (let i = 0; i < rows.length; i++) {
@@ -354,6 +355,9 @@ export async function importLeadsFromBuffer(
         );
 
         const externalCode = fields.externalCode ? String(fields.externalCode).trim() : undefined;
+        const phone = normalizePhone(
+          fields.phone != null ? String(fields.phone) : null,
+        );
         const closed = parseDecimal(fields.closedAmount as string | number | null);
         const createdAt = parseDate(fields.createdAt as string | number | Date | null);
         const updatedAt = parseDate(fields.updatedAt as string | number | Date | null);
@@ -364,7 +368,7 @@ export async function importLeadsFromBuffer(
 
         const data = {
           name,
-          phone: normalizePhone(fields.phone as string | null),
+          phone,
           sourceId,
           assignedToUserId,
           salesStatusId: fechadoStatus ? fechadoStatus.id : salesStatusId,
@@ -380,23 +384,47 @@ export async function importLeadsFromBuffer(
         let leadId: string;
         let wasUpdate = false;
 
+        let existingId: string | undefined;
+
         if (externalCode) {
-          const existing = await tx.lead.findUnique({
+          const byCode = await tx.lead.findUnique({
             where: { externalCode },
             select: { id: true },
           });
-          if (existing) {
-            await tx.lead.update({ where: { externalCode }, data });
-            leadId = existing.id;
-            wasUpdate = true;
+          if (byCode) existingId = byCode.id;
+        }
+
+        if (!existingId && phone) {
+          const cachedId = phoneCache.get(phone);
+          if (cachedId) {
+            existingId = cachedId;
           } else {
-            const created = await tx.lead.create({ data: { externalCode, ...data } });
-            leadId = created.id;
+            const byPhone = await tx.lead.findFirst({
+              where: { phone },
+              select: { id: true },
+            });
+            if (byPhone) existingId = byPhone.id;
           }
+        }
+
+        if (existingId) {
+          await tx.lead.update({
+            where: { id: existingId },
+            data: {
+              ...data,
+              ...(externalCode ? { externalCode } : {}),
+            },
+          });
+          leadId = existingId;
+          wasUpdate = true;
         } else {
-          const created = await tx.lead.create({ data });
+          const created = await tx.lead.create({
+            data: { ...(externalCode ? { externalCode } : {}), ...data },
+          });
           leadId = created.id;
         }
+
+        if (phone) phoneCache.set(phone, leadId);
 
         if (closed && closed.greaterThan(0)) {
           const purchaseDate = parseDate(fields.updatedAt as string | number | null) ?? new Date();
