@@ -1,7 +1,7 @@
 import { PrismaClient, ReferrerType } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { assignRoleToUser, ensureSystemRoles } from "../src/services/permission.service.js";
-import { slugify } from "../src/utils/slugify.js";
+import { assignRoleToUser, ensureSystemRoles } from "./lib/seed-rbac.js";
+import { slugify } from "./lib/slugify.js";
 
 const prisma = new PrismaClient();
 
@@ -88,7 +88,7 @@ async function seedLookups() {
 
 async function main() {
   await seedLookups();
-  const { adminRoleId, colaboradorRoleId } = await ensureSystemRoles();
+  const { adminRoleId, colaboradorRoleId } = await ensureSystemRoles(prisma);
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@cais.local";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
@@ -102,7 +102,7 @@ async function main() {
       passwordHash: await bcrypt.hash(adminPassword, 10),
     },
   });
-  await assignRoleToUser(admin.id, adminRoleId);
+  await assignRoleToUser(prisma, admin.id, adminRoleId);
 
   const lucas = await prisma.user.upsert({
     where: { email: "lucas@cais.local" },
@@ -114,7 +114,7 @@ async function main() {
       passwordHash: await bcrypt.hash("consultor123", 10),
     },
   });
-  await assignRoleToUser(lucas.id, colaboradorRoleId);
+  await assignRoleToUser(prisma, lucas.id, colaboradorRoleId);
 
   const carlos = await prisma.user.upsert({
     where: { email: "carlos@cais.local" },
@@ -126,7 +126,7 @@ async function main() {
       passwordHash: await bcrypt.hash("consultor123", 10),
     },
   });
-  await assignRoleToUser(carlos.id, colaboradorRoleId);
+  await assignRoleToUser(prisma, carlos.id, colaboradorRoleId);
 
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
