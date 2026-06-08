@@ -684,6 +684,8 @@ export interface NewLeadInput {
   referrer_type?: "user" | "lead" | null;
   referrer_id?: string | null;
   responsavel_id?: string | null;
+  vendedor_id?: string | null;
+  co_vendedor_id?: string | null;
 }
 
 export async function createLead(input: NewLeadInput): Promise<Lead> {
@@ -695,6 +697,8 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
     nextActionSlug: input.nextActionSlug,
     notes: input.notes?.trim() || undefined,
     responsavelId: input.responsavel_id ?? undefined,
+    vendedorId: input.vendedor_id ?? undefined,
+    coVendedorId: input.co_vendedor_id ?? undefined,
   };
 
   if (input.referrer_type && input.referrer_id) {

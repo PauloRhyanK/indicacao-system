@@ -11,7 +11,7 @@ export const createLeadSchema = z.object({
   phone: z.string().optional(),
   sourceId: z.string().uuid().optional(),
   sourceSlug: z.string().optional(),
-  responsavelId: z.string().uuid().optional(),
+  responsavelId: z.string().uuid().optional().nullable(),
   vendedorId: z.string().uuid().optional().nullable(),
   coVendedorId: z.string().uuid().optional().nullable(),
   salesStatusId: z.string().uuid().optional(),

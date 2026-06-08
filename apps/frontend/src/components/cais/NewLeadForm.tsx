@@ -36,6 +36,8 @@ export function NewLeadForm({
   const [refSelected, setRefSelected] = useState<RefOption | null>(null);
   const [showOpts, setShowOpts] = useState(false);
   const [responsavelId, setResponsavelId] = useState("");
+  const [vendedorId, setVendedorId] = useState("");
+  const [coVendedorId, setCoVendedorId] = useState("");
 
   const options: RefOption[] = useMemo(() => {
     const us = (profiles.data ?? []).map((p) => ({
@@ -64,6 +66,8 @@ export function NewLeadForm({
     setRefSearch("");
     setRefSelected(null);
     setResponsavelId("");
+    setVendedorId("");
+    setCoVendedorId("");
   };
 
   const mutation = useMutation({
@@ -77,6 +81,8 @@ export function NewLeadForm({
         referrer_type: refSelected?.type ?? null,
         referrer_id: refSelected?.id ?? null,
         responsavel_id: responsavelId || null,
+        vendedor_id: vendedorId || null,
+        co_vendedor_id: coVendedorId || null,
       }),
     onSuccess: () => {
       qc.invalidateQueries();
@@ -116,6 +122,36 @@ export function NewLeadForm({
             className={inputClass}
             value={responsavelId}
             onChange={(e) => setResponsavelId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Vendedor">
+          <select
+            className={inputClass}
+            value={vendedorId}
+            onChange={(e) => setVendedorId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Co-vendedor">
+          <select
+            className={inputClass}
+            value={coVendedorId}
+            onChange={(e) => setCoVendedorId(e.target.value)}
           >
             <option value="">Não atribuído</option>
             {(profiles.data ?? []).map((p) => (
