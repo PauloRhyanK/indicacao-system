@@ -788,12 +788,34 @@ export async function fetchBonusChain(leadId: string): Promise<BonusChainResult>
   return res.data;
 }
 
+export interface ImportRowDetail {
+  row: number;
+  name: string;
+  externalCode?: string | null;
+  phone?: string | null;
+  leadId?: string;
+}
+
+export interface ImportUpdateDetail extends ImportRowDetail {
+  changes: string[];
+  matchedBy?: "externalCode" | "phone";
+}
+
+export interface ImportIssueDetail {
+  row: number;
+  name?: string | null;
+  message: string;
+}
+
 export interface ImportReport {
   imported: number;
   updated: number;
   skipped: number;
-  errors: { row: number; message: string }[];
+  errors: ImportIssueDetail[];
   sheetUsed?: string;
+  created: ImportRowDetail[];
+  updates: ImportUpdateDetail[];
+  ignored: ImportIssueDetail[];
 }
 
 export interface SheetInfo {

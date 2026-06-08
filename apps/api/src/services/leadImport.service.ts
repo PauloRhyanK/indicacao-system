@@ -14,12 +14,34 @@ import {
   type UnknownValues,
 } from "./domainResolver.service.js";
 
+export interface ImportRowDetail {
+  row: number;
+  name: string;
+  externalCode?: string | null;
+  phone?: string | null;
+  leadId?: string;
+}
+
+export interface ImportUpdateDetail extends ImportRowDetail {
+  changes: string[];
+  matchedBy?: "externalCode" | "phone";
+}
+
+export interface ImportIssueDetail {
+  row: number;
+  name?: string | null;
+  message: string;
+}
+
 export interface ImportReport {
   imported: number;
   updated: number;
   skipped: number;
-  errors: { row: number; message: string }[];
+  errors: ImportIssueDetail[];
   sheetUsed?: string;
+  created: ImportRowDetail[];
+  updates: ImportUpdateDetail[];
+  ignored: ImportIssueDetail[];
 }
 
 export interface SheetInfo {
@@ -121,6 +143,91 @@ async function resolveAssignedUser(
   }
   cache.set(key, created.id);
   return created.id;
+}
+
+function formatDateLabel(value: Date | null | undefined): string {
+  if (!value) return "—";
+  return value.toLocaleDateString("pt-BR");
+}
+
+function formatDecimalLabel(value: Prisma.Decimal | null | undefined): string {
+  if (!value) return "—";
+  return value.toFixed(2);
+}
+
+function pushChange(
+  changes: string[],
+  label: string,
+  before: string | null | undefined,
+  after: string | null | undefined,
+) {
+  const oldVal = before?.trim() || "—";
+  const newVal = after?.trim() || "—";
+  if (oldVal !== newVal) {
+    changes.push(`${label}: ${oldVal} → ${newVal}`);
+  }
+}
+
+function computeLeadChanges(
+  existing: {
+    name: string;
+    phone: string | null;
+    externalCode: string | null;
+    notes: string | null;
+    nextFollowUpAt: Date | null;
+    offeredAmount: Prisma.Decimal | null;
+    closedAmount: Prisma.Decimal | null;
+    responsavel: { name: string } | null;
+    source: { name: string } | null;
+    salesStatus: { name: string } | null;
+    nextAction: { name: string } | null;
+  },
+  next: {
+    name: string;
+    phone: string | null | undefined;
+    externalCode?: string;
+    notes?: string;
+    nextFollowUpAt: Date | null | undefined;
+    offeredAmount: Prisma.Decimal | null | undefined;
+    closedAmount: Prisma.Decimal | null | undefined;
+    responsavelLabel?: string;
+    sourceLabel?: string;
+    statusLabel?: string;
+    actionLabel?: string;
+  },
+): string[] {
+  const changes: string[] = [];
+
+  pushChange(changes, "Nome", existing.name, next.name);
+  pushChange(changes, "Telefone", existing.phone, next.phone ?? null);
+  if (next.externalCode) {
+    pushChange(changes, "Código", existing.externalCode, next.externalCode);
+  }
+  pushChange(changes, "Origem", existing.source?.name, next.sourceLabel);
+  pushChange(changes, "Responsável", existing.responsavel?.name, next.responsavelLabel);
+  pushChange(changes, "Status", existing.salesStatus?.name, next.statusLabel);
+  pushChange(changes, "Próxima ação", existing.nextAction?.name, next.actionLabel);
+  pushChange(
+    changes,
+    "Follow-up",
+    formatDateLabel(existing.nextFollowUpAt),
+    formatDateLabel(next.nextFollowUpAt ?? null),
+  );
+  pushChange(changes, "Observações", existing.notes, next.notes ?? null);
+
+  const oldOffered = formatDecimalLabel(existing.offeredAmount);
+  const newOffered = formatDecimalLabel(next.offeredAmount ?? null);
+  if (oldOffered !== newOffered) {
+    changes.push(`Valor ofertado: ${oldOffered} → ${newOffered}`);
+  }
+
+  const oldClosed = formatDecimalLabel(existing.closedAmount);
+  const newClosed = formatDecimalLabel(next.closedAmount ?? null);
+  if (oldClosed !== newClosed) {
+    changes.push(`Valor fechado: ${oldClosed} → ${newClosed}`);
+  }
+
+  return changes;
 }
 
 function pickDefaultSheetName(workbook: XLSX.WorkBook): string | null {
@@ -268,6 +375,9 @@ export async function importLeadsFromBuffer(
       updated: 0,
       skipped: 0,
       errors: [{ row: 0, message: "Planilha vazia" }],
+      created: [],
+      updates: [],
+      ignored: [],
     };
   }
 
@@ -285,11 +395,23 @@ export async function importLeadsFromBuffer(
           message: `A aba "${sheetUsed}" não possui cabeçalhos BASE_CRM (ID + Nome do cliente)`,
         },
       ],
+      created: [],
+      updates: [],
+      ignored: [],
     };
   }
 
   const rows = sheetToDataRows(sheet);
-  const report: ImportReport = { imported: 0, updated: 0, skipped: 0, errors: [], sheetUsed };
+  const report: ImportReport = {
+    imported: 0,
+    updated: 0,
+    skipped: 0,
+    errors: [],
+    sheetUsed,
+    created: [],
+    updates: [],
+    ignored: [],
+  };
   if (rows.length === 0) return report;
 
   const fieldsList = rowsToFields(rows);
@@ -323,7 +445,7 @@ export async function importLeadsFromBuffer(
     const name = fields.name ? String(fields.name).trim() : "";
     if (!name) {
       report.skipped++;
-      report.errors.push({ row: rowNumber, message: "Nome do cliente ausente" });
+      report.ignored.push({ row: rowNumber, message: "Nome do cliente ausente" });
       continue;
     }
 
@@ -382,7 +504,7 @@ export async function importLeadsFromBuffer(
         };
 
         let leadId: string;
-        let wasUpdate = false;
+        let matchedBy: "externalCode" | "phone" | undefined;
 
         let existingId: string | undefined;
 
@@ -391,23 +513,72 @@ export async function importLeadsFromBuffer(
             where: { externalCode },
             select: { id: true },
           });
-          if (byCode) existingId = byCode.id;
+          if (byCode) {
+            existingId = byCode.id;
+            matchedBy = "externalCode";
+          }
         }
 
         if (!existingId && phone) {
           const cachedId = phoneCache.get(phone);
           if (cachedId) {
             existingId = cachedId;
+            matchedBy = "phone";
           } else {
             const byPhone = await tx.lead.findFirst({
               where: { phone },
               select: { id: true },
             });
-            if (byPhone) existingId = byPhone.id;
+            if (byPhone) {
+              existingId = byPhone.id;
+              matchedBy = "phone";
+            }
           }
         }
 
+        const responsavelLabel = fields.assignedTo
+          ? String(fields.assignedTo).trim()
+          : undefined;
+        const sourceLabel = fields.source ? String(fields.source).trim() : undefined;
+        const statusLabel = fechadoStatus
+          ? "Fechado"
+          : fields.salesStatus
+            ? String(fields.salesStatus).trim()
+            : undefined;
+        const actionLabel = fields.nextAction ? String(fields.nextAction).trim() : undefined;
+
+        const rowDetail = {
+          row: rowNumber,
+          name,
+          externalCode: externalCode ?? null,
+          phone: phone ?? null,
+        };
+
         if (existingId) {
+          const existing = await tx.lead.findUniqueOrThrow({
+            where: { id: existingId },
+            include: {
+              responsavel: { select: { name: true } },
+              source: { select: { name: true } },
+              salesStatus: { select: { name: true } },
+              nextAction: { select: { name: true } },
+            },
+          });
+
+          const changes = computeLeadChanges(existing, {
+            name,
+            phone,
+            externalCode,
+            notes: data.notes,
+            nextFollowUpAt: data.nextFollowUpAt,
+            offeredAmount: data.offeredAmount,
+            closedAmount: data.closedAmount,
+            responsavelLabel,
+            sourceLabel,
+            statusLabel,
+            actionLabel,
+          });
+
           await tx.lead.update({
             where: { id: existingId },
             data: {
@@ -416,12 +587,20 @@ export async function importLeadsFromBuffer(
             },
           });
           leadId = existingId;
-          wasUpdate = true;
+
+          report.updates.push({
+            ...rowDetail,
+            leadId,
+            matchedBy,
+            changes: changes.length > 0 ? changes : ["Nenhum campo alterado (dados já atualizados)"],
+          });
         } else {
           const created = await tx.lead.create({
             data: { ...(externalCode ? { externalCode } : {}), ...data },
           });
           leadId = created.id;
+
+          report.created.push({ ...rowDetail, leadId });
         }
 
         if (phone) phoneCache.set(phone, leadId);
@@ -445,15 +624,16 @@ export async function importLeadsFromBuffer(
           }
         }
 
-        if (wasUpdate) report.updated++;
-        else report.imported++;
       });
     } catch (err) {
-      report.skipped++;
       const message = err instanceof Error ? err.message : "Erro ao processar linha";
-      report.errors.push({ row: rowNumber, message });
+      report.errors.push({ row: rowNumber, name, message });
     }
   }
+
+  report.imported = report.created.length;
+  report.updated = report.updates.length;
+  report.skipped = report.ignored.length;
 
   return report;
 }

@@ -12,6 +12,7 @@ import {
   type ImportMappings,
   type UnknownValues,
 } from "@/lib/cais-api";
+import { ImportReportPanel } from "./ImportReportPanel";
 
 type MappingState = Record<string, { mode: "map" | "create"; targetSlug: string; createName: string }>;
 
@@ -240,7 +241,7 @@ export function ImportExcelDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-azul-profundo/40 animate-fade-in" onClick={handleClose} />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-slate-200 bg-branco p-6 shadow-xl">
+      <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-slate-200 bg-branco p-6 shadow-xl">
         <div className="flex items-start gap-3">
           <div className="rounded-md bg-ouro/20 p-2">
             <FileSpreadsheet className="h-5 w-5 text-azul-profundo" />
@@ -342,7 +343,7 @@ export function ImportExcelDialog({
             )}
 
             <p className="mt-2 text-[11px] text-slate-500">
-              Reimportar atualiza leads existentes pelo código OP-XXXX.
+              Reimportar atualiza leads existentes pelo código OP-XXXX ou telefone.
             </p>
             <div className="mt-4 flex gap-2">
               <Button
@@ -364,37 +365,7 @@ export function ImportExcelDialog({
           </div>
         ) : (
           <div className="mt-5">
-            {report.sheetUsed && (
-              <p className="mb-3 text-[12px] text-slate-500">
-                Aba importada: <strong>{report.sheetUsed}</strong>
-              </p>
-            )}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-md bg-green-50 px-2 py-3">
-                <p className="text-[20px] font-semibold text-green-700">{report.imported}</p>
-                <p className="text-[11px] text-green-800">Novos</p>
-              </div>
-              <div className="rounded-md bg-blue-50 px-2 py-3">
-                <p className="text-[20px] font-semibold text-blue-700">{report.updated}</p>
-                <p className="text-[11px] text-blue-800">Atualizados</p>
-              </div>
-              <div className="rounded-md bg-amber-50 px-2 py-3">
-                <p className="text-[20px] font-semibold text-amber-700">{report.skipped}</p>
-                <p className="text-[11px] text-amber-800">Ignorados</p>
-              </div>
-            </div>
-            {report.errors.length > 0 && (
-              <div className="mt-4 max-h-32 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-3">
-                <p className="mb-2 text-[12px] font-medium text-slate-700">Avisos</p>
-                <ul className="space-y-1 text-[11px] text-slate-600">
-                  {report.errors.map((e) => (
-                    <li key={`${e.row}-${e.message}`}>
-                      Linha {e.row}: {e.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <ImportReportPanel report={report} />
             <div className="mt-4">
               <Button variant="gold" onClick={handleClose}>
                 Concluir
