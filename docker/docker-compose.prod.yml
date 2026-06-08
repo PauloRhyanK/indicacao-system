@@ -24,7 +24,7 @@ services:
     container_name: cais_api_prod
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-cais}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cais_indicacoes}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-cais}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cais_indicacoes}}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       PORT: 3001

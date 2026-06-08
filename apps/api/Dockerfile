@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
 FROM node:20-alpine AS base
+RUN apk add --no-cache openssl
 RUN corepack enable
 WORKDIR /app
 
@@ -25,4 +26,4 @@ COPY pnpm-workspace.yaml ./
 WORKDIR /app/apps/api
 EXPOSE 3001
 # Aplica migrations pendentes e sobe a API.
-CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
