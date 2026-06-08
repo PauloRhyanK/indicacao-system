@@ -511,6 +511,16 @@ export async function fetchSales(): Promise<Sale[]> {
   return res.data.map(mapSale);
 }
 
+export async function deleteSale(
+  id: string,
+  options: { leadStatusSlug: string },
+): Promise<void> {
+  await apiFetch(`/purchases/${id}`, {
+    method: "DELETE",
+    body: JSON.stringify(options),
+  });
+}
+
 export async function fetchMetaPeriod(): Promise<MetaPeriod | null> {
   const res = await apiFetch<{ data: ApiGoal | null }>("/goals/current");
   if (!res.data) return null;

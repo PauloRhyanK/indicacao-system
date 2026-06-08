@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/acco
 import { Badge } from "./Badge";
 import { BonusChainCard } from "./BonusChainCard";
 import { EmptyState, Spinner } from "./Feedback";
+import { ReverseSaleDialog } from "./ReverseSaleDialog";
 import {
   fetchBonusChain,
   fetchSales,
@@ -14,10 +15,11 @@ import {
   formatDate,
   type Sale,
 } from "@/lib/cais-api";
+import { usePermissions } from "@/lib/use-permissions";
 import { cn } from "@/lib/utils";
 
 const GRID_COLS =
-  "grid grid-cols-[minmax(90px,1fr)_minmax(120px,2fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(80px,0.8fr)_28px] gap-3 items-center";
+  "grid grid-cols-[minmax(90px,1fr)_minmax(120px,2fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(80px,0.8fr)_72px_28px] gap-3 items-center";
 
 function BonusChainPanel({ leadId, enabled }: { leadId: string; enabled: boolean }) {
   const chain = useQuery({
@@ -86,10 +88,14 @@ function SaleRowTrigger({
   sale,
   isHighlighted,
   isExpanded,
+  canDelete,
+  onReverse,
 }: {
   sale: Sale;
   isHighlighted: boolean;
   isExpanded: boolean;
+  canDelete: boolean;
+  onReverse: (sale: Sale) => void;
 }) {
   return (
     <AccordionPrimitive.Header className="flex">
@@ -124,6 +130,20 @@ function SaleRowTrigger({
         <span>
           <LevelsBadge leadId={sale.lead_id} enabled={isExpanded} />
         </span>
+        <span>
+          {canDelete ? (
+            <button
+              type="button"
+              className="text-[12px] font-medium text-red-600 hover:text-red-700 hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReverse(sale);
+              }}
+            >
+              Cancelar
+            </button>
+          ) : null}
+        </span>
         <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200" />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
@@ -137,8 +157,12 @@ export function SalesAccordionTable({
   highlightSaleId?: string | null;
   onHighlightDone?: () => void;
 }) {
+  const { can } = usePermissions();
+  const canDelete = can("sales.delete");
+
   const sales = useQuery({ queryKey: ["sales"], queryFn: fetchSales });
   const [expandedId, setExpandedId] = useState<string | undefined>();
+  const [reverseTarget, setReverseTarget] = useState<Sale | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const highlightedRef = useRef<string | null>(null);
 
@@ -193,52 +217,59 @@ export function SalesAccordionTable({
   }
 
   return (
-    <div
-      ref={tableRef}
-      className="overflow-hidden rounded-md border border-slate-200 bg-branco"
-    >
+    <>
       <div
-        className={cn(
-          GRID_COLS,
-          "border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-slate-500",
-        )}
+        ref={tableRef}
+        className="overflow-hidden rounded-md border border-slate-200 bg-branco"
       >
-        <span>Data</span>
-        <span>Lead</span>
-        <span>Valor</span>
-        <span>Consórcio</span>
-        <span>Níveis</span>
-        <span aria-hidden />
+        <div
+          className={cn(
+            GRID_COLS,
+            "border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wide text-slate-500",
+          )}
+        >
+          <span>Data</span>
+          <span>Lead</span>
+          <span>Valor</span>
+          <span>Consórcio</span>
+          <span>Níveis</span>
+          {canDelete ? <span>Ações</span> : <span aria-hidden />}
+          <span aria-hidden />
+        </div>
+
+        <Accordion
+          type="single"
+          collapsible
+          value={expandedId}
+          onValueChange={setExpandedId}
+          className="divide-y divide-slate-100"
+        >
+          {items.map((sale) => {
+            const isExpanded = expandedId === sale.id;
+            return (
+              <AccordionItem
+                key={sale.id}
+                value={sale.id}
+                data-sale-id={sale.id}
+                className="border-0"
+              >
+                <SaleRowTrigger
+                  sale={sale}
+                  isHighlighted={highlightSaleId === sale.id}
+                  isExpanded={isExpanded}
+                  canDelete={canDelete}
+                  onReverse={setReverseTarget}
+                />
+                <AccordionContent className="px-4 pb-4 pt-0">
+                  <BonusChainPanel leadId={sale.lead_id} enabled={isExpanded} />
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </div>
 
-      <Accordion
-        type="single"
-        collapsible
-        value={expandedId}
-        onValueChange={setExpandedId}
-        className="divide-y divide-slate-100"
-      >
-        {items.map((sale) => {
-          const isExpanded = expandedId === sale.id;
-          return (
-            <AccordionItem
-              key={sale.id}
-              value={sale.id}
-              data-sale-id={sale.id}
-              className="border-0"
-            >
-              <SaleRowTrigger
-                sale={sale}
-                isHighlighted={highlightSaleId === sale.id}
-                isExpanded={isExpanded}
-              />
-              <AccordionContent className="px-4 pb-4 pt-0">
-                <BonusChainPanel leadId={sale.lead_id} enabled={isExpanded} />
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
-      </Accordion>
-    </div>
+      <ReverseSaleDialog sale={reverseTarget} onClose={() => setReverseTarget(null)} />
+    </>
   );
 }

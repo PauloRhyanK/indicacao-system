@@ -1,7 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { badRequest, notFound } from "../utils/httpError.js";
-import { incrementCurrentGoal } from "./goal.service.js";
+import { decrementGoalAtDate, incrementCurrentGoal } from "./goal.service.js";
+import { findBySlug } from "./lookup.service.js";
+import type { DeletePurchaseInput } from "../schemas/purchase.schema.js";
 import { getBonusChain } from "./bonusChain.service.js";
 import {
   findConsortiumTypeById,
@@ -88,5 +90,45 @@ export async function listAllPurchases() {
   return prisma.purchase.findMany({
     orderBy: { purchaseDate: "desc" },
     include: purchaseInclude,
+  });
+}
+
+export async function deletePurchase(purchaseId: string, input: DeletePurchaseInput) {
+  const purchase = await prisma.purchase.findUnique({
+    where: { id: purchaseId },
+    select: { id: true, leadId: true, amount: true, createdAt: true },
+  });
+  if (!purchase) throw notFound("Venda não encontrada");
+
+  await prisma.$transaction(async (tx) => {
+    const lead = await tx.lead.findUnique({
+      where: { id: purchase.leadId },
+      select: { id: true, closedAmount: true },
+    });
+    if (!lead) throw notFound("Lead não encontrado");
+
+    await tx.purchase.delete({ where: { id: purchaseId } });
+
+    const currentClosed = lead.closedAmount ?? new Prisma.Decimal(0);
+    const nextClosed = currentClosed.minus(purchase.amount);
+    const flooredClosed = nextClosed.lessThan(0) ? new Prisma.Decimal(0) : nextClosed;
+
+    const remaining = await tx.purchase.count({ where: { leadId: purchase.leadId } });
+
+    let salesStatusId: string | undefined;
+    if (remaining === 0) {
+      const status = await findBySlug("status", input.leadStatusSlug);
+      if (status) salesStatusId = status.id;
+    }
+
+    await tx.lead.update({
+      where: { id: purchase.leadId },
+      data: {
+        closedAmount: flooredClosed,
+        ...(salesStatusId ? { salesStatusId } : {}),
+      },
+    });
+
+    await decrementGoalAtDate(purchase.amount, purchase.createdAt, tx);
   });
 }

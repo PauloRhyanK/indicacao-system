@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getAllPurchases } from "../controllers/purchase.controller.js";
+import { getAllPurchases, removePurchase } from "../controllers/purchase.controller.js";
 import { authenticate, requirePermission } from "../middlewares/auth.js";
 
 export async function purchaseRoutes(app: FastifyInstance) {
@@ -7,5 +7,11 @@ export async function purchaseRoutes(app: FastifyInstance) {
     "/purchases",
     { preHandler: [authenticate, requirePermission("sales.view_all")] },
     getAllPurchases,
+  );
+
+  app.delete(
+    "/purchases/:id",
+    { preHandler: [authenticate, requirePermission("sales.delete")] },
+    removePurchase,
   );
 }

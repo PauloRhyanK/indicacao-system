@@ -15,7 +15,7 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
   { key: "leads.import", label: "Importar leads (Excel)", groupName: "Leads" },
   { key: "sales.create", label: "Registrar venda", groupName: "Vendas" },
   { key: "sales.view_all", label: "Ver todas as vendas", groupName: "Vendas" },
-  { key: "sales.delete", label: "Estornar venda", groupName: "Vendas" },
+  { key: "sales.delete", label: "Cancelar venda", groupName: "Vendas" },
   { key: "meta.configure_day", label: "Configurar meta do dia", groupName: "Metas" },
   { key: "meta.configure_global", label: "Configurar meta global", groupName: "Metas" },
   { key: "dashboard.general", label: "Visão geral da empresa", groupName: "Dashboard" },

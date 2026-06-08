@@ -12,3 +12,9 @@ export const createPurchaseSchema = z
   });
 
 export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
+
+export const deletePurchaseSchema = z.object({
+  leadStatusSlug: z.string().min(1).default("em-negociacao"),
+});
+
+export type DeletePurchaseInput = z.infer<typeof deletePurchaseSchema>;
