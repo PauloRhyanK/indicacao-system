@@ -31,6 +31,7 @@ services:
       NODE_ENV: production
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      TV_API_TOKEN: ${TV_API_TOKEN:-}
     ports:
       # Exposto apenas ao host para o NGINX já existente na VPS fazer proxy_pass.
       - "127.0.0.1:3001:3001"
