@@ -13,7 +13,17 @@ import type { CreatePurchaseInput } from "../schemas/purchase.schema.js";
 
 const purchaseInclude = {
   consortiumType: true,
-  lead: { select: { id: true, name: true, phone: true } },
+  lead: {
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      externalCode: true,
+      responsavel: { select: { id: true, name: true } },
+      vendedor: { select: { id: true, name: true } },
+      coVendedor: { select: { id: true, name: true } },
+    },
+  },
 } as const;
 
 async function resolveConsortiumTypeId(input: CreatePurchaseInput): Promise<string | undefined> {
@@ -58,6 +68,8 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
       data: {
         closedAmount: currentClosed.plus(amount),
         ...(fechadoStatus ? { salesStatusId: fechadoStatus.id } : {}),
+        ...(input.vendedorId !== undefined ? { vendedorId: input.vendedorId } : {}),
+        ...(input.coVendedorId !== undefined ? { coVendedorId: input.coVendedorId } : {}),
       },
     });
 

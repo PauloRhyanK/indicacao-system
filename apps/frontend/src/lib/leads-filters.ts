@@ -127,7 +127,7 @@ export function compileLeadFilters(rows: FilterRow[]): LeadsFilters {
         result.nextAction = row.value;
         break;
       case "assigned":
-        result.assignedTo = row.value;
+        result.responsavelId = row.value;
         break;
       case "follow_up":
         applyDateFilter(result, "followUpFrom", "followUpTo", row.operator, row.value, row.value2);

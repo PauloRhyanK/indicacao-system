@@ -35,6 +35,7 @@ export function NewLeadForm({
   const [refSearch, setRefSearch] = useState("");
   const [refSelected, setRefSelected] = useState<RefOption | null>(null);
   const [showOpts, setShowOpts] = useState(false);
+  const [responsavelId, setResponsavelId] = useState("");
 
   const options: RefOption[] = useMemo(() => {
     const us = (profiles.data ?? []).map((p) => ({
@@ -62,6 +63,7 @@ export function NewLeadForm({
     setNotes("");
     setRefSearch("");
     setRefSelected(null);
+    setResponsavelId("");
   };
 
   const mutation = useMutation({
@@ -74,6 +76,7 @@ export function NewLeadForm({
         notes: notes.trim(),
         referrer_type: refSelected?.type ?? null,
         referrer_id: refSelected?.id ?? null,
+        responsavel_id: responsavelId || null,
       }),
     onSuccess: () => {
       qc.invalidateQueries();
@@ -106,6 +109,21 @@ export function NewLeadForm({
             onChange={(e) => setPhone(e.target.value)}
             placeholder="(11) 99999-0000"
           />
+        </Field>
+
+        <Field label="Responsável pelo lead">
+          <select
+            className={inputClass}
+            value={responsavelId}
+            onChange={(e) => setResponsavelId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Indicado por">

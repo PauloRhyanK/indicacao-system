@@ -329,7 +329,7 @@ export async function importLeadsFromBuffer(
 
     try {
       await prisma.$transaction(async (tx) => {
-        const assignedToUserId = await resolveAssignedUser(
+        const responsavelId = await resolveAssignedUser(
           fields.assignedTo ? String(fields.assignedTo) : undefined,
           userCache,
           tx
@@ -370,7 +370,7 @@ export async function importLeadsFromBuffer(
           name,
           phone,
           sourceId,
-          assignedToUserId,
+          responsavelId,
           salesStatusId: fechadoStatus ? fechadoStatus.id : salesStatusId,
           nextActionId,
           nextFollowUpAt: parseDate(fields.nextFollowUpAt as string | number | null),

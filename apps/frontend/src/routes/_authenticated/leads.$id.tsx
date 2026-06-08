@@ -7,8 +7,7 @@ import { StatusBadge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { EditLeadForm } from "@/components/cais/EditLeadForm";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
-import { ReferralChain } from "@/components/cais/ReferralChain";
-import { BonusChainCard } from "@/components/cais/BonusChainCard";
+import { CommercialRolesList, ReferralChainList } from "@/components/cais/ReferralChainList";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import {
   AlertDialog,
@@ -24,7 +23,6 @@ import {
   deleteLead,
   fetchBonusChain,
   fetchLead,
-  fetchReferralChain,
   formatDate,
   formatDateTime,
   isLeadClosed,
@@ -48,11 +46,7 @@ function LeadDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const lead = useQuery({ queryKey: ["lead", id], queryFn: () => fetchLead(id) });
-  const chain = useQuery({
-    queryKey: ["chain", id],
-    queryFn: () => fetchReferralChain(id),
-  });
-  const bonusChain = useQuery({
+  const referralChain = useQuery({
     queryKey: ["bonus-chain", id],
     queryFn: () => fetchBonusChain(id),
   });
@@ -124,54 +118,57 @@ function LeadDetail() {
       </div>
       <p className="mb-6 text-[12px] text-slate-500">
         Criado em {formatDate(l.created_at)}
+        {l.external_code ? ` · ${l.external_code}` : ""}
       </p>
 
-      <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
-        <SectionHeader>Dados do Lead</SectionHeader>
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Nome</dt>
-            <dd className="text-[14px] text-azul-profundo">{l.name}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Celular</dt>
-            <dd className="text-[14px] text-azul-profundo">{l.phone}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Origem</dt>
-            <dd className="text-[14px] text-azul-profundo">{l.source?.name ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Próxima ação</dt>
-            <dd className="text-[14px] text-azul-profundo">{l.nextAction?.name ?? "—"}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Observações</dt>
-            <dd className="text-[14px] text-azul-profundo">{l.notes ?? "—"}</dd>
-          </div>
-        </dl>
-      </div>
+      <div className="mb-6 grid gap-6 md:grid-cols-2">
+        <div className="rounded-md border border-slate-200 bg-branco p-5">
+          <SectionHeader>Dados do Lead</SectionHeader>
+          <dl className="grid grid-cols-1 gap-3">
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Nome</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.name}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Celular</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.phone}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Origem</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.source?.name ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Próxima ação</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.nextAction?.name ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Observações</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.notes ?? "—"}</dd>
+            </div>
+          </dl>
+        </div>
 
-      <div className="mb-6">
-        {bonusChain.isLoading ? (
-          <PageLoader />
-        ) : (
-          <BonusChainCard
-            chain={bonusChain.data?.chain ?? []}
-            treeTruncated={bonusChain.data?.tree_truncated}
+        <div className="rounded-md border border-slate-200 bg-branco p-5">
+          <SectionHeader>Papéis comerciais</SectionHeader>
+          <CommercialRolesList
+            responsavel={l.responsavel?.name}
+            vendedor={l.vendedor?.name}
+            coVendedor={l.co_vendedor?.name}
+            externalCode={l.external_code}
           />
-        )}
+        </div>
       </div>
 
       <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
-        <SectionHeader>Árvore de Indicações</SectionHeader>
-        {chain.isLoading ? (
+        <SectionHeader>Cadeia de indicação</SectionHeader>
+        {referralChain.isLoading ? (
           <PageLoader />
         ) : (
-          <ReferralChain
-            chain={chain.data?.chain ?? []}
-            currentLeadName={l.name}
-            treeTruncated={chain.data?.tree_truncated}
+          <ReferralChainList
+            chain={referralChain.data?.chain ?? []}
+            treeTruncated={referralChain.data?.tree_truncated}
+            error={referralChain.isError}
+            onRetry={() => referralChain.refetch()}
           />
         )}
       </div>
@@ -205,6 +202,7 @@ function LeadDetail() {
         onClose={() => setSaleOpen(false)}
         leadId={l.id}
         leadName={l.name}
+        lead={l}
       />
 
       <EditLeadForm open={editOpen} onClose={() => setEditOpen(false)} lead={l} />

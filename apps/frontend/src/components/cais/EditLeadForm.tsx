@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./Button";
 import { Field, inputClass, SlideOver } from "./SlideOver";
-import { fetchLookups, updateLead, type Lead } from "@/lib/cais-api";
+import { fetchLookups, fetchProfiles, updateLead, type Lead } from "@/lib/cais-api";
 
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
@@ -23,9 +23,13 @@ export function EditLeadForm({
 }) {
   const qc = useQueryClient();
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
+  const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles, enabled: open });
 
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
+  const [responsavelId, setResponsavelId] = useState(lead.responsavel?.id ?? "");
+  const [vendedorId, setVendedorId] = useState(lead.vendedor?.id ?? "");
+  const [coVendedorId, setCoVendedorId] = useState(lead.co_vendedor?.id ?? "");
   const [statusSlug, setStatusSlug] = useState(lead.salesStatus?.slug ?? "");
   const [sourceSlug, setSourceSlug] = useState(lead.source?.slug ?? "");
   const [nextActionSlug, setNextActionSlug] = useState(lead.nextAction?.slug ?? "");
@@ -36,6 +40,9 @@ export function EditLeadForm({
     if (!open) return;
     setName(lead.name);
     setPhone(lead.phone);
+    setResponsavelId(lead.responsavel?.id ?? "");
+    setVendedorId(lead.vendedor?.id ?? "");
+    setCoVendedorId(lead.co_vendedor?.id ?? "");
     setStatusSlug(lead.salesStatus?.slug ?? "");
     setSourceSlug(lead.source?.slug ?? "");
     setNextActionSlug(lead.nextAction?.slug ?? "");
@@ -53,6 +60,9 @@ export function EditLeadForm({
         nextActionSlug: nextActionSlug || undefined,
         nextFollowUpAt: followUpAt ? new Date(followUpAt).toISOString() : undefined,
         notes: notes.trim(),
+        responsavelId: responsavelId || null,
+        vendedorId: vendedorId || null,
+        coVendedorId: coVendedorId || null,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lead", lead.id] });
@@ -87,6 +97,51 @@ export function EditLeadForm({
             onChange={(e) => setPhone(e.target.value)}
             placeholder="(11) 99999-0000"
           />
+        </Field>
+
+        <Field label="Responsável pelo lead">
+          <select
+            className={inputClass}
+            value={responsavelId}
+            onChange={(e) => setResponsavelId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Vendedor">
+          <select
+            className={inputClass}
+            value={vendedorId}
+            onChange={(e) => setVendedorId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Co-vendedor">
+          <select
+            className={inputClass}
+            value={coVendedorId}
+            onChange={(e) => setCoVendedorId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Status">

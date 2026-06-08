@@ -72,7 +72,7 @@ function VendasPage() {
 
         <p className="text-[14px] text-slate-500">
 
-          Registre uma venda, atualize a meta e visualize a cadeia de bonificação.
+          Registre uma venda, atualize a meta e visualize a cadeia de indicação.
 
         </p>
 
@@ -148,7 +148,7 @@ function VendasPage() {
 
           <p className="text-[13px] text-slate-500">
 
-            Clique em uma venda para ver a cadeia de indicações e bonificação.
+            Clique em uma venda para ver os papéis comerciais e a cadeia de indicação.
 
           </p>
 

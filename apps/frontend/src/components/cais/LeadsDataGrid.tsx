@@ -53,7 +53,7 @@ function toGridRow(lead: Lead, referrerLabel: Map<string, string>): LeadGridRow 
     next_follow_up_at: lead.next_follow_up_at,
     offered_amount: lead.offered_amount,
     closed_amount: lead.closed_amount,
-    assigned_name: lead.assigned_to?.name ?? "—",
+    assigned_name: lead.responsavel?.name ?? "—",
     updated_at: lead.updated_at,
     referrer_label: referrerLabel.get(lead.id) ?? "—",
     notes: lead.notes ?? "—",
@@ -71,6 +71,8 @@ export function LeadsDataGrid({
   onRegisterSale,
   canDelete,
   onDelete,
+  showAssignAction,
+  onAssignResponsavel,
 }: {
   leads: Lead[];
   pagination: LeadsPagination;
@@ -82,6 +84,8 @@ export function LeadsDataGrid({
   onRegisterSale: (lead: Lead) => void;
   canDelete?: boolean;
   onDelete?: (lead: Lead) => void;
+  showAssignAction?: boolean;
+  onAssignResponsavel?: (lead: Lead) => void;
 }) {
   const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -330,6 +334,17 @@ export function LeadsDataGrid({
                   }}
                 >
                   Registrar Venda
+                </MenuItem>
+              )}
+              {showAssignAction && onAssignResponsavel && !menuRow.lead.responsavel && (
+                <MenuItem
+                  sx={{ fontSize: 13, color: "#002B49" }}
+                  onClick={() => {
+                    onAssignResponsavel(menuRow.lead);
+                    closeMenu();
+                  }}
+                >
+                  Atribuir responsável
                 </MenuItem>
               )}
               {canDelete && onDelete && (

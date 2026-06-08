@@ -19,7 +19,7 @@ async function personalSalesInRange(userId: string, start: Date, end: Date) {
   const agg = await prisma.purchase.aggregate({
     where: {
       purchaseDate: { gte: start, lt: end },
-      lead: { assignedToUserId: userId },
+      lead: { responsavelId: userId },
     },
     _sum: { amount: true },
   });
@@ -47,7 +47,7 @@ async function computeRanking(userId: string, periodStart: Date, periodEnd: Date
       vol: await prisma.purchase.aggregate({
         where: {
           purchaseDate: { gte: periodStart, lt: periodEnd },
-          lead: { assignedToUserId: u.id },
+          lead: { responsavelId: u.id },
         },
         _sum: { amount: true },
       }),
@@ -126,7 +126,7 @@ export async function getPersonalDashboard(userId: string) {
     prisma.purchase.findMany({
       where: {
         purchaseDate: { gte: todayStart, lt: todayEnd },
-        lead: { assignedToUserId: userId },
+        lead: { responsavelId: userId },
       },
       orderBy: { purchaseDate: "desc" },
       include: {
@@ -135,26 +135,30 @@ export async function getPersonalDashboard(userId: string) {
       },
     }),
     prisma.purchase.findMany({
-      where: { lead: { assignedToUserId: userId } },
+      where: {
+        lead: {
+          OR: [{ responsavelId: userId }, { vendedorId: userId }],
+        },
+      },
       orderBy: { purchaseDate: "desc" },
       take: 20,
       select: { amount: true },
     }),
     prisma.lead.count({
       where: {
-        assignedToUserId: userId,
+        responsavelId: userId,
         salesStatus: { slug: { not: "fechado" } },
       },
     }),
     prisma.lead.count({
       where: {
-        assignedToUserId: userId,
+        responsavelId: userId,
         salesStatus: { slug: "follow-up" },
       },
     }),
     prisma.lead.findMany({
       where: {
-        assignedToUserId: userId,
+        responsavelId: userId,
         salesStatus: { slug: { not: "fechado" } },
       },
       orderBy: [{ nextFollowUpAt: "asc" }, { updatedAt: "desc" }],
@@ -167,9 +171,9 @@ export async function getPersonalDashboard(userId: string) {
         nextAction: { select: { name: true } },
       },
     }),
-    prisma.lead.count({ where: { assignedToUserId: userId } }),
+    prisma.lead.count({ where: { responsavelId: userId } }),
     prisma.lead.count({
-      where: { assignedToUserId: userId, salesStatus: { slug: "fechado" } },
+      where: { responsavelId: userId, salesStatus: { slug: "fechado" } },
     }),
     prisma.lead.count(),
     prisma.lead.count({ where: { salesStatus: { slug: "fechado" } } }),
@@ -249,7 +253,7 @@ export async function getDashboardSummary() {
         name: true,
         nextFollowUpAt: true,
         nextAction: { select: { id: true, slug: true, name: true } },
-        assignedTo: { select: { id: true, name: true } },
+        responsavel: { select: { id: true, name: true } },
       },
       orderBy: { nextFollowUpAt: "asc" },
       take: 10,

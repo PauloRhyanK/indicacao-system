@@ -11,7 +11,7 @@ import {
 } from "./permission.service.js";
 import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from "../schemas/lead.schema.js";
 
-const assignedToSelect = {
+const userRoleSelect = {
   select: { id: true, name: true, email: true },
 } as const;
 
@@ -20,7 +20,9 @@ const lookupSelect = {
 } as const;
 
 const leadInclude = {
-  assignedTo: assignedToSelect,
+  responsavel: userRoleSelect,
+  vendedor: userRoleSelect,
+  coVendedor: userRoleSelect,
   source: lookupSelect,
   salesStatus: lookupSelect,
   nextAction: lookupSelect,
@@ -92,7 +94,8 @@ export async function listLeads(
     status,
     source,
     nextAction,
-    assignedTo,
+    responsavelId,
+    unassigned,
     followUpFrom,
     followUpTo,
     createdFrom,
@@ -111,7 +114,8 @@ export async function listLeads(
     ...(status ? { salesStatus: { slug: status } } : {}),
     ...(source ? { source: { slug: source } } : {}),
     ...(nextAction ? { nextAction: { slug: nextAction } } : {}),
-    ...(assignedTo ? { assignedToUserId: assignedTo } : {}),
+    ...(unassigned ? { responsavelId: null } : {}),
+    ...(responsavelId ? { responsavelId } : {}),
     ...dateRange("nextFollowUpAt", followUpFrom, followUpTo),
     ...dateRange("createdAt", createdFrom, createdTo),
     ...dateRange("updatedAt", updatedFrom, updatedTo),
@@ -182,7 +186,9 @@ export async function createLead(input: CreateLeadInput) {
         name: data.name,
         phone: normalizePhone(data.phone),
         sourceId: lookupIds.sourceId,
-        assignedToUserId: data.assignedToUserId,
+        responsavelId: data.responsavelId,
+        vendedorId: data.vendedorId ?? undefined,
+        coVendedorId: data.coVendedorId ?? undefined,
         salesStatusId: lookupIds.salesStatusId,
         nextActionId: lookupIds.nextActionId,
         nextFollowUpAt: data.nextFollowUpAt,
@@ -223,7 +229,9 @@ export async function updateLead(
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.phone !== undefined ? { phone: normalizePhone(data.phone) } : {}),
         ...(lookupIds.sourceId !== undefined ? { sourceId: lookupIds.sourceId } : {}),
-        ...(data.assignedToUserId !== undefined ? { assignedToUserId: data.assignedToUserId } : {}),
+        ...(data.responsavelId !== undefined ? { responsavelId: data.responsavelId } : {}),
+        ...(data.vendedorId !== undefined ? { vendedorId: data.vendedorId } : {}),
+        ...(data.coVendedorId !== undefined ? { coVendedorId: data.coVendedorId } : {}),
         ...(lookupIds.salesStatusId !== undefined ? { salesStatusId: lookupIds.salesStatusId } : {}),
         ...(lookupIds.nextActionId !== undefined ? { nextActionId: lookupIds.nextActionId } : {}),
         ...(data.nextFollowUpAt !== undefined ? { nextFollowUpAt: data.nextFollowUpAt } : {}),

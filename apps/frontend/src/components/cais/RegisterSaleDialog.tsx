@@ -1,15 +1,18 @@
 import { SaleRegistrationForm } from "./SaleRegistrationForm";
+import type { Lead } from "@/lib/cais-api";
 
 export function RegisterSaleDialog({
   open,
   onClose,
   leadId,
   leadName,
+  lead,
 }: {
   open: boolean;
   onClose: () => void;
   leadId: string;
   leadName: string;
+  lead?: Lead;
 }) {
   if (!open) return null;
 
@@ -23,6 +26,7 @@ export function RegisterSaleDialog({
             key={open ? leadId : "closed"}
             leadId={leadId}
             leadName={leadName}
+            lead={lead}
             showCancel
             modal
             compact

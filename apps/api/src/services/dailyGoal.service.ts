@@ -201,7 +201,8 @@ export async function getDailyTodaySummary() {
         lead: {
           select: {
             name: true,
-            assignedTo: { select: { name: true } },
+            vendedor: { select: { name: true } },
+            responsavel: { select: { name: true } },
           },
         },
       },
@@ -230,7 +231,7 @@ export async function getDailyTodaySummary() {
     recentSales: recentPurchases.map((p) => ({
       id: p.id,
       leadName: p.lead.name,
-      sellerName: p.lead.assignedTo?.name ?? "Equipe CAIS",
+      sellerName: p.lead.vendedor?.name ?? p.lead.responsavel?.name ?? "Equipe CAIS",
       saleValue: decimalToNumber(p.amount),
       soldAt: p.purchaseDate.toISOString(),
     })),

@@ -21,8 +21,10 @@ model User {
   personalDailyTarget Decimal? @map("personal_daily_target") @db.Decimal(14, 2)
   createdAt           DateTime @default(now()) @map("created_at")
 
-  assignedLeads Lead[]     @relation("AssignedConsultant")
-  userRoles     UserRole[]
+  leadsAsResponsavel Lead[]     @relation("LeadResponsavel")
+  leadsAsVendedor    Lead[]     @relation("LeadVendedor")
+  leadsAsCoVendedor  Lead[]     @relation("LeadCoVendedor")
+  userRoles          UserRole[]
 
   @@map("users")
 }
@@ -118,7 +120,9 @@ model Lead {
   name             String
   phone            String?
   sourceId         String?   @map("source_id") @db.Uuid
-  assignedToUserId String?   @map("assigned_to_user_id") @db.Uuid
+  responsavelId    String?   @map("responsavel_id") @db.Uuid
+  vendedorId       String?   @map("vendedor_id") @db.Uuid
+  coVendedorId     String?   @map("co_vendedor_id") @db.Uuid
   salesStatusId    String?   @map("sales_status_id") @db.Uuid
   nextActionId     String?   @map("next_action_id") @db.Uuid
   nextFollowUpAt   DateTime? @map("next_follow_up_at")
@@ -131,7 +135,9 @@ model Lead {
   source          LeadSource?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   salesStatus     LeadStatus?  @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
   nextAction      NextAction?  @relation(fields: [nextActionId], references: [id], onDelete: SetNull)
-  assignedTo      User?        @relation("AssignedConsultant", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  responsavel     User?        @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  vendedor        User?        @relation("LeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
+  coVendedor      User?        @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
   purchases       Purchase[]
   referralsAsLead Referral[]   @relation("ReferredLead")
 
@@ -139,7 +145,9 @@ model Lead {
   @@index([salesStatusId])
   @@index([sourceId])
   @@index([nextFollowUpAt])
-  @@index([assignedToUserId])
+  @@index([responsavelId])
+  @@index([vendedorId])
+  @@index([coVendedorId])
   @@map("leads")
 }
 

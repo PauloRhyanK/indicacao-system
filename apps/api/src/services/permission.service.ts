@@ -264,36 +264,28 @@ export function assertLeadViewAccess(perms: Set<string>) {
   }
 }
 
-export function leadListFilter(perms: Set<string>, userId: string) {
+export function leadListFilter(perms: Set<string>, _userId: string) {
   assertLeadViewAccess(perms);
-  if (canViewAllLeads(perms)) return {};
-  return { assignedToUserId: userId };
+  return {};
 }
 
-export async function assertLeadReadable(leadId: string, userId: string, perms: Set<string>) {
+export async function assertLeadReadable(leadId: string, _userId: string, perms: Set<string>) {
   assertLeadViewAccess(perms);
-  if (canViewAllLeads(perms)) return;
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
-    select: { assignedToUserId: true },
+    select: { id: true },
   });
   if (!lead) throw notFound("Lead não encontrado");
-  if (lead.assignedToUserId !== userId) {
-    throw forbidden("Você não tem permissão para visualizar este lead");
-  }
 }
 
-export async function assertLeadEditable(leadId: string, userId: string, perms: Set<string>) {
+export async function assertLeadEditable(leadId: string, _userId: string, perms: Set<string>) {
   if (perms.has("leads.edit_all")) return;
   if (!perms.has("leads.edit_own")) {
     throw forbidden("Você não tem permissão para editar leads");
   }
   const lead = await prisma.lead.findUnique({
     where: { id: leadId },
-    select: { assignedToUserId: true },
+    select: { id: true },
   });
   if (!lead) throw notFound("Lead não encontrado");
-  if (lead.assignedToUserId !== userId) {
-    throw forbidden("Você só pode editar leads atribuídos a você");
-  }
 }

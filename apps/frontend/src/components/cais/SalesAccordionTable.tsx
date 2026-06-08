@@ -5,97 +5,28 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Badge } from "./Badge";
-import { BonusChainCard } from "./BonusChainCard";
 import { EmptyState, Spinner } from "./Feedback";
 import { ReverseSaleDialog } from "./ReverseSaleDialog";
-import {
-  fetchBonusChain,
-  fetchSales,
-  formatBRL,
-  formatDate,
-  type Sale,
-} from "@/lib/cais-api";
+import { SaleExpandedPanel } from "./SaleExpandedPanel";
+import { fetchSales, formatBRL, formatDate, type Sale } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
 import { cn } from "@/lib/utils";
 
 const GRID_COLS =
-  "grid grid-cols-[minmax(90px,1fr)_minmax(120px,2fr)_minmax(100px,1fr)_minmax(100px,1fr)_minmax(80px,0.8fr)_72px_28px] gap-3 items-center";
-
-function BonusChainPanel({ leadId, enabled }: { leadId: string; enabled: boolean }) {
-  const chain = useQuery({
-    queryKey: ["bonus-chain", leadId],
-    queryFn: () => fetchBonusChain(leadId),
-    enabled,
-  });
-
-  if (!enabled) return null;
-
-  if (chain.isLoading) {
-    return (
-      <div className="flex items-center gap-2 py-4 text-[13px] text-slate-500">
-        <Spinner className="h-4 w-4" />
-        Carregando cadeia de bonificação…
-      </div>
-    );
-  }
-
-  if (chain.isError) {
-    return (
-      <div className="py-4 text-[13px] text-status-red">
-        Não foi possível carregar a bonificação.{" "}
-        <button
-          type="button"
-          className="font-medium text-azul-profundo underline"
-          onClick={() => chain.refetch()}
-        >
-          Tentar novamente
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <BonusChainCard
-      chain={chain.data?.chain ?? []}
-      treeTruncated={chain.data?.tree_truncated}
-      variant="table"
-      showTitle={false}
-    />
-  );
-}
-
-function LevelsBadge({ leadId, enabled }: { leadId: string; enabled: boolean }) {
-  const chain = useQuery({
-    queryKey: ["bonus-chain", leadId],
-    queryFn: () => fetchBonusChain(leadId),
-    enabled,
-  });
-
-  if (!enabled) return <span className="text-[12px] text-slate-400">—</span>;
-  if (chain.isLoading) return <Spinner className="h-4 w-4" />;
-
-  const count = chain.data?.chain.length ?? 0;
-  if (!count) return <span className="text-[12px] text-slate-400">0 níveis</span>;
-
-  return (
-    <Badge variant="gold">
-      {count} {count === 1 ? "nível" : "níveis"}
-    </Badge>
-  );
-}
+  "grid grid-cols-[minmax(90px,1fr)_minmax(120px,2fr)_minmax(100px,1fr)_minmax(100px,1fr)_72px_28px] gap-3 items-center";
 
 function SaleRowTrigger({
   sale,
   isHighlighted,
   isExpanded,
   canDelete,
-  onReverse,
+  onCancel,
 }: {
   sale: Sale;
   isHighlighted: boolean;
   isExpanded: boolean;
   canDelete: boolean;
-  onReverse: (sale: Sale) => void;
+  onCancel: (sale: Sale) => void;
 }) {
   return (
     <AccordionPrimitive.Header className="flex">
@@ -128,16 +59,13 @@ function SaleRowTrigger({
           )}
         </span>
         <span>
-          <LevelsBadge leadId={sale.lead_id} enabled={isExpanded} />
-        </span>
-        <span>
           {canDelete ? (
             <button
               type="button"
               className="text-[12px] font-medium text-red-600 hover:text-red-700 hover:underline"
               onClick={(e) => {
                 e.stopPropagation();
-                onReverse(sale);
+                onCancel(sale);
               }}
             >
               Cancelar
@@ -211,7 +139,7 @@ export function SalesAccordionTable({
     return (
       <EmptyState
         title="Nenhuma venda registrada"
-        message="Registre a primeira venda usando o formulário acima. As vendas aparecerão aqui com a cadeia de bonificação."
+        message="Registre a primeira venda usando o formulário acima. As vendas aparecerão aqui com os detalhes comerciais e a cadeia de indicação."
       />
     );
   }
@@ -232,7 +160,6 @@ export function SalesAccordionTable({
           <span>Lead</span>
           <span>Valor</span>
           <span>Consórcio</span>
-          <span>Níveis</span>
           {canDelete ? <span>Ações</span> : <span aria-hidden />}
           <span aria-hidden />
         </div>
@@ -258,10 +185,10 @@ export function SalesAccordionTable({
                   isHighlighted={highlightSaleId === sale.id}
                   isExpanded={isExpanded}
                   canDelete={canDelete}
-                  onReverse={setReverseTarget}
+                  onCancel={setReverseTarget}
                 />
-                <AccordionContent className="px-4 pb-4 pt-0">
-                  <BonusChainPanel leadId={sale.lead_id} enabled={isExpanded} />
+                <AccordionContent className="p-0">
+                  <SaleExpandedPanel sale={sale} enabled={isExpanded} />
                 </AccordionContent>
               </AccordionItem>
             );

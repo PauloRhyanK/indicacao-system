@@ -10,6 +10,8 @@ import { ImportExcelDialog } from "@/components/cais/ImportExcelDialog";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import { LeadsDataGrid } from "@/components/cais/LeadsDataGrid";
 import { LeadsFilterModal } from "@/components/cais/LeadsFilterModal";
+import { AssignResponsavelDialog } from "@/components/cais/AssignResponsavelDialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
   AlertDialog,
@@ -61,6 +63,8 @@ function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [saleFor, setSaleFor] = useState<Lead | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
+  const [assignTarget, setAssignTarget] = useState<Lead | null>(null);
+  const [leadTab, setLeadTab] = useState<"all" | "unassigned">("all");
 
   const deleteMutation = useMutation({
     mutationFn: deleteLead,
@@ -76,8 +80,9 @@ function LeadsPage() {
       search: quickSearch || filters.search,
       page,
       limit: pageSize,
+      ...(leadTab === "unassigned" ? { unassigned: true } : {}),
     }),
-    [filters, quickSearch, page, pageSize],
+    [filters, quickSearch, page, pageSize, leadTab],
   );
 
   const leadsQuery = useQuery({
@@ -137,6 +142,20 @@ function LeadsPage() {
         </div>
       </div>
 
+      <Tabs
+        value={leadTab}
+        onValueChange={(v) => {
+          setLeadTab(v as "all" | "unassigned");
+          setPage(1);
+        }}
+        className="mb-4"
+      >
+        <TabsList>
+          <TabsTrigger value="all">Todos os Leads</TabsTrigger>
+          <TabsTrigger value="unassigned">Sem Responsável</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           className={inputClass + " max-w-xs flex-1"}
@@ -182,8 +201,12 @@ function LeadsPage() {
         <PageLoader />
       ) : leads.length === 0 ? (
         <EmptyState
-          title="Nenhum lead encontrado"
-          message="Ajuste os filtros ou cadastre um novo lead para começar."
+          title={leadTab === "unassigned" ? "Nenhum lead sem responsável" : "Nenhum lead encontrado"}
+          message={
+            leadTab === "unassigned"
+              ? "Todos os leads da base já possuem um responsável atribuído."
+              : "Ajuste os filtros ou cadastre um novo lead para começar."
+          }
           action={
             <Button variant="gold" onClick={() => setNewOpen(true)}>
               + Novo Lead
@@ -202,6 +225,8 @@ function LeadsPage() {
           onRegisterSale={setSaleFor}
           canDelete={canDelete}
           onDelete={setDeleteTarget}
+          showAssignAction={leadTab === "unassigned"}
+          onAssignResponsavel={setAssignTarget}
         />
       )}
 
@@ -222,8 +247,16 @@ function LeadsPage() {
           onClose={() => setSaleFor(null)}
           leadId={saleFor.id}
           leadName={saleFor.name}
+          lead={saleFor}
         />
       )}
+
+      <AssignResponsavelDialog
+        open={!!assignTarget}
+        leadId={assignTarget?.id ?? null}
+        leadName={assignTarget?.name ?? ""}
+        onClose={() => setAssignTarget(null)}
+      />
 
       <AlertDialog
         open={!!deleteTarget}
