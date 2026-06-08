@@ -659,7 +659,7 @@ function TVDashboard() {
         <div style={{ display: "flex", gap: 20 }}>
           <MetaCard
             label="Meta do Dia"
-            sublabel={`${todayCount} venda${todayCount !== 1 ? "s" : ""} hoje${activePreset ? ` · ${data?.presets.find((p) => p.slug === activePreset)?.label ?? activePreset}` : ""}`}
+            sublabel={`${todayCount} venda${todayCount !== 1 ? "s" : ""} hoje`}
             value={dailyCurrent}
             total={dailyTarget}
             icon="📅"
