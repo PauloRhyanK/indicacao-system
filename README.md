@@ -86,17 +86,28 @@ Arquitetura: **frontend na Vercel** + **backend e Postgres na VPS via Docker**.
 pnpm docker:prod
 ```
 
-Sobe Postgres (rede interna) + API (exposta em `127.0.0.1:3001`). As migrations são aplicadas automaticamente no boot do container (`prisma migrate deploy`).
+Sobe Postgres (rede interna) + API conectada à **mesma rede Docker** do Nginx Proxy Manager. As migrations são aplicadas automaticamente no boot (`prisma migrate deploy`).
 
-Configure o NGINX já instalado na VPS para expor a API publicamente:
+No `.env` de produção, defina também `PROXY_NETWORK` (nome da rede do container `global-proxy`):
 
-```nginx
-location /api/ {
-    proxy_pass http://127.0.0.1:3001/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-}
+```bash
+docker inspect global-proxy --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
 ```
+
+### Nginx Proxy Manager
+
+Crie um **Proxy Host** (mesmo padrão do Church Manager):
+
+| Campo | Valor |
+| --- | --- |
+| Domain Names | `api.seudominio.com.br` |
+| Forward Hostname | `cais-api` |
+| Forward Port | `3001` |
+| SSL | Let's Encrypt |
+
+Use `cais-api` (alias na rede proxy) — **não** use `api`, pois conflita com o Church Manager.
+
+O Postgres **não** entra na rede do proxy (fica só em `cais_internal`).
 
 Defina `CORS_ORIGIN` com a URL do frontend na Vercel (ex.: `https://cais-indicacoes.vercel.app`).
 

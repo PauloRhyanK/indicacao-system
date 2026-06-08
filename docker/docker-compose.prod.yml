@@ -32,14 +32,14 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
       TV_API_TOKEN: ${TV_API_TOKEN:-}
-    ports:
-      # Exposto apenas ao host para o NGINX já existente na VPS fazer proxy_pass.
-      - "127.0.0.1:3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - cais_internal
+      cais_internal: {}
+      proxy:
+        aliases:
+          - cais-api
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -50,6 +50,9 @@ services:
 networks:
   cais_internal:
     driver: bridge
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:?defina PROXY_NETWORK no .env — rede do global-proxy}
 
 volumes:
   postgres_data:
