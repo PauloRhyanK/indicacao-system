@@ -83,42 +83,6 @@ async function seedLookups() {
   }
 }
 
-async function seedGoals() {
-  const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-  const existingGoal = await prisma.goal.findFirst({
-    where: { startDate: { lte: now }, endDate: { gte: now } },
-  });
-  if (!existingGoal) {
-    await prisma.goal.create({
-      data: {
-        targetAmount: "1000000.00",
-        currentAmount: "0.00",
-        startDate,
-        endDate,
-      },
-    });
-  }
-
-  const defaultCount = await prisma.metaDailyDefault.count();
-  if (defaultCount === 0) {
-    const weekdayAmounts: { weekday: number; amount: string }[] = [
-      { weekday: 0, amount: "20000.00" },
-      { weekday: 1, amount: "40000.00" },
-      { weekday: 2, amount: "40000.00" },
-      { weekday: 3, amount: "40000.00" },
-      { weekday: 4, amount: "40000.00" },
-      { weekday: 5, amount: "40000.00" },
-      { weekday: 6, amount: "20000.00" },
-    ];
-    for (const d of weekdayAmounts) {
-      await prisma.metaDailyDefault.create({ data: d });
-    }
-  }
-}
-
 async function seedAdmin(adminRoleId: string) {
   const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim();
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
@@ -150,9 +114,9 @@ async function main() {
   await seedLookups();
   const { adminRoleId } = await ensureSystemRoles(prisma);
   const adminEmail = await seedAdmin(adminRoleId);
-  await seedGoals();
 
   console.log("Seed concluído.");
+  console.log("Domínios (status, origens, ações, consórcios) e papéis RBAC sincronizados.");
   console.log(`Administrador: ${adminEmail} (senha de SEED_ADMIN_PASSWORD no .env)`);
 }
 

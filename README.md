@@ -54,7 +54,7 @@ pnpm dev
 - Health check: `http://localhost:3001/api/v1/health`
 - pgAdmin: `http://localhost:5050` (login `admin@cais.local` / `admin`)
 
-Credenciais do admin (seed): definidas em `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no `.env`. O seed cria domínios (status, origens…), papéis RBAC, meta inicial e **apenas** o usuário administrador — sem leads nem consultores de exemplo.
+Credenciais do admin (seed): definidas em `SEED_ADMIN_EMAIL` e `SEED_ADMIN_PASSWORD` no `.env`. O seed popula **somente** domínios do sistema (status, origens, próximas ações, tipos de consórcio), papéis RBAC e o usuário administrador — sem metas, leads, vendas ou indicações.
 
 ## Endpoints principais
 
