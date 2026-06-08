@@ -18,7 +18,7 @@
     "db:studio": "pnpm --filter api prisma studio"
   },
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "packageManager": "pnpm@9.12.0",
   "devDependencies": {

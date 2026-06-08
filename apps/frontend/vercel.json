@@ -3,6 +3,6 @@
   "env": {
     "ENABLE_EXPERIMENTAL_COREPACK": "1"
   },
-  "installCommand": "cd ../.. && corepack enable && corepack prepare pnpm@9.12.0 --activate && pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm build"
+  "installCommand": "cd ../.. && npm install -g corepack@latest && corepack enable && corepack prepare pnpm@9.12.0 --activate && corepack pnpm install --frozen-lockfile",
+  "buildCommand": "corepack pnpm build"
 }
