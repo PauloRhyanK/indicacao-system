@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "CAIS — Postgres",
+      "Group": "Produção",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "cais_indicacoes",
+      "Username": "cais",
+      "SSLMode": "prefer",
+      "Comment": "Senha = POSTGRES_PASSWORD do .env (informe na primeira conexão)"
+    }
+  }
+}

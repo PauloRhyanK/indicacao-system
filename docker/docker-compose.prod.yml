@@ -49,6 +49,34 @@ services:
       retries: 3
       start_period: 20s
 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: cais_pgadmin_prod
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?defina PGADMIN_DEFAULT_EMAIL no .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?defina PGADMIN_DEFAULT_PASSWORD no .env}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      # Servido em https://api.seudominio.com.br/db via Nginx Proxy Manager
+      SCRIPT_NAME: /db
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: "1"
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: "1"
+      PGADMIN_CONFIG_PROXY_X_HOST_COUNT: "1"
+      PGADMIN_CONFIG_PREFERRED_URL_SCHEME: "https"
+      PGADMIN_CONFIG_SESSION_COOKIE_PATH: "/db/"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.prod.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      cais_internal: {}
+      proxy:
+        aliases:
+          - cais-db
+
 networks:
   cais_internal:
     driver: bridge
@@ -58,3 +86,4 @@ networks:
 
 volumes:
   postgres_data:
+  pgadmin_data:

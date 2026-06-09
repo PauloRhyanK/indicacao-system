@@ -10,7 +10,7 @@ apps/
   frontend/   # Frontend TanStack Start (Vercel em produção)
 docker/
   docker-compose.dev.yml    # Postgres + pgAdmin (infra de dev)
-  docker-compose.prod.yml   # Postgres + API (produção na VPS)
+  docker-compose.prod.yml   # Postgres + API + pgAdmin (/db)
 Doc/          # Documentação de produto e referências
 ```
 
@@ -86,7 +86,7 @@ Arquitetura: **frontend na Vercel** + **backend e Postgres na VPS via Docker**.
 pnpm docker:prod
 ```
 
-Sobe Postgres (rede interna) + API conectada à **mesma rede Docker** do Nginx Proxy Manager. As migrations são aplicadas automaticamente no boot (`prisma migrate deploy`).
+Sobe Postgres (rede interna) + API + **pgAdmin** (interface do banco em `/db`). As migrations são aplicadas automaticamente no boot (`prisma migrate deploy`).
 
 No `.env` de produção, defina também `PROXY_NETWORK` (nome da rede do container `global-proxy`):
 
@@ -107,7 +107,33 @@ Crie um **Proxy Host** (mesmo padrão do Church Manager):
 
 Use `cais-api` (alias na rede proxy) — **não** use `api`, pois conflita com o Church Manager.
 
-O Postgres **não** entra na rede do proxy (fica só em `cais_internal`).
+#### pgAdmin — `/db` (mesmo domínio da API)
+
+No **mesmo** Proxy Host da API (`api.seudominio.com.br`), adicione uma **Custom Location**:
+
+| Campo | Valor |
+| --- | --- |
+| Location | `/db` |
+| Forward Hostname | `cais-db` |
+| Forward Port | `80` |
+| Scheme | `http` |
+
+Acesse: **`https://api.seudominio.com.br/db`**
+
+- Login pgAdmin: `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` (`.env` da VPS)
+- Servidor **CAIS — Postgres**: senha = `POSTGRES_PASSWORD` (primeira conexão)
+
+No **frontend (Vercel)**, defina:
+
+```env
+VITE_DB_ADMIN_URL=https://api.seudominio.com.br/db
+```
+
+Isso habilita o atalho em **Configurações → Banco de dados** e a rota `/db` (redireciona para o pgAdmin).
+
+**Segurança:** considere restringir `/db` no NPM (Access List por IP ou autenticação extra). O pgAdmin tem login próprio, mas a URL fica pública.
+
+O Postgres **não** entra na rede do proxy (fica só em `cais_internal`); só o pgAdmin expõe a interface.
 
 Defina `CORS_ORIGIN` com a URL do frontend na Vercel (ex.: `https://cais-indicacoes.vercel.app`).
 

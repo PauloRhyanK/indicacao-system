@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 import { Route as AuthenticatedIndicacoesRouteImport } from './routes/_authenticated/indicacoes'
+import { Route as AuthenticatedDbRouteImport } from './routes/_authenticated/db'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
@@ -56,6 +57,11 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
 const AuthenticatedIndicacoesRoute = AuthenticatedIndicacoesRouteImport.update({
   id: '/indicacoes',
   path: '/indicacoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDbRoute = AuthenticatedDbRouteImport.update({
+  id: '/db',
+  path: '/db',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/tv': typeof TvRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/db': typeof AuthenticatedDbRoute
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/tv': typeof TvRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/db': typeof AuthenticatedDbRoute
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/tv': typeof TvRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/db': typeof AuthenticatedDbRoute
   '/_authenticated/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/tv'
     | '/configuracoes'
     | '/dashboard'
+    | '/db'
     | '/indicacoes'
     | '/vendas'
     | '/configuracoes/metas'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/tv'
     | '/dashboard'
+    | '/db'
     | '/indicacoes'
     | '/vendas'
     | '/configuracoes/metas'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/tv'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/db'
     | '/_authenticated/indicacoes'
     | '/_authenticated/vendas'
     | '/_authenticated/configuracoes/metas'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       path: '/indicacoes'
       fullPath: '/indicacoes'
       preLoaderRoute: typeof AuthenticatedIndicacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/db': {
+      id: '/_authenticated/db'
+      path: '/db'
+      fullPath: '/db'
+      preLoaderRoute: typeof AuthenticatedDbRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -325,6 +344,7 @@ const AuthenticatedConfiguracoesRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRouteRoute: typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDbRoute: typeof AuthenticatedDbRoute
   AuthenticatedIndicacoesRoute: typeof AuthenticatedIndicacoesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
@@ -335,6 +355,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRouteRoute:
     AuthenticatedConfiguracoesRouteRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDbRoute: AuthenticatedDbRoute,
   AuthenticatedIndicacoesRoute: AuthenticatedIndicacoesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
