@@ -132,7 +132,7 @@ docker compose --env-file .env -f docker/docker-compose.prod.yml up -d pgadmin
 Acesse: **`https://db.seudominio.com.br`**
 
 - Login pgAdmin: `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`
-- Servidor **CAIS — Postgres**: senha = `POSTGRES_PASSWORD` (primeira conexão)
+- **Registrar servidor** na primeira vez: host `postgres`, porta `5432`, usuário `POSTGRES_USER`, senha `POSTGRES_PASSWORD`
 
 Ferramenta de infra/dev — **sem atalho no app** CAIS.
 
@@ -155,6 +155,7 @@ Esperado: `HTTP/1.1 302` com redirect para `/login`. Se `connection refused`, o 
 |----------|---------|
 | `PGADMIN_*` ausente no `.env` | Preencher e `docker compose ... up -d pgadmin` |
 | `NameError: name 'https' is not defined` nos logs | `git pull` (remove `PGADMIN_CONFIG_PREFERRED_URL_SCHEME` inválido) e `docker compose ... up -d pgadmin --force-recreate` |
+| `connection refused` em `cais-db:80` com container Up | Ver logs; confirmar `PGADMIN_LISTEN_ADDRESS=0.0.0.0`; se volume corrompido após crashes, remover volume `pgadmin_data` e recriar |
 | NPM aponta para `localhost` | Usar **`cais-db`**, porta **80** |
 | Redes Docker diferentes | `PROXY_NETWORK=proxy-network` (ou nome da rede do `global-proxy`) |
 
