@@ -39,7 +39,7 @@ services:
         condition: service_healthy
     networks:
       cais_internal: {}
-      proxy:
+      proxy-network:
         aliases:
           - cais-api
     healthcheck:
@@ -65,17 +65,17 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
-      - cais_internal: {}
-      - proxy-network:
+      cais_internal: {}
+      proxy-network:
         aliases:
           - cais-db
-
 
 networks:
   cais_internal:
     driver: bridge
   proxy-network:
     external: true
+
 volumes:
   postgres_data:
   pgadmin_data:

@@ -86,13 +86,7 @@ Arquitetura: **frontend na Vercel** + **backend e Postgres na VPS via Docker**.
 pnpm docker:prod
 ```
 
-Sobe Postgres (rede interna) + API + **pgAdmin** (subdomínio `db.*`). As migrations são aplicadas automaticamente no boot (`prisma migrate deploy`).
-
-No `.env` de produção, defina também `PROXY_NETWORK` (nome da rede do container `global-proxy`):
-
-```bash
-docker inspect global-proxy --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'
-```
+Sobe Postgres (rede interna) + API + **pgAdmin** (subdomínio `db.*`). API e pgAdmin entram na rede Docker **`proxy-network`** (a mesma do `global-proxy` / NPM). Confira na VPS: `docker network ls | grep proxy`.
 
 ### Nginx Proxy Manager
 
@@ -121,7 +115,7 @@ Use `cais-api` (alias na rede proxy) — **não** use `api`, pois conflita com o
 | Scheme | `http` |
 | SSL | Let's Encrypt |
 
-3. **`.env` da VPS:** `PROXY_NETWORK` = mesma rede do `global-proxy` (ex.: `proxy-network`).
+3. **Rede Docker:** API (`cais-api`) e pgAdmin (`cais-db`) precisam estar na `proxy-network`. O compose já faz isso.
 
 4. **Recriar pgAdmin** após `git pull`:
 
@@ -157,7 +151,7 @@ Esperado: `HTTP/1.1 302` com redirect para `/login`. Se `connection refused`, o 
 | `NameError: name 'https' is not defined` nos logs | `git pull` (remove `PGADMIN_CONFIG_PREFERRED_URL_SCHEME` inválido) e `docker compose ... up -d pgadmin --force-recreate` |
 | `connection refused` em `cais-db:80` com container Up | Ver logs; confirmar `PGADMIN_LISTEN_ADDRESS=0.0.0.0`; se volume corrompido após crashes, remover volume `pgadmin_data` e recriar |
 | NPM aponta para `localhost` | Usar **`cais-db`**, porta **80** |
-| Redes Docker diferentes | `PROXY_NETWORK=proxy-network` (ou nome da rede do `global-proxy`) |
+| Rede Docker errada | API/pgAdmin devem usar **`proxy-network`** (nome fixo no compose) |
 
 Defina `CORS_ORIGIN` com a URL do frontend na Vercel (ex.: `https://cais-indicacoes.vercel.app`).
 
