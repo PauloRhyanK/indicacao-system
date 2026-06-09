@@ -86,23 +86,6 @@ function ConfiguracoesPage() {
         </Link>
       </div>
 
-      {import.meta.env.VITE_DB_ADMIN_URL && canManageSettings && (
-        <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
-          <SectionHeader>Banco de dados</SectionHeader>
-          <p className="mb-3 text-[13px] text-slate-500">
-            Acesse o pgAdmin para consultas SQL, backups e manutenção do PostgreSQL.
-          </p>
-          <a
-            href={import.meta.env.VITE_DB_ADMIN_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-azul-medio transition-colors hover:border-azul-medio hover:bg-white hover:text-azul-profundo"
-          >
-            Abrir pgAdmin (/db) →
-          </a>
-        </div>
-      )}
-
       {canManageRoles && (
         <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
           <SectionHeader>Papéis e Permissões</SectionHeader>

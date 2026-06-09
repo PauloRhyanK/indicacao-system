@@ -10,7 +10,7 @@ apps/
   frontend/   # Frontend TanStack Start (Vercel em produção)
 docker/
   docker-compose.dev.yml    # Postgres + pgAdmin (infra de dev)
-  docker-compose.prod.yml   # Postgres + API + pgAdmin (/db)
+  docker-compose.prod.yml   # Postgres + API + pgAdmin (subdomínio db.*)
 Doc/          # Documentação de produto e referências
 ```
 
@@ -86,7 +86,7 @@ Arquitetura: **frontend na Vercel** + **backend e Postgres na VPS via Docker**.
 pnpm docker:prod
 ```
 
-Sobe Postgres (rede interna) + API + **pgAdmin** (interface do banco em `/db`). As migrations são aplicadas automaticamente no boot (`prisma migrate deploy`).
+Sobe Postgres (rede interna) + API + **pgAdmin** (subdomínio `db.*`). As migrations são aplicadas automaticamente no boot (`prisma migrate deploy`).
 
 No `.env` de produção, defina também `PROXY_NETWORK` (nome da rede do container `global-proxy`):
 
@@ -107,33 +107,55 @@ Crie um **Proxy Host** (mesmo padrão do Church Manager):
 
 Use `cais-api` (alias na rede proxy) — **não** use `api`, pois conflita com o Church Manager.
 
-#### pgAdmin — `/db` (mesmo domínio da API)
+#### pgAdmin — subdomínio `db.seudominio.com.br`
 
-No **mesmo** Proxy Host da API (`api.seudominio.com.br`), adicione uma **Custom Location**:
+1. **DNS:** registro **A** (ou CNAME) apontando `db.seudominio.com.br` para o IP da VPS.
+
+2. **NPM:** crie um **Proxy Host** separado (não use Custom Location):
 
 | Campo | Valor |
 | --- | --- |
-| Location | `/db` |
+| Domain Names | `db.seudominio.com.br` |
 | Forward Hostname | `cais-db` |
 | Forward Port | `80` |
 | Scheme | `http` |
+| SSL | Let's Encrypt |
 
-Acesse: **`https://api.seudominio.com.br/db`**
+3. **`.env` da VPS:** `PROXY_NETWORK` = mesma rede do `global-proxy` (ex.: `proxy-network`).
 
-- Login pgAdmin: `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD` (`.env` da VPS)
-- Servidor **CAIS — Postgres**: senha = `POSTGRES_PASSWORD` (primeira conexão)
+4. **Recriar pgAdmin** após `git pull`:
 
-No **frontend (Vercel)**, defina:
-
-```env
-VITE_DB_ADMIN_URL=https://api.seudominio.com.br/db
+```bash
+docker compose --env-file .env -f docker/docker-compose.prod.yml up -d pgadmin
 ```
 
-Isso habilita o atalho em **Configurações → Banco de dados** e a rota `/db` (redireciona para o pgAdmin).
+Acesse: **`https://db.seudominio.com.br`**
 
-**Segurança:** considere restringir `/db` no NPM (Access List por IP ou autenticação extra). O pgAdmin tem login próprio, mas a URL fica pública.
+- Login pgAdmin: `PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`
+- Servidor **CAIS — Postgres**: senha = `POSTGRES_PASSWORD` (primeira conexão)
 
-O Postgres **não** entra na rede do proxy (fica só em `cais_internal`); só o pgAdmin expõe a interface.
+Ferramenta de infra/dev — **sem atalho no app** CAIS.
+
+**Segurança:** considere Access List no NPM (IP do escritório/VPN). O pgAdmin tem login próprio, mas a URL fica pública.
+
+O Postgres **não** entra na rede do proxy; só o pgAdmin expõe a interface.
+
+#### Diagnóstico pgAdmin (502 / connection refused)
+
+```bash
+docker ps --filter name=cais_pgadmin
+docker logs cais_pgadmin_prod --tail 50
+docker run --rm --network proxy-network curlimages/curl:latest \
+  curl -svI http://cais-db:80/ 2>&1 | head -15
+```
+
+Esperado: `HTTP/1.1 302` com redirect para `/login`. Se `connection refused`, o container não subiu — veja os logs (email/senha `PGADMIN_*` inválidos ou ausentes).
+
+| Problema | Solução |
+|----------|---------|
+| `PGADMIN_*` ausente no `.env` | Preencher e `docker compose ... up -d pgadmin` |
+| NPM aponta para `localhost` | Usar **`cais-db`**, porta **80** |
+| Redes Docker diferentes | `PROXY_NETWORK=proxy-network` (ou nome da rede do `global-proxy`) |
 
 Defina `CORS_ORIGIN` com a URL do frontend na Vercel (ex.: `https://cais-indicacoes.vercel.app`).
 
