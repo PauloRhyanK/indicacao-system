@@ -16,6 +16,7 @@ import {
   formatBRL,
   formatDate,
   updateUserRoles,
+  requireUserPasswordSetup,
   type Profile,
 } from "@/lib/cais-api";
 import { ApiError } from "@/lib/api/client";
@@ -185,6 +186,7 @@ function TeamMemberRow({
   const [selected, setSelected] = useState<string[]>(profile.roles.map((r) => r.id));
   const [dirty, setDirty] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetPwOpen, setResetPwOpen] = useState(false);
 
   const saveMut = useMutation({
     mutationFn: () => updateUserRoles(profile.id, selected),
@@ -198,6 +200,14 @@ function TeamMemberRow({
     mutationFn: () => deleteUser(profile.id),
     onSuccess: () => {
       setDeleteOpen(false);
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+    },
+  });
+
+  const resetPwMut = useMutation({
+    mutationFn: () => requireUserPasswordSetup(profile.id),
+    onSuccess: () => {
+      setResetPwOpen(false);
       qc.invalidateQueries({ queryKey: ["profiles"] });
     },
   });
@@ -216,7 +226,12 @@ function TeamMemberRow({
     <li className="py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[14px] font-medium text-azul-profundo">{profile.name}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[14px] font-medium text-azul-profundo">{profile.name}</p>
+            {profile.must_change_password && (
+              <Badge variant="gold">Senha pendente</Badge>
+            )}
+          </div>
           <p className="text-[12px] text-slate-500">{profile.email}</p>
         </div>
         {!canEdit && (
@@ -230,13 +245,24 @@ function TeamMemberRow({
         )}
       </div>
       {canEdit && profile.id !== currentUserId && (
-        <button
-          type="button"
-          onClick={() => setDeleteOpen(true)}
-          className="mt-2 text-[12px] font-medium text-red-600 hover:text-red-700"
-        >
-          Excluir usuário
-        </button>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {!profile.must_change_password && (
+            <button
+              type="button"
+              onClick={() => setResetPwOpen(true)}
+              className="text-[12px] font-medium text-azul-medio hover:text-azul-profundo"
+            >
+              Resetar senha
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            className="text-[12px] font-medium text-red-600 hover:text-red-700"
+          >
+            Excluir usuário
+          </button>
+        </div>
       )}
       {canEdit && allRoles.length > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -273,6 +299,36 @@ function TeamMemberRow({
           )}
         </div>
       )}
+
+      <AlertDialog open={resetPwOpen} onOpenChange={setResetPwOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resetar senha</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{profile.name}</strong> precisará acessar{" "}
+              <strong>a página de primeiro acesso</strong> com o e-mail{" "}
+              <strong>{profile.email}</strong> e definir uma nova senha antes de entrar
+              normalmente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {resetPwMut.isError && (
+            <p className="px-6 text-[13px] text-red-600">
+              {resetPwMut.error instanceof ApiError
+                ? resetPwMut.error.message
+                : "Não foi possível atualizar o usuário."}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetPwMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resetPwMut.isPending}
+              onClick={() => resetPwMut.mutate()}
+            >
+              {resetPwMut.isPending ? "Salvando…" : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

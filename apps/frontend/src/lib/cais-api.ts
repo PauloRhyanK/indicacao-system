@@ -15,6 +15,7 @@ export interface Profile {
   id: string;
   name: string;
   email: string;
+  must_change_password: boolean;
   roles: { id: string; name: string; isSystem: boolean }[];
   created_at: string;
 }
@@ -249,6 +250,7 @@ function mapProfile(api: ApiUser): Profile {
     id: api.id,
     name: api.name,
     email: api.email,
+    must_change_password: api.mustChangePassword ?? false,
     roles: api.roles ?? [],
     created_at: api.createdAt,
   };
@@ -269,6 +271,7 @@ interface ApiUser {
   id: string;
   name: string;
   email: string;
+  mustChangePassword?: boolean;
   roles: { id: string; name: string; isSystem: boolean }[];
   createdAt: string;
 }
@@ -776,6 +779,12 @@ export interface ImportIssueDetail {
   message: string;
 }
 
+export interface ImportCreatedUserDetail {
+  name: string;
+  email: string;
+  sheetAliases: string[];
+}
+
 export interface ImportReport {
   imported: number;
   updated: number;
@@ -785,6 +794,7 @@ export interface ImportReport {
   created: ImportRowDetail[];
   updates: ImportUpdateDetail[];
   ignored: ImportIssueDetail[];
+  createdUsers?: ImportCreatedUserDetail[];
 }
 
 export interface SheetInfo {
@@ -812,8 +822,7 @@ export type MappingAction =
 
 export type UserMappingAction =
   | { action: "map"; userId: string }
-  | { action: "create"; name: string; email: string; password?: string }
-  | { action: "skip" };
+  | { action: "create"; name: string };
 
 export interface ImportMappings {
   statuses?: Record<string, MappingAction>;
@@ -1002,5 +1011,15 @@ export async function deleteUser(id: string): Promise<{ linkedLeads: number }> {
   const res = await apiFetch<{ data: { linkedLeads: number } }>(`/users/${id}`, {
     method: "DELETE",
   });
+  return res.data;
+}
+
+export async function requireUserPasswordSetup(
+  userId: string,
+): Promise<{ alreadyPending: boolean }> {
+  const res = await apiFetch<{ data: { alreadyPending: boolean } }>(
+    `/users/${userId}/require-password-setup`,
+    { method: "PATCH" },
+  );
   return res.data;
 }

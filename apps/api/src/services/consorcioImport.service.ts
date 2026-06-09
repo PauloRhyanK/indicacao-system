@@ -6,11 +6,13 @@ import { normalizeText } from "../utils/slugify.js";
 import { activeLeadWhere } from "../utils/softDelete.js";
 import { incrementCurrentGoal } from "./goal.service.js";
 import {
+  buildCreatedUsersReport,
   collectUnknownUserNames,
   getSuggestedUserMappings,
   persistUserAliases,
   resolveUserId,
   validateUserMappingsCoverUnknown,
+  type ResolveUserContext,
   type UserImportMappings,
 } from "./userResolver.service.js";
 import type { ImportReport, SheetInfo } from "./leadImport.service.js";
@@ -292,6 +294,10 @@ export async function importConsorcioFromBuffer(
 
   const userCache = new Map<string, string | null>();
   const processedKeys = new Set<string>();
+  const resolveCtx: ResolveUserContext = {
+    createdUsers: new Map(),
+    aliasAccumulator: new Map(),
+  };
 
   await prisma.$transaction(async (tx) => {
     for (const row of saleRows) {
@@ -312,17 +318,8 @@ export async function importConsorcioFromBuffer(
           mappings,
           tx,
           userCache,
-          actorUserId,
+          resolveCtx,
         );
-        if (!responsavelId) {
-          report.skipped += 1;
-          report.ignored.push({
-            row: row.row,
-            name: row.clientName,
-            message: "Vendedor ignorado no mapeamento",
-          });
-          continue;
-        }
 
         let coVendedorId: string | undefined;
         if (row.coSellerName) {
@@ -331,7 +328,7 @@ export async function importConsorcioFromBuffer(
             mappings,
             tx,
             userCache,
-            actorUserId,
+            resolveCtx,
           );
         }
 
@@ -445,8 +442,13 @@ export async function importConsorcioFromBuffer(
       }
     }
 
-    await persistUserAliases(mappings, tx);
+    await persistUserAliases(mappings, resolveCtx, tx);
   });
+
+  const createdUsers = buildCreatedUsersReport(resolveCtx);
+  if (createdUsers.length > 0) {
+    report.createdUsers = createdUsers;
+  }
 
   return report;
 }

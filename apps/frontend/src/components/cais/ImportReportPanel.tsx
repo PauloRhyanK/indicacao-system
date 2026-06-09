@@ -108,11 +108,40 @@ function defaultReportTab(report: ImportReport): string {
   return "created";
 }
 
+function CreatedUsersList({ items }: { items: NonNullable<ImportReport["createdUsers"]> }) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="mb-4 rounded-md border border-ouro/40 bg-ouro/10 p-4">
+      <p className="text-[13px] font-semibold text-azul-profundo">
+        Usuários criados — informe estes e-mails para primeiro acesso
+      </p>
+      <p className="mt-1 text-[12px] text-slate-600">
+        Cada pessoa deve acessar <strong>/primeiro-acesso</strong> e definir a senha.
+      </p>
+      <ul className="mt-3 divide-y divide-ouro/20">
+        {items.map((u) => (
+          <li key={u.email} className="py-2.5">
+            <p className="text-[13px] font-medium text-azul-profundo">{u.name}</p>
+            <p className="text-[12px] text-slate-700">{u.email}</p>
+            {u.sheetAliases.length > 0 && (
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                Apelidos na planilha: {u.sheetAliases.join(", ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function ImportReportPanel({ report }: { report: ImportReport }) {
   const created = report.created ?? [];
   const updates = report.updates ?? [];
   const ignored = report.ignored ?? [];
   const errors = report.errors ?? [];
+  const createdUsers = report.createdUsers ?? [];
 
   const normalized: ImportReport = {
     ...report,
@@ -131,6 +160,8 @@ export function ImportReportPanel({ report }: { report: ImportReport }) {
           Aba importada: <strong>{report.sheetUsed}</strong>
         </p>
       )}
+
+      <CreatedUsersList items={createdUsers} />
 
       <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
         <div className="rounded-md bg-green-50 px-2 py-3">

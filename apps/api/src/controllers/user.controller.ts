@@ -4,6 +4,7 @@ import {
   createUser,
   deleteUser,
   listUsers,
+  requirePasswordSetup,
   updatePersonalDailyTarget,
 } from "../services/user.service.js";
 
@@ -31,5 +32,11 @@ export async function patchPersonalDailyTarget(request: FastifyRequest, reply: F
 export async function deleteUserHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const result = await deleteUser(id, request.user.sub);
+  return reply.send({ data: result });
+}
+
+export async function requirePasswordSetupHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const result = await requirePasswordSetup(id, request.user.sub);
   return reply.send({ data: result });
 }

@@ -7,8 +7,12 @@ export const Route = createFileRoute("/_authenticated")({
     if (!isAuthenticated()) throw redirect({ to: "/login" });
     try {
       const session = await fetchMe();
+      if (session.user.mustChangePassword) {
+        throw redirect({ to: "/primeiro-acesso" });
+      }
       return { user: session.user, permissions: session.permissions };
-    } catch {
+    } catch (err) {
+      if (err && typeof err === "object" && "to" in err) throw err;
       throw redirect({ to: "/login" });
     }
   },

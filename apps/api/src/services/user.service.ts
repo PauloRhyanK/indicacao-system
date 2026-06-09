@@ -10,6 +10,7 @@ const publicSelect = {
   id: true,
   name: true,
   email: true,
+  mustChangePassword: true,
   createdAt: true,
   userRoles: {
     select: {
@@ -22,6 +23,7 @@ function mapUser(row: {
   id: string;
   name: string;
   email: string;
+  mustChangePassword: boolean;
   createdAt: Date;
   userRoles: { role: { id: string; name: string; isSystem: boolean } }[];
 }) {
@@ -29,6 +31,7 @@ function mapUser(row: {
     id: row.id,
     name: row.name,
     email: row.email,
+    mustChangePassword: row.mustChangePassword,
     createdAt: row.createdAt,
     roles: row.userRoles.map((ur) => ur.role),
   };
@@ -149,4 +152,31 @@ export async function deleteUser(targetUserId: string, actorUserId: string) {
   });
 
   return { linkedLeads };
+}
+
+export async function requirePasswordSetup(targetUserId: string, actorUserId: string) {
+  if (targetUserId === actorUserId) {
+    throw badRequest("Você não pode exigir redefinição de senha na sua própria conta");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id: targetUserId, ...activeUserWhere },
+    select: { id: true, mustChangePassword: true },
+  });
+  if (!user) throw notFound("Usuário não encontrado");
+
+  if (user.mustChangePassword) {
+    return { alreadyPending: true as const };
+  }
+
+  if (await isOnlyActiveAdmin(targetUserId)) {
+    throw forbidden("Não é possível exigir redefinição de senha do único administrador ativo");
+  }
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: { mustChangePassword: true },
+  });
+
+  return { alreadyPending: false as const };
 }

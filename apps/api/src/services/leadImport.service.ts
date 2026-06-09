@@ -32,6 +32,12 @@ export interface ImportIssueDetail {
   message: string;
 }
 
+export interface ImportCreatedUserDetail {
+  name: string;
+  email: string;
+  sheetAliases: string[];
+}
+
 export interface ImportReport {
   imported: number;
   updated: number;
@@ -41,6 +47,7 @@ export interface ImportReport {
   created: ImportRowDetail[];
   updates: ImportUpdateDetail[];
   ignored: ImportIssueDetail[];
+  createdUsers?: ImportCreatedUserDetail[];
 }
 
 export interface SheetInfo {

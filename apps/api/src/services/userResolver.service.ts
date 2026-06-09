@@ -4,20 +4,33 @@ import { prisma } from "../config/prisma.js";
 import { badRequest } from "../utils/httpError.js";
 import { normalizeText } from "../utils/slugify.js";
 import { activeUserWhere } from "../utils/softDelete.js";
+import { allocateEmailForName, previewEmailForName } from "../utils/userEmail.js";
 import { ROLE_COLABORADOR_NAME } from "../constants/permissions.js";
 
 export type UserMappingAction =
   | { action: "map"; userId: string }
-  | { action: "create"; name: string; email: string; password?: string }
-  | { action: "skip" };
+  | { action: "create"; name: string };
 
 export interface UserImportMappings {
   users?: Record<string, UserMappingAction>;
 }
 
-function randomPassword(): string {
-  return `Imp${Math.random().toString(36).slice(2, 10)}!`;
+export interface CreatedImportUser {
+  userId: string;
+  name: string;
+  email: string;
 }
+
+export interface ResolveUserContext {
+  createdUsers: Map<string, CreatedImportUser>;
+  aliasAccumulator: Map<string, string[]>;
+}
+
+function randomPlaceholderPassword(): string {
+  return `Imp${Math.random().toString(36).slice(2, 14)}!`;
+}
+
+export { previewEmailForName };
 
 export async function findUserByNormalizedName(name: string) {
   const normalized = normalizeText(name);
@@ -90,11 +103,28 @@ export function validateUserMappingsCoverUnknown(
       continue;
     }
     if (action.action === "map" && !action.userId) missing.push(`Vendedor: ${val}`);
-    if (action.action === "create" && (!action.name.trim() || !action.email.trim())) {
-      missing.push(`Vendedor: ${val}`);
-    }
+    if (action.action === "create" && !action.name.trim()) missing.push(`Vendedor: ${val}`);
   }
   return missing;
+}
+
+function trackAlias(ctx: ResolveUserContext | undefined, raw: string, userId: string) {
+  if (!ctx) return;
+  const list = ctx.aliasAccumulator.get(userId) ?? [];
+  if (!list.includes(raw.trim())) list.push(raw.trim());
+  ctx.aliasAccumulator.set(userId, list);
+}
+
+function trackCreatedUser(
+  ctx: ResolveUserContext | undefined,
+  userId: string,
+  name: string,
+  email: string,
+) {
+  if (!ctx) return;
+  if (!ctx.createdUsers.has(userId)) {
+    ctx.createdUsers.set(userId, { userId, name, email });
+  }
 }
 
 export async function resolveUserId(
@@ -102,7 +132,7 @@ export async function resolveUserId(
   mappings: UserImportMappings,
   tx: Prisma.TransactionClient,
   cache: Map<string, string | null>,
-  actorUserId?: string,
+  ctx?: ResolveUserContext,
 ): Promise<string | undefined> {
   if (!rawName) return undefined;
   const trimmed = rawName.trim();
@@ -111,14 +141,11 @@ export async function resolveUserId(
   const cacheKey = normalizeText(trimmed);
   if (cache.has(cacheKey)) {
     const cached = cache.get(cacheKey);
+    if (cached) trackAlias(ctx, trimmed, cached);
     return cached ?? undefined;
   }
 
   const mapping = mappings.users?.[trimmed];
-  if (mapping?.action === "skip") {
-    cache.set(cacheKey, null);
-    return undefined;
-  }
 
   if (mapping?.action === "map") {
     const user = await tx.user.findFirst({
@@ -127,25 +154,23 @@ export async function resolveUserId(
     });
     if (!user) throw badRequest(`Usuário mapeado não encontrado para "${trimmed}"`);
     cache.set(cacheKey, user.id);
+    trackAlias(ctx, trimmed, user.id);
     return user.id;
   }
 
   if (mapping?.action === "create") {
-    const email = mapping.email.trim().toLowerCase();
-    const existing = await tx.user.findUnique({ where: { email } });
-    if (existing && !existing.deletedAt) {
-      cache.set(cacheKey, existing.id);
-      return existing.id;
-    }
+    const officialName = mapping.name.trim();
+    const email = await allocateEmailForName(officialName, tx);
+    const placeholder = randomPlaceholderPassword();
 
-    const password = mapping.password?.trim() || randomPassword();
     const created = await tx.user.create({
       data: {
-        name: mapping.name.trim(),
+        name: officialName,
         email,
-        passwordHash: await bcrypt.hash(password, 10),
+        passwordHash: await bcrypt.hash(placeholder, 10),
+        mustChangePassword: true,
       },
-      select: { id: true },
+      select: { id: true, name: true, email: true },
     });
 
     const colaboradorRole = await tx.role.findUnique({
@@ -161,6 +186,8 @@ export async function resolveUserId(
     }
 
     cache.set(cacheKey, created.id);
+    trackAlias(ctx, trimmed, created.id);
+    trackCreatedUser(ctx, created.id, created.name, created.email);
     return created.id;
   }
 
@@ -170,6 +197,7 @@ export async function resolveUserId(
   });
   if (alias && !alias.user.deletedAt) {
     cache.set(cacheKey, alias.user.id);
+    trackAlias(ctx, trimmed, alias.user.id);
     return alias.user.id;
   }
 
@@ -180,6 +208,7 @@ export async function resolveUserId(
   const byName = users.find((u) => normalizeText(u.name) === cacheKey);
   if (byName) {
     cache.set(cacheKey, byName.id);
+    trackAlias(ctx, trimmed, byName.id);
     return byName.id;
   }
 
@@ -189,28 +218,37 @@ export async function resolveUserId(
 
 export async function persistUserAliases(
   mappings: UserImportMappings,
+  ctx: ResolveUserContext | undefined,
   tx: Prisma.TransactionClient = prisma,
 ) {
-  if (!mappings.users) return;
+  const entries = ctx?.aliasAccumulator ?? new Map<string, string[]>();
 
-  for (const [raw, action] of Object.entries(mappings.users)) {
-    if (action.action === "skip") continue;
-
-    let userId: string | undefined;
-    if (action.action === "map") {
-      userId = action.userId;
-    } else {
-      const email = action.email.trim().toLowerCase();
-      const user = await tx.user.findUnique({ where: { email }, select: { id: true } });
-      userId = user?.id;
+  if (mappings.users) {
+    for (const [raw, action] of Object.entries(mappings.users)) {
+      if (action.action === "map") {
+        trackAlias({ createdUsers: new Map(), aliasAccumulator: entries }, raw, action.userId);
+      }
     }
-    if (!userId) continue;
-
-    const aliasNormalized = normalizeText(raw);
-    await tx.userAlias.upsert({
-      where: { aliasNormalized },
-      create: { aliasNormalized, aliasRaw: raw.trim(), userId },
-      update: { aliasRaw: raw.trim(), userId },
-    });
   }
+
+  for (const [userId, aliases] of entries) {
+    for (const raw of aliases) {
+      const aliasNormalized = normalizeText(raw);
+      await tx.userAlias.upsert({
+        where: { aliasNormalized },
+        create: { aliasNormalized, aliasRaw: raw, userId },
+        update: { aliasRaw: raw, userId },
+      });
+    }
+  }
+}
+
+export function buildCreatedUsersReport(
+  ctx: ResolveUserContext,
+): { name: string; email: string; sheetAliases: string[] }[] {
+  return [...ctx.createdUsers.values()].map((u) => ({
+    name: u.name,
+    email: u.email,
+    sheetAliases: ctx.aliasAccumulator.get(u.userId) ?? [],
+  }));
 }

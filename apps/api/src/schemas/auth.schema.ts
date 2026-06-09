@@ -11,5 +11,11 @@ export const registerSchema = z.object({
   password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
 });
 
+export const setInitialPasswordSchema = z.object({
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type SetInitialPasswordInput = z.infer<typeof setInitialPasswordSchema>;

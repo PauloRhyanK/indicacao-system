@@ -12,6 +12,7 @@ export interface AuthUser {
   email: string;
   roles: AuthRole[];
   createdAt: string;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthSession {
@@ -29,6 +30,8 @@ interface MeResponse {
   user: AuthUser;
   permissions: string[];
 }
+
+export const PASSWORD_SETUP_REQUIRED = "PASSWORD_SETUP_REQUIRED";
 
 export async function login(email: string, password: string): Promise<AuthSession> {
   const data = await apiFetch<AuthResponse>(
@@ -62,6 +65,22 @@ export async function register(
 
 export async function fetchMe(): Promise<AuthSession> {
   const data = await apiFetch<MeResponse>("/auth/me");
+  return { user: data.user, permissions: data.permissions };
+}
+
+export async function setInitialPassword(
+  email: string,
+  password: string,
+): Promise<AuthSession> {
+  const data = await apiFetch<AuthResponse>(
+    "/auth/set-initial-password",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    },
+    false,
+  );
+  setToken(data.token);
   return { user: data.user, permissions: data.permissions };
 }
 

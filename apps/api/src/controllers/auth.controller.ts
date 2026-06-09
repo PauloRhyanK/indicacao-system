@@ -1,6 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { loginSchema, registerSchema } from "../schemas/auth.schema.js";
-import { publicUser, registerUser, validateCredentials } from "../services/auth.service.js";
+import { loginSchema, registerSchema, setInitialPasswordSchema } from "../schemas/auth.schema.js";
+import {
+  publicUser,
+  registerUser,
+  setInitialPassword,
+  validateCredentials,
+} from "../services/auth.service.js";
 import { getUserPermissions, getUserRoles } from "../services/permission.service.js";
 import { prisma } from "../config/prisma.js";
 import { notFound } from "../utils/httpError.js";
@@ -36,6 +41,12 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
   const user = await registerUser(input);
   const payload = await issueToken(user, reply);
   return reply.status(201).send(payload);
+}
+
+export async function setInitialPasswordHandler(request: FastifyRequest, reply: FastifyReply) {
+  const input = setInitialPasswordSchema.parse(request.body);
+  const user = await setInitialPassword(input);
+  return reply.send(await issueToken(user, reply));
 }
 
 export async function me(request: FastifyRequest, reply: FastifyReply) {

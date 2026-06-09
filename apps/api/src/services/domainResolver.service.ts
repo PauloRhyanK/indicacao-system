@@ -10,8 +10,7 @@ import {
 
 export type UserMappingAction =
   | { action: "map"; userId: string }
-  | { action: "create"; name: string; email: string; password?: string }
-  | { action: "skip" };
+  | { action: "create"; name: string };
 
 export interface ImportMappings {
   statuses?: Record<string, MappingAction>;

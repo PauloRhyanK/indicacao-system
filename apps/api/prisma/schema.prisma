@@ -18,6 +18,7 @@ model User {
   email               String    @unique
   phone               String?
   passwordHash        String    @map("password_hash")
+  mustChangePassword  Boolean   @default(false) @map("must_change_password")
   personalDailyTarget Decimal?  @map("personal_daily_target") @db.Decimal(14, 2)
   createdAt           DateTime  @default(now()) @map("created_at")
   deletedAt           DateTime? @map("deleted_at")
