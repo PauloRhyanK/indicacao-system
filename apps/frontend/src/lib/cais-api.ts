@@ -8,8 +8,6 @@ export interface LookupItem {
 
 export interface Lookups {
   statuses: LookupItem[];
-  sources: LookupItem[];
-  nextActions: LookupItem[];
   consortiumTypes: LookupItem[];
 }
 
@@ -32,14 +30,10 @@ export interface Lead {
   phone: string;
   external_code: string | null;
   salesStatus: LookupItem | null;
-  source: LookupItem | null;
-  nextAction: LookupItem | null;
   notes: string | null;
-  next_follow_up_at: string | null;
   offered_amount: number | null;
   closed_amount: number | null;
   responsavel: AssignedUser | null;
-  vendedor: AssignedUser | null;
   co_vendedor: AssignedUser | null;
   created_at: string;
   updated_at: string;
@@ -47,7 +41,6 @@ export interface Lead {
 
 export interface SaleCommercialRoles {
   responsavel: AssignedUser | null;
-  vendedor: AssignedUser | null;
   co_vendedor: AssignedUser | null;
   external_code: string | null;
 }
@@ -55,12 +48,8 @@ export interface SaleCommercialRoles {
 export interface LeadsFilters {
   search?: string;
   status?: string;
-  source?: string;
-  nextAction?: string;
   responsavelId?: string;
   unassigned?: boolean;
-  followUpFrom?: string;
-  followUpTo?: string;
   createdFrom?: string;
   createdTo?: string;
   updatedFrom?: string;
@@ -153,6 +142,13 @@ export interface DailyGoalToday {
     saleValue: number;
     soldAt: string;
   }[];
+  salesRanking: {
+    position: number;
+    userId: string;
+    name: string;
+    total: number;
+    count: number;
+  }[];
 }
 
 export interface PersonalDashboardSale {
@@ -168,8 +164,6 @@ export interface PersonalDashboardLead {
   name: string;
   statusName: string;
   statusSlug: string | null;
-  nextAction: string | null;
-  nextFollowUpAt: string | null;
 }
 
 export interface PersonalDashboard {
@@ -232,7 +226,6 @@ export interface ApiPurchase {
     phone: string | null;
     externalCode?: string | null;
     responsavel?: ApiAssignedUser | null;
-    vendedor?: ApiAssignedUser | null;
     coVendedor?: ApiAssignedUser | null;
   } | null;
 }
@@ -292,19 +285,14 @@ interface ApiLead {
   name: string;
   phone?: string | null;
   salesStatus?: ApiLookup | null;
-  source?: ApiLookup | null;
-  nextAction?: ApiLookup | null;
   notes?: string | null;
-  nextFollowUpAt?: string | null;
   offeredAmount?: unknown | null;
   closedAmount?: unknown | null;
   assignedTo?: ApiAssignedUser | null;
   assignedToUserId?: string | null;
   responsavel?: ApiAssignedUser | null;
-  vendedor?: ApiAssignedUser | null;
   coVendedor?: ApiAssignedUser | null;
   responsavelId?: string | null;
-  vendedorId?: string | null;
   coVendedorId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -359,14 +347,10 @@ function mapLead(api: ApiLead): Lead {
     phone: api.phone ?? "",
     external_code: api.externalCode ?? null,
     salesStatus: mapLookup(api.salesStatus),
-    source: mapLookup(api.source),
-    nextAction: mapLookup(api.nextAction),
     notes: api.notes ?? null,
-    next_follow_up_at: api.nextFollowUpAt ?? null,
     offered_amount: api.offeredAmount != null ? decimalToNumber(api.offeredAmount) : null,
     closed_amount: api.closedAmount != null ? decimalToNumber(api.closedAmount) : null,
     responsavel,
-    vendedor: mapUserRef(api.vendedor),
     co_vendedor: mapUserRef(api.coVendedor),
     created_at: api.createdAt,
     updated_at: api.updatedAt,
@@ -381,12 +365,8 @@ function buildLeadsQuery(filters?: LeadsFilters): string {
     ["limit", filters.limit ?? 50],
     ["search", filters.search],
     ["status", filters.status],
-    ["source", filters.source],
-    ["nextAction", filters.nextAction],
     ["responsavelId", filters.responsavelId],
     ["unassigned", filters.unassigned === true ? "true" : undefined],
-    ["followUpFrom", filters.followUpFrom],
-    ["followUpTo", filters.followUpTo],
     ["createdFrom", filters.createdFrom],
     ["createdTo", filters.createdTo],
     ["updatedFrom", filters.updatedFrom],
@@ -416,7 +396,6 @@ function mapSale(api: ApiPurchase): Sale {
     sold_at: api.purchaseDate,
     commercial: {
       responsavel: mapUserRef(lead?.responsavel),
-      vendedor: mapUserRef(lead?.vendedor),
       co_vendedor: mapUserRef(lead?.coVendedor),
       external_code: lead?.externalCode ?? null,
     },
@@ -479,12 +458,10 @@ export async function fetchLookups(): Promise<Lookups> {
   return res.data;
 }
 
-export type LookupType = "status" | "source" | "action" | "consortium";
+export type LookupType = "status" | "consortium";
 
 const LOOKUP_ROUTES: Record<LookupType, string> = {
   status: "lead-statuses",
-  source: "lead-sources",
-  action: "next-actions",
   consortium: "consortium-types",
 };
 
@@ -678,13 +655,10 @@ export interface NewLeadInput {
   name: string;
   phone: string;
   salesStatusSlug?: string;
-  sourceSlug?: string;
-  nextActionSlug?: string;
   notes?: string;
   referrer_type?: "user" | "lead" | null;
   referrer_id?: string | null;
   responsavel_id?: string | null;
-  vendedor_id?: string | null;
   co_vendedor_id?: string | null;
 }
 
@@ -693,11 +667,8 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
     name: input.name.trim(),
     phone: input.phone.trim(),
     salesStatusSlug: input.salesStatusSlug,
-    sourceSlug: input.sourceSlug,
-    nextActionSlug: input.nextActionSlug,
     notes: input.notes?.trim() || undefined,
     responsavelId: input.responsavel_id ?? undefined,
-    vendedorId: input.vendedor_id ?? undefined,
     coVendedorId: input.co_vendedor_id ?? undefined,
   };
 
@@ -721,12 +692,8 @@ export async function updateLead(
     name: string;
     phone: string;
     salesStatusSlug: string;
-    sourceSlug: string;
-    nextActionSlug: string;
-    nextFollowUpAt: string;
     notes: string;
     responsavelId: string | null;
-    vendedorId: string | null;
     coVendedorId: string | null;
   }>,
 ): Promise<void> {
@@ -761,7 +728,6 @@ export async function registerSale(input: {
   lead_id: string;
   sale_value: number;
   consortium_type_id?: string;
-  vendedor_id?: string | null;
   co_vendedor_id?: string | null;
 }): Promise<RegisterSaleResult> {
   const res = await apiFetch<{ data: ApiRegisterSaleResponse }>(
@@ -772,7 +738,6 @@ export async function registerSale(input: {
         amount: input.sale_value,
         purchaseDate: new Date().toISOString(),
         consortiumTypeId: input.consortium_type_id,
-        vendedorId: input.vendedor_id,
         coVendedorId: input.co_vendedor_id,
       }),
     },
@@ -832,8 +797,6 @@ export interface SheetInfo {
 
 export interface UnknownValues {
   statuses: string[];
-  sources: string[];
-  nextActions: string[];
 }
 
 export interface ImportPreview {
@@ -849,8 +812,6 @@ export type MappingAction =
 
 export interface ImportMappings {
   statuses?: Record<string, MappingAction>;
-  sources?: Record<string, MappingAction>;
-  nextActions?: Record<string, MappingAction>;
 }
 
 async function buildImportForm(
@@ -975,4 +936,11 @@ export async function createTeamUser(input: {
     body: JSON.stringify(input),
   });
   return mapProfile(res.data);
+}
+
+export async function deleteUser(id: string): Promise<{ linkedLeads: number }> {
+  const res = await apiFetch<{ data: { linkedLeads: number } }>(`/users/${id}`, {
+    method: "DELETE",
+  });
+  return res.data;
 }

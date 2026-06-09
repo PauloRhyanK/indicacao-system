@@ -3,6 +3,7 @@ import { prisma } from "../config/prisma.js";
 import { notFound } from "../utils/httpError.js";
 import { dayBoundsBusiness, resolveDailyTarget } from "./dailyGoal.service.js";
 import { getCurrentGoal } from "./goal.service.js";
+import { activeLeadWhere, activeUserWhere } from "../utils/softDelete.js";
 
 function decimalToNumber(value: Prisma.Decimal | null | undefined): number {
   if (value === null || value === undefined) return 0;
@@ -15,11 +16,17 @@ function shiftBusinessDay(date: Date, deltaDays: number): Date {
   return d;
 }
 
+const activePurchaseLead = {
+  deletedAt: null,
+  lead: { deletedAt: null },
+} as const;
+
 async function personalSalesInRange(userId: string, start: Date, end: Date) {
   const agg = await prisma.purchase.aggregate({
     where: {
+      ...activePurchaseLead,
       purchaseDate: { gte: start, lt: end },
-      lead: { responsavelId: userId },
+      lead: { deletedAt: null, responsavelId: userId },
     },
     _sum: { amount: true },
   });
@@ -40,14 +47,18 @@ async function computeStreak(userId: string): Promise<number> {
 }
 
 async function computeRanking(userId: string, periodStart: Date, periodEnd: Date) {
-  const users = await prisma.user.findMany({ select: { id: true } });
+  const users = await prisma.user.findMany({
+    where: activeUserWhere,
+    select: { id: true },
+  });
   const volumes = await Promise.all(
     users.map(async (u) => ({
       id: u.id,
       vol: await prisma.purchase.aggregate({
         where: {
+          ...activePurchaseLead,
           purchaseDate: { gte: periodStart, lt: periodEnd },
-          lead: { responsavelId: u.id },
+          lead: { deletedAt: null, responsavelId: u.id },
         },
         _sum: { amount: true },
       }),
@@ -88,8 +99,8 @@ function buildInsight(remaining: number, avgTicket: number, followUpCount: numbe
 }
 
 export async function getPersonalDashboard(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+  const user = await prisma.user.findFirst({
+    where: { id: userId, ...activeUserWhere },
     select: { id: true, name: true, personalDailyTarget: true },
   });
   if (!user) throw notFound("Usuário não encontrado");
@@ -108,6 +119,8 @@ export async function getPersonalDashboard(userId: string) {
   const periodStart = periodGoal?.startDate ?? todayStart;
   const periodEnd = periodGoal?.endDate ?? todayEnd;
 
+  const activeLeadBase = { ...activeLeadWhere, responsavelId: userId };
+
   const [
     mySalesToday,
     todayPurchases,
@@ -125,8 +138,9 @@ export async function getPersonalDashboard(userId: string) {
     personalSalesInRange(userId, todayStart, todayEnd),
     prisma.purchase.findMany({
       where: {
+        ...activePurchaseLead,
         purchaseDate: { gte: todayStart, lt: todayEnd },
-        lead: { responsavelId: userId },
+        lead: { deletedAt: null, responsavelId: userId },
       },
       orderBy: { purchaseDate: "desc" },
       include: {
@@ -136,9 +150,8 @@ export async function getPersonalDashboard(userId: string) {
     }),
     prisma.purchase.findMany({
       where: {
-        lead: {
-          OR: [{ responsavelId: userId }, { vendedorId: userId }],
-        },
+        ...activePurchaseLead,
+        lead: { deletedAt: null, responsavelId: userId },
       },
       orderBy: { purchaseDate: "desc" },
       take: 20,
@@ -146,37 +159,35 @@ export async function getPersonalDashboard(userId: string) {
     }),
     prisma.lead.count({
       where: {
-        responsavelId: userId,
+        ...activeLeadBase,
         salesStatus: { slug: { not: "fechado" } },
       },
     }),
     prisma.lead.count({
       where: {
-        responsavelId: userId,
+        ...activeLeadBase,
         salesStatus: { slug: "follow-up" },
       },
     }),
     prisma.lead.findMany({
       where: {
-        responsavelId: userId,
+        ...activeLeadBase,
         salesStatus: { slug: { not: "fechado" } },
       },
-      orderBy: [{ nextFollowUpAt: "asc" }, { updatedAt: "desc" }],
+      orderBy: { updatedAt: "desc" },
       take: 20,
       select: {
         id: true,
         name: true,
-        nextFollowUpAt: true,
         salesStatus: { select: { slug: true, name: true } },
-        nextAction: { select: { name: true } },
       },
     }),
-    prisma.lead.count({ where: { responsavelId: userId } }),
+    prisma.lead.count({ where: activeLeadBase }),
     prisma.lead.count({
-      where: { responsavelId: userId, salesStatus: { slug: "fechado" } },
+      where: { ...activeLeadBase, salesStatus: { slug: "fechado" } },
     }),
-    prisma.lead.count(),
-    prisma.lead.count({ where: { salesStatus: { slug: "fechado" } } }),
+    prisma.lead.count({ where: activeLeadWhere }),
+    prisma.lead.count({ where: { ...activeLeadWhere, salesStatus: { slug: "fechado" } } }),
     computeStreak(userId),
     computeRanking(userId, periodStart, periodEnd),
   ]);
@@ -223,8 +234,6 @@ export async function getPersonalDashboard(userId: string) {
       name: l.name,
       statusName: l.salesStatus?.name ?? "Sem status",
       statusSlug: l.salesStatus?.slug ?? null,
-      nextAction: l.nextAction?.name ?? null,
-      nextFollowUpAt: l.nextFollowUpAt?.toISOString() ?? null,
     })),
     insight: {
       remaining,
@@ -236,27 +245,13 @@ export async function getPersonalDashboard(userId: string) {
 }
 
 export async function getDashboardSummary() {
-  const now = new Date();
-  const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  const [goal, totalLeads, grouped, recentFollowUps] = await Promise.all([
+  const [goal, totalLeads, grouped] = await Promise.all([
     getCurrentGoal(),
-    prisma.lead.count(),
+    prisma.lead.count({ where: activeLeadWhere }),
     prisma.lead.groupBy({
       by: ["salesStatusId"],
+      where: activeLeadWhere,
       _count: { _all: true },
-    }),
-    prisma.lead.findMany({
-      where: { nextFollowUpAt: { gte: now, lte: in7days } },
-      select: {
-        id: true,
-        name: true,
-        nextFollowUpAt: true,
-        nextAction: { select: { id: true, slug: true, name: true } },
-        responsavel: { select: { id: true, name: true } },
-      },
-      orderBy: { nextFollowUpAt: "asc" },
-      take: 10,
     }),
   ]);
 
@@ -277,6 +272,5 @@ export async function getDashboardSummary() {
     goal,
     totalLeads,
     leadsByStatus,
-    recentFollowUps,
   };
 }

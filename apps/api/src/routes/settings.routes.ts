@@ -16,8 +16,6 @@ import { authenticate, requirePermission } from "../middlewares/auth.js";
 
 const ROUTE_MAP: Record<string, LookupKind> = {
   "lead-statuses": "status",
-  "lead-sources": "source",
-  "next-actions": "action",
 };
 
 const authManage = [authenticate, requirePermission("settings.manage")];

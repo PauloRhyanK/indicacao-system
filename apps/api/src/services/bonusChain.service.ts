@@ -24,8 +24,8 @@ export interface BonusChainResult {
 }
 
 export async function getBonusChain(leadId: string, maxDepth = 10): Promise<BonusChainResult> {
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, deletedAt: null },
     select: { id: true },
   });
   if (!lead) throw notFound("Lead não encontrado");

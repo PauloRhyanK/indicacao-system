@@ -2,22 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { StatusBadge } from "@/components/cais/Badge";
 import { type PersonalDashboardLead } from "@/lib/cais-api";
 
-function formatFollowUp(iso: string | null): string {
-  if (!iso) return "Sem follow-up";
-  const d = new Date(iso);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const day = new Date(d);
-  day.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((day.getTime() - today.getTime()) / 86400000);
-  const time = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  if (diffDays === 0) return `Hoje às ${time}`;
-  if (diffDays === 1) return `Amanhã às ${time}`;
-  if (diffDays === -1) return `Ontem às ${time}`;
-  if (diffDays < 0) return `${Math.abs(diffDays)}d atrás`;
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-}
-
 interface MyActiveLeadsListProps {
   leads: PersonalDashboardLead[];
   totalCount: number;
@@ -53,9 +37,7 @@ export function MyActiveLeadsList({ leads, totalCount }: MyActiveLeadsListProps)
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] font-medium text-azul-profundo">{lead.name}</p>
-                  <p className="mt-0.5 text-[12px] text-slate-500">
-                    {lead.nextAction ?? "Sem próxima ação"} · {formatFollowUp(lead.nextFollowUpAt)}
-                  </p>
+                  <p className="mt-0.5 text-[12px] text-slate-500">{lead.statusName}</p>
                 </div>
                 <StatusBadge slug={lead.statusSlug} status={lead.statusName} />
               </Link>

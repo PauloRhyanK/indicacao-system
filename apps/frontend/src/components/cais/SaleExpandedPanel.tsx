@@ -17,7 +17,6 @@ export function SaleExpandedPanel({ sale, enabled }: { sale: Sale; enabled: bool
         </h4>
         <CommercialRolesList
           responsavel={sale.commercial.responsavel?.name}
-          vendedor={sale.commercial.vendedor?.name}
           coVendedor={sale.commercial.co_vendedor?.name}
           consortiumType={sale.consortium_type}
           externalCode={sale.commercial.external_code}

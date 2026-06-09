@@ -5,10 +5,7 @@ export type FilterField =
   | "phone"
   | "external_code"
   | "status"
-  | "source"
-  | "next_action"
   | "assigned"
-  | "follow_up"
   | "offered_amount"
   | "closed_amount"
   | "created_at"
@@ -42,10 +39,7 @@ export const FILTER_FIELD_OPTIONS: {
   { id: "phone", label: "Celular", type: "text", operators: ["contains"] },
   { id: "external_code", label: "Código", type: "text", operators: ["contains", "equals"] },
   { id: "status", label: "Status", type: "select", operators: ["equals"] },
-  { id: "source", label: "Origem", type: "select", operators: ["equals"] },
-  { id: "next_action", label: "Próxima ação", type: "select", operators: ["equals"] },
-  { id: "assigned", label: "Responsável", type: "select", operators: ["equals"] },
-  { id: "follow_up", label: "Follow-up", type: "date", operators: ["equals", "before", "after", "between"] },
+  { id: "assigned", label: "Vendedor responsável", type: "select", operators: ["equals"] },
   { id: "offered_amount", label: "Valor ofertado", type: "number", operators: ["equals", "gte", "lte", "between"] },
   { id: "closed_amount", label: "Valor fechado", type: "number", operators: ["equals", "gte", "lte", "between"] },
   { id: "created_at", label: "Data registro", type: "date", operators: ["equals", "before", "after", "between"] },
@@ -120,17 +114,8 @@ export function compileLeadFilters(rows: FilterRow[]): LeadsFilters {
       case "status":
         result.status = row.value;
         break;
-      case "source":
-        result.source = row.value;
-        break;
-      case "next_action":
-        result.nextAction = row.value;
-        break;
       case "assigned":
         result.responsavelId = row.value;
-        break;
-      case "follow_up":
-        applyDateFilter(result, "followUpFrom", "followUpTo", row.operator, row.value, row.value2);
         break;
       case "created_at":
         applyDateFilter(result, "createdFrom", "createdTo", row.operator, row.value, row.value2);

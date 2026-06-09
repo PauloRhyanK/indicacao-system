@@ -80,10 +80,6 @@ export function LeadsFilterModal({
       let options: { value: string; label: string }[] = [];
       if (row.field === "status") {
         options = (lookups?.statuses ?? []).map((s) => ({ value: s.slug, label: s.name }));
-      } else if (row.field === "source") {
-        options = (lookups?.sources ?? []).map((s) => ({ value: s.slug, label: s.name }));
-      } else if (row.field === "next_action") {
-        options = (lookups?.nextActions ?? []).map((s) => ({ value: s.slug, label: s.name }));
       } else if (row.field === "assigned") {
         options = (profiles ?? []).map((p) => ({ value: p.id, label: p.name }));
       }

@@ -18,7 +18,7 @@ type MappingState = Record<string, { mode: "map" | "create"; targetSlug: string;
 
 function initMappings(unknown: UnknownValues): MappingState {
   const state: MappingState = {};
-  for (const val of [...unknown.statuses, ...unknown.sources, ...unknown.nextActions]) {
+  for (const val of unknown.statuses) {
     state[val] = { mode: "map", targetSlug: "", createName: val };
   }
   return state;
@@ -28,7 +28,7 @@ function buildMappingsFromState(
   unknown: UnknownValues,
   state: MappingState,
 ): ImportMappings {
-  const mappings: ImportMappings = { statuses: {}, sources: {}, nextActions: {} };
+  const mappings: ImportMappings = { statuses: {} };
 
   for (const val of unknown.statuses) {
     const s = state[val];
@@ -38,28 +38,12 @@ function buildMappingsFromState(
         ? { action: "create", name: s.createName.trim() || val }
         : { action: "map", targetSlug: s.targetSlug };
   }
-  for (const val of unknown.sources) {
-    const s = state[val];
-    if (!s) continue;
-    mappings.sources![val] =
-      s.mode === "create"
-        ? { action: "create", name: s.createName.trim() || val }
-        : { action: "map", targetSlug: s.targetSlug };
-  }
-  for (const val of unknown.nextActions) {
-    const s = state[val];
-    if (!s) continue;
-    mappings.nextActions![val] =
-      s.mode === "create"
-        ? { action: "create", name: s.createName.trim() || val }
-        : { action: "map", targetSlug: s.targetSlug };
-  }
 
   return mappings;
 }
 
 function allMappingsResolved(unknown: UnknownValues, state: MappingState): boolean {
-  const all = [...unknown.statuses, ...unknown.sources, ...unknown.nextActions];
+  const all = unknown.statuses;
   return all.every((val) => {
     const s = state[val];
     if (!s) return false;
@@ -221,11 +205,8 @@ export function ImportExcelDialog({
   }
 
   const selectedInfo = preview?.sheets.find((s) => s.name === selectedSheet);
-  const unknown = preview?.unknownValues ?? { statuses: [], sources: [], nextActions: [] };
-  const hasUnknown =
-    unknown.statuses.length > 0 ||
-    unknown.sources.length > 0 ||
-    unknown.nextActions.length > 0;
+  const unknown = preview?.unknownValues ?? { statuses: [] };
+  const hasUnknown = unknown.statuses.length > 0;
   const mappingsOk = !hasUnknown || allMappingsResolved(unknown, mappingState);
 
   const canImport =
@@ -315,26 +296,6 @@ export function ImportExcelDialog({
                     label="Status"
                     value={val}
                     options={lookups.data?.statuses ?? []}
-                    state={mappingState[val] ?? { mode: "map", targetSlug: "", createName: val }}
-                    onChange={(next) => setMappingState((s) => ({ ...s, [val]: next }))}
-                  />
-                ))}
-                {unknown.sources.map((val) => (
-                  <MappingRow
-                    key={`source-${val}`}
-                    label="Origem"
-                    value={val}
-                    options={lookups.data?.sources ?? []}
-                    state={mappingState[val] ?? { mode: "map", targetSlug: "", createName: val }}
-                    onChange={(next) => setMappingState((s) => ({ ...s, [val]: next }))}
-                  />
-                ))}
-                {unknown.nextActions.map((val) => (
-                  <MappingRow
-                    key={`action-${val}`}
-                    label="Ação"
-                    value={val}
-                    options={lookups.data?.nextActions ?? []}
                     state={mappingState[val] ?? { mode: "map", targetSlug: "", createName: val }}
                     onChange={(next) => setMappingState((s) => ({ ...s, [val]: next }))}
                   />

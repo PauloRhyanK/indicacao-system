@@ -4,14 +4,6 @@ import { Button } from "./Button";
 import { Field, inputClass, SlideOver } from "./SlideOver";
 import { fetchLookups, fetchProfiles, updateLead, type Lead } from "@/lib/cais-api";
 
-function toDatetimeLocal(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export function EditLeadForm({
   open,
   onClose,
@@ -28,12 +20,8 @@ export function EditLeadForm({
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [responsavelId, setResponsavelId] = useState(lead.responsavel?.id ?? "");
-  const [vendedorId, setVendedorId] = useState(lead.vendedor?.id ?? "");
   const [coVendedorId, setCoVendedorId] = useState(lead.co_vendedor?.id ?? "");
   const [statusSlug, setStatusSlug] = useState(lead.salesStatus?.slug ?? "");
-  const [sourceSlug, setSourceSlug] = useState(lead.source?.slug ?? "");
-  const [nextActionSlug, setNextActionSlug] = useState(lead.nextAction?.slug ?? "");
-  const [followUpAt, setFollowUpAt] = useState(toDatetimeLocal(lead.next_follow_up_at));
   const [notes, setNotes] = useState(lead.notes ?? "");
 
   useEffect(() => {
@@ -41,12 +29,8 @@ export function EditLeadForm({
     setName(lead.name);
     setPhone(lead.phone);
     setResponsavelId(lead.responsavel?.id ?? "");
-    setVendedorId(lead.vendedor?.id ?? "");
     setCoVendedorId(lead.co_vendedor?.id ?? "");
     setStatusSlug(lead.salesStatus?.slug ?? "");
-    setSourceSlug(lead.source?.slug ?? "");
-    setNextActionSlug(lead.nextAction?.slug ?? "");
-    setFollowUpAt(toDatetimeLocal(lead.next_follow_up_at));
     setNotes(lead.notes ?? "");
   }, [open, lead]);
 
@@ -56,12 +40,8 @@ export function EditLeadForm({
         name: name.trim(),
         phone: phone.trim(),
         salesStatusSlug: statusSlug || undefined,
-        sourceSlug: sourceSlug || undefined,
-        nextActionSlug: nextActionSlug || undefined,
-        nextFollowUpAt: followUpAt ? new Date(followUpAt).toISOString() : undefined,
         notes: notes.trim(),
         responsavelId: responsavelId || null,
-        vendedorId: vendedorId || null,
         coVendedorId: coVendedorId || null,
       }),
     onSuccess: () => {
@@ -99,26 +79,11 @@ export function EditLeadForm({
           />
         </Field>
 
-        <Field label="Responsável pelo lead">
+        <Field label="Vendedor responsável">
           <select
             className={inputClass}
             value={responsavelId}
             onChange={(e) => setResponsavelId(e.target.value)}
-          >
-            <option value="">Não atribuído</option>
-            {(profiles.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Vendedor">
-          <select
-            className={inputClass}
-            value={vendedorId}
-            onChange={(e) => setVendedorId(e.target.value)}
           >
             <option value="">Não atribuído</option>
             {(profiles.data ?? []).map((p) => (
@@ -157,45 +122,6 @@ export function EditLeadForm({
               </option>
             ))}
           </select>
-        </Field>
-
-        <Field label="Origem">
-          <select
-            className={inputClass}
-            value={sourceSlug}
-            onChange={(e) => setSourceSlug(e.target.value)}
-          >
-            <option value="">— Selecione —</option>
-            {(lookups.data?.sources ?? []).map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Próxima ação">
-          <select
-            className={inputClass}
-            value={nextActionSlug}
-            onChange={(e) => setNextActionSlug(e.target.value)}
-          >
-            <option value="">— Selecione —</option>
-            {(lookups.data?.nextActions ?? []).map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Follow-up">
-          <input
-            type="datetime-local"
-            className={inputClass}
-            value={followUpAt}
-            onChange={(e) => setFollowUpAt(e.target.value)}
-          />
         </Field>
 
         <Field label="Observações">

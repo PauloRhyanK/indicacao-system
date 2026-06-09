@@ -21,22 +21,14 @@ export interface LeadGridRow {
   name: string;
   phone: string;
   created_at: string;
-  source_name: string;
   status_name: string;
   status_slug: string | null;
-  next_action_name: string;
-  next_follow_up_at: string | null;
   offered_amount: number | null;
   closed_amount: number | null;
   assigned_name: string;
   updated_at: string;
   referrer_label: string;
   notes: string;
-}
-
-function isFollowUpOverdue(iso: string | null): boolean {
-  if (!iso) return false;
-  return new Date(iso) < new Date();
 }
 
 function toGridRow(lead: Lead, referrerLabel: Map<string, string>): LeadGridRow {
@@ -46,11 +38,8 @@ function toGridRow(lead: Lead, referrerLabel: Map<string, string>): LeadGridRow 
     name: lead.name,
     phone: lead.phone,
     created_at: lead.created_at,
-    source_name: lead.source?.name ?? "—",
     status_name: lead.salesStatus?.name ?? "Sem status",
     status_slug: lead.salesStatus?.slug ?? null,
-    next_action_name: lead.nextAction?.name ?? "—",
-    next_follow_up_at: lead.next_follow_up_at,
     offered_amount: lead.offered_amount,
     closed_amount: lead.closed_amount,
     assigned_name: lead.responsavel?.name ?? "—",
@@ -111,7 +100,6 @@ export function LeadsDataGrid({
         minWidth: 110,
         valueFormatter: (v) => (v ? formatDate(String(v)) : "—"),
       },
-      { field: "source_name", headerName: "Origem", minWidth: 120 },
       {
         field: "status_name",
         headerName: "Status",
@@ -125,21 +113,6 @@ export function LeadsDataGrid({
             compact
           />
         ),
-      },
-      { field: "next_action_name", headerName: "Próxima ação", minWidth: 130 },
-      {
-        field: "next_follow_up_at",
-        headerName: "Follow-up",
-        minWidth: 140,
-        renderCell: ({ row }) => {
-          if (!row.next_follow_up_at) return "—";
-          const overdue = isFollowUpOverdue(row.next_follow_up_at);
-          return (
-            <span className={overdue ? "font-medium text-status-amber" : ""}>
-              {formatDateTime(row.next_follow_up_at)}
-            </span>
-          );
-        },
       },
       {
         field: "offered_amount",
@@ -155,7 +128,7 @@ export function LeadsDataGrid({
         valueFormatter: (v) =>
           v != null && v !== "" ? formatBRL(Number(v)) : "—",
       },
-      { field: "assigned_name", headerName: "Responsável", minWidth: 120 },
+      { field: "assigned_name", headerName: "Vendedor responsável", minWidth: 140 },
       {
         field: "updated_at",
         headerName: "Última atualização",
@@ -344,7 +317,7 @@ export function LeadsDataGrid({
                     closeMenu();
                   }}
                 >
-                  Atribuir responsável
+                  Atribuir vendedor responsável
                 </MenuItem>
               )}
               {canDelete && onDelete && (

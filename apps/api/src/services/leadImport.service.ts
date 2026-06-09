@@ -6,13 +6,12 @@ import { normalizePhone, parseDate, parseDecimal } from "../utils/format.js";
 import {
   collectUnknownValues,
   hasUnknownValues,
-  resolveActionId,
-  resolveSourceId,
   resolveStatusId,
   validateMappingsCoverUnknown,
   type ImportMappings,
   type UnknownValues,
 } from "./domainResolver.service.js";
+import { activeLeadWhere } from "../utils/softDelete.js";
 
 export interface ImportRowDetail {
   row: number;
@@ -77,11 +76,8 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   createdAt: ["data do registro", "data de registro"],
   name: ["nome do cliente", "nome", "cliente"],
   phone: ["telefone", "celular"],
-  source: ["origem do lead", "origem"],
   assignedTo: ["responsavel pela reuniao", "responsavel"],
   salesStatus: ["status atual da oportunidade", "status"],
-  nextAction: ["proxima acao", "proxima ação"],
-  nextFollowUpAt: ["data do proximo follow-up", "proximo follow-up", "follow-up"],
   notes: ["observacoes", "observacao", "obs"],
   offeredAmount: ["valor da carta ofertada", "valor ofertado", "carta ofertada"],
   closedAmount: ["valor fechado", "valor da venda"],
@@ -113,7 +109,7 @@ async function resolveAssignedUser(
   if (cache.has(key)) return cache.get(key);
 
   const existing = await tx.user.findFirst({
-    where: { name: { equals: name.trim(), mode: "insensitive" } },
+    where: { name: { equals: name.trim(), mode: "insensitive" }, deletedAt: null },
     select: { id: true },
   });
   if (existing) {
@@ -174,26 +170,20 @@ function computeLeadChanges(
     phone: string | null;
     externalCode: string | null;
     notes: string | null;
-    nextFollowUpAt: Date | null;
     offeredAmount: Prisma.Decimal | null;
     closedAmount: Prisma.Decimal | null;
     responsavel: { name: string } | null;
-    source: { name: string } | null;
     salesStatus: { name: string } | null;
-    nextAction: { name: string } | null;
   },
   next: {
     name: string;
     phone: string | null | undefined;
     externalCode?: string;
     notes?: string;
-    nextFollowUpAt: Date | null | undefined;
     offeredAmount: Prisma.Decimal | null | undefined;
     closedAmount: Prisma.Decimal | null | undefined;
     responsavelLabel?: string;
-    sourceLabel?: string;
     statusLabel?: string;
-    actionLabel?: string;
   },
 ): string[] {
   const changes: string[] = [];
@@ -203,16 +193,8 @@ function computeLeadChanges(
   if (next.externalCode) {
     pushChange(changes, "Código", existing.externalCode, next.externalCode);
   }
-  pushChange(changes, "Origem", existing.source?.name, next.sourceLabel);
-  pushChange(changes, "Responsável", existing.responsavel?.name, next.responsavelLabel);
+  pushChange(changes, "Vendedor responsável", existing.responsavel?.name, next.responsavelLabel);
   pushChange(changes, "Status", existing.salesStatus?.name, next.statusLabel);
-  pushChange(changes, "Próxima ação", existing.nextAction?.name, next.actionLabel);
-  pushChange(
-    changes,
-    "Follow-up",
-    formatDateLabel(existing.nextFollowUpAt),
-    formatDateLabel(next.nextFollowUpAt ?? null),
-  );
   pushChange(changes, "Observações", existing.notes, next.notes ?? null);
 
   const oldOffered = formatDecimalLabel(existing.offeredAmount);
@@ -347,7 +329,7 @@ export async function previewWorkbookFromBuffer(
   });
 
   const resolved = resolveSheet(workbook, sheetName ?? defaultSheet ?? undefined);
-  let unknownValues: UnknownValues = { statuses: [], sources: [], nextActions: [] };
+  let unknownValues: UnknownValues = { statuses: [] };
 
   if (resolved) {
     const rows = sheetToDataRows(resolved.sheet);
@@ -457,20 +439,8 @@ export async function importLeadsFromBuffer(
           tx
         );
 
-        const sourceId = await resolveSourceId(
-          fields.source ? String(fields.source) : undefined,
-          mappings,
-          tx,
-          lookupCache
-        );
         const salesStatusId = await resolveStatusId(
           fields.salesStatus ? String(fields.salesStatus) : undefined,
-          mappings,
-          tx,
-          lookupCache
-        );
-        const nextActionId = await resolveActionId(
-          fields.nextAction ? String(fields.nextAction) : undefined,
           mappings,
           tx,
           lookupCache
@@ -491,11 +461,8 @@ export async function importLeadsFromBuffer(
         const data = {
           name,
           phone,
-          sourceId,
           responsavelId,
           salesStatusId: fechadoStatus ? fechadoStatus.id : salesStatusId,
-          nextActionId,
-          nextFollowUpAt: parseDate(fields.nextFollowUpAt as string | number | null),
           notes: fields.notes ? String(fields.notes) : undefined,
           offeredAmount: parseDecimal(fields.offeredAmount as string | number | null),
           closedAmount: closed,
@@ -526,7 +493,7 @@ export async function importLeadsFromBuffer(
             matchedBy = "phone";
           } else {
             const byPhone = await tx.lead.findFirst({
-              where: { phone },
+              where: { phone, ...activeLeadWhere },
               select: { id: true },
             });
             if (byPhone) {
@@ -539,13 +506,11 @@ export async function importLeadsFromBuffer(
         const responsavelLabel = fields.assignedTo
           ? String(fields.assignedTo).trim()
           : undefined;
-        const sourceLabel = fields.source ? String(fields.source).trim() : undefined;
         const statusLabel = fechadoStatus
           ? "Fechado"
           : fields.salesStatus
             ? String(fields.salesStatus).trim()
             : undefined;
-        const actionLabel = fields.nextAction ? String(fields.nextAction).trim() : undefined;
 
         const rowDetail = {
           row: rowNumber,
@@ -559,9 +524,7 @@ export async function importLeadsFromBuffer(
             where: { id: existingId },
             include: {
               responsavel: { select: { name: true } },
-              source: { select: { name: true } },
               salesStatus: { select: { name: true } },
-              nextAction: { select: { name: true } },
             },
           });
 
@@ -570,13 +533,10 @@ export async function importLeadsFromBuffer(
             phone,
             externalCode,
             notes: data.notes,
-            nextFollowUpAt: data.nextFollowUpAt,
             offeredAmount: data.offeredAmount,
             closedAmount: data.closedAmount,
             responsavelLabel,
-            sourceLabel,
             statusLabel,
-            actionLabel,
           });
 
           await tx.lead.update({

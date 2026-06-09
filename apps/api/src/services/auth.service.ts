@@ -9,7 +9,7 @@ import type { LoginInput, RegisterInput } from "../schemas/auth.schema.js";
 
 export async function validateCredentials(input: LoginInput) {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
-  if (!user) throw unauthorized("Credenciais inválidas");
+  if (!user || user.deletedAt) throw unauthorized("Credenciais inválidas");
 
   const valid = await bcrypt.compare(input.password, user.passwordHash);
   if (!valid) throw unauthorized("Credenciais inválidas");

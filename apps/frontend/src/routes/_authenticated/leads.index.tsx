@@ -32,6 +32,7 @@ import {
   type Lead,
   type LeadsFilters,
 } from "@/lib/cais-api";
+import { ApiError } from "@/lib/api/client";
 import { usePermissions } from "@/lib/use-permissions";
 import {
   countActiveFilters,
@@ -266,10 +267,17 @@ function LeadsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lead</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir{" "}
-              <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Leads com
+              vendas registradas não podem ser excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteMutation.isError && (
+            <p className="px-6 text-[13px] text-red-600">
+              {deleteMutation.error instanceof ApiError
+                ? deleteMutation.error.message
+                : "Não foi possível excluir o lead."}
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction

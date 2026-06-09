@@ -27,6 +27,7 @@ import {
   formatDateTime,
   isLeadClosed,
 } from "@/lib/cais-api";
+import { ApiError } from "@/lib/api/client";
 import { usePermissions } from "@/lib/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
@@ -134,14 +135,6 @@ function LeadDetail() {
               <dd className="text-[14px] text-azul-profundo">{l.phone}</dd>
             </div>
             <div>
-              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Origem</dt>
-              <dd className="text-[14px] text-azul-profundo">{l.source?.name ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Próxima ação</dt>
-              <dd className="text-[14px] text-azul-profundo">{l.nextAction?.name ?? "—"}</dd>
-            </div>
-            <div>
               <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Observações</dt>
               <dd className="text-[14px] text-azul-profundo">{l.notes ?? "—"}</dd>
             </div>
@@ -152,7 +145,6 @@ function LeadDetail() {
           <SectionHeader>Papéis comerciais</SectionHeader>
           <CommercialRolesList
             responsavel={l.responsavel?.name}
-            vendedor={l.vendedor?.name}
             coVendedor={l.co_vendedor?.name}
             externalCode={l.external_code}
           />
@@ -212,10 +204,17 @@ function LeadDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lead</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{l.name}</strong>? Esta ação não pode ser
-              desfeita.
+              Tem certeza que deseja excluir <strong>{l.name}</strong>? O lead será removido da
+              listagem. Leads com vendas registradas não podem ser excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteMutation.isError && (
+            <p className="px-6 text-[13px] text-red-600">
+              {deleteMutation.error instanceof ApiError
+                ? deleteMutation.error.message
+                : "Não foi possível excluir o lead."}
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction

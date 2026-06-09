@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
-import { badRequest, notFound } from "../utils/httpError.js";
+import { badRequest, conflict, notFound } from "../utils/httpError.js";
 import { normalizePhone } from "../utils/format.js";
 import { getReferrerOf, upsertReferral } from "./referral.service.js";
 import { findBySlug } from "./lookup.service.js";
@@ -9,6 +9,7 @@ import {
   assertLeadReadable,
   leadListFilter,
 } from "./permission.service.js";
+import { activeLeadWhere } from "../utils/softDelete.js";
 import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from "../schemas/lead.schema.js";
 
 const userRoleSelect = {
@@ -21,49 +22,30 @@ const lookupSelect = {
 
 const leadInclude = {
   responsavel: userRoleSelect,
-  vendedor: userRoleSelect,
   coVendedor: userRoleSelect,
-  source: lookupSelect,
   salesStatus: lookupSelect,
-  nextAction: lookupSelect,
 } as const;
 
 function toDecimal(value?: number) {
   return value === undefined ? undefined : new Prisma.Decimal(value);
 }
 
-async function resolveLookupIds(input: {
-  sourceId?: string;
-  sourceSlug?: string;
+async function resolveSalesStatusId(input: {
   salesStatusId?: string;
   salesStatusSlug?: string;
-  nextActionId?: string;
-  nextActionSlug?: string;
 }) {
-  let sourceId = input.sourceId;
   let salesStatusId = input.salesStatusId;
-  let nextActionId = input.nextActionId;
 
-  if (input.sourceSlug) {
-    const found = await findBySlug("source", input.sourceSlug);
-    if (!found) throw badRequest(`Origem "${input.sourceSlug}" não encontrada`);
-    sourceId = found.id;
-  }
   if (input.salesStatusSlug) {
     const found = await findBySlug("status", input.salesStatusSlug);
     if (!found) throw badRequest(`Status "${input.salesStatusSlug}" não encontrado`);
     salesStatusId = found.id;
   }
-  if (input.nextActionSlug) {
-    const found = await findBySlug("action", input.nextActionSlug);
-    if (!found) throw badRequest(`Ação "${input.nextActionSlug}" não encontrada`);
-    nextActionId = found.id;
-  }
 
-  return { sourceId, salesStatusId, nextActionId };
+  return salesStatusId;
 }
 
-function dateRange(field: "nextFollowUpAt" | "createdAt" | "updatedAt", from?: Date, to?: Date) {
+function dateRange(field: "createdAt" | "updatedAt", from?: Date, to?: Date) {
   if (!from && !to) return {};
   const range: { gte?: Date; lte?: Date } = {};
   if (from) range.gte = from;
@@ -92,12 +74,8 @@ export async function listLeads(
     limit,
     search,
     status,
-    source,
-    nextAction,
     responsavelId,
     unassigned,
-    followUpFrom,
-    followUpTo,
     createdFrom,
     createdTo,
     updatedFrom,
@@ -110,13 +88,11 @@ export async function listLeads(
   } = query;
 
   const where: Prisma.LeadWhereInput = {
+    ...activeLeadWhere,
     ...(access ? leadListFilter(access.perms, access.userId) : {}),
     ...(status ? { salesStatus: { slug: status } } : {}),
-    ...(source ? { source: { slug: source } } : {}),
-    ...(nextAction ? { nextAction: { slug: nextAction } } : {}),
     ...(unassigned ? { responsavelId: null } : {}),
     ...(responsavelId ? { responsavelId } : {}),
-    ...dateRange("nextFollowUpAt", followUpFrom, followUpTo),
     ...dateRange("createdAt", createdFrom, createdTo),
     ...dateRange("updatedAt", updatedFrom, updatedTo),
     ...decimalRange("offeredAmount", offeredMin, offeredMax),
@@ -162,11 +138,14 @@ export async function getLeadById(
   if (access) {
     await assertLeadReadable(id, access.userId, access.perms);
   }
-  const lead = await prisma.lead.findUnique({
-    where: { id },
+  const lead = await prisma.lead.findFirst({
+    where: { id, ...activeLeadWhere },
     include: {
       ...leadInclude,
-      purchases: { orderBy: { purchaseDate: "desc" } },
+      purchases: {
+        where: { deletedAt: null },
+        orderBy: { purchaseDate: "desc" },
+      },
     },
   });
   if (!lead) throw notFound("Lead não encontrado");
@@ -177,7 +156,7 @@ export async function getLeadById(
 
 export async function createLead(input: CreateLeadInput) {
   const { referrer, ...data } = input;
-  const lookupIds = await resolveLookupIds(data);
+  const salesStatusId = await resolveSalesStatusId(data);
 
   return prisma.$transaction(async (tx) => {
     const lead = await tx.lead.create({
@@ -185,13 +164,9 @@ export async function createLead(input: CreateLeadInput) {
         externalCode: data.externalCode,
         name: data.name,
         phone: normalizePhone(data.phone),
-        sourceId: lookupIds.sourceId,
         responsavelId: data.responsavelId,
-        vendedorId: data.vendedorId ?? undefined,
         coVendedorId: data.coVendedorId ?? undefined,
-        salesStatusId: lookupIds.salesStatusId,
-        nextActionId: lookupIds.nextActionId,
-        nextFollowUpAt: data.nextFollowUpAt,
+        salesStatusId,
         notes: data.notes,
         offeredAmount: toDecimal(data.offeredAmount),
         closedAmount: toDecimal(data.closedAmount),
@@ -215,11 +190,17 @@ export async function updateLead(
   if (access) {
     await assertLeadEditable(id, access.userId, access.perms);
   }
-  const existing = await prisma.lead.findUnique({ where: { id }, select: { id: true } });
+  const existing = await prisma.lead.findFirst({
+    where: { id, ...activeLeadWhere },
+    select: { id: true },
+  });
   if (!existing) throw notFound("Lead não encontrado");
 
   const { referrer, ...data } = input;
-  const lookupIds = await resolveLookupIds(data);
+  const salesStatusId =
+    data.salesStatusId !== undefined || data.salesStatusSlug !== undefined
+      ? await resolveSalesStatusId(data)
+      : undefined;
 
   return prisma.$transaction(async (tx) => {
     const lead = await tx.lead.update({
@@ -228,13 +209,9 @@ export async function updateLead(
         ...(data.externalCode !== undefined ? { externalCode: data.externalCode } : {}),
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.phone !== undefined ? { phone: normalizePhone(data.phone) } : {}),
-        ...(lookupIds.sourceId !== undefined ? { sourceId: lookupIds.sourceId } : {}),
         ...(data.responsavelId !== undefined ? { responsavelId: data.responsavelId } : {}),
-        ...(data.vendedorId !== undefined ? { vendedorId: data.vendedorId } : {}),
         ...(data.coVendedorId !== undefined ? { coVendedorId: data.coVendedorId } : {}),
-        ...(lookupIds.salesStatusId !== undefined ? { salesStatusId: lookupIds.salesStatusId } : {}),
-        ...(lookupIds.nextActionId !== undefined ? { nextActionId: lookupIds.nextActionId } : {}),
-        ...(data.nextFollowUpAt !== undefined ? { nextFollowUpAt: data.nextFollowUpAt } : {}),
+        ...(salesStatusId !== undefined ? { salesStatusId } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
         ...(data.offeredAmount !== undefined ? { offeredAmount: toDecimal(data.offeredAmount) } : {}),
         ...(data.closedAmount !== undefined ? { closedAmount: toDecimal(data.closedAmount) } : {}),
@@ -255,7 +232,21 @@ export async function deleteLead(
   access: { userId: string; perms: Set<string> },
 ) {
   await assertLeadReadable(id, access.userId, access.perms);
-  const existing = await prisma.lead.findUnique({ where: { id }, select: { id: true } });
+  const existing = await prisma.lead.findFirst({
+    where: { id, ...activeLeadWhere },
+    select: { id: true },
+  });
   if (!existing) throw notFound("Lead não encontrado");
-  await prisma.lead.delete({ where: { id } });
+
+  const salesCount = await prisma.purchase.count({
+    where: { leadId: id, deletedAt: null },
+  });
+  if (salesCount > 0) {
+    throw conflict("Lead possui vendas registradas. Remova as vendas antes de excluir.");
+  }
+
+  await prisma.lead.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
 }

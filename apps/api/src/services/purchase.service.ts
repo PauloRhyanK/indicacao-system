@@ -10,6 +10,7 @@ import {
   findConsortiumTypeBySlug,
 } from "./consortiumType.service.js";
 import type { CreatePurchaseInput } from "../schemas/purchase.schema.js";
+import { activeLeadWhere, activePurchaseWhere } from "../utils/softDelete.js";
 
 const purchaseInclude = {
   consortiumType: true,
@@ -20,7 +21,6 @@ const purchaseInclude = {
       phone: true,
       externalCode: true,
       responsavel: { select: { id: true, name: true } },
-      vendedor: { select: { id: true, name: true } },
       coVendedor: { select: { id: true, name: true } },
     },
   },
@@ -41,8 +41,8 @@ async function resolveConsortiumTypeId(input: CreatePurchaseInput): Promise<stri
 }
 
 export async function registerPurchase(leadId: string, input: CreatePurchaseInput) {
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, ...activeLeadWhere },
     select: { id: true, closedAmount: true },
   });
   if (!lead) throw notFound("Lead não encontrado");
@@ -68,7 +68,6 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
       data: {
         closedAmount: currentClosed.plus(amount),
         ...(fechadoStatus ? { salesStatusId: fechadoStatus.id } : {}),
-        ...(input.vendedorId !== undefined ? { vendedorId: input.vendedorId } : {}),
         ...(input.coVendedorId !== undefined ? { coVendedorId: input.coVendedorId } : {}),
       },
     });
@@ -88,11 +87,14 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
 }
 
 export async function listPurchases(leadId: string) {
-  const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { id: true } });
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, ...activeLeadWhere },
+    select: { id: true },
+  });
   if (!lead) throw notFound("Lead não encontrado");
 
   return prisma.purchase.findMany({
-    where: { leadId },
+    where: { leadId, deletedAt: null },
     orderBy: { purchaseDate: "desc" },
     include: purchaseInclude,
   });
@@ -100,32 +102,38 @@ export async function listPurchases(leadId: string) {
 
 export async function listAllPurchases() {
   return prisma.purchase.findMany({
+    where: activePurchaseWhere,
     orderBy: { purchaseDate: "desc" },
     include: purchaseInclude,
   });
 }
 
 export async function deletePurchase(purchaseId: string, input: DeletePurchaseInput) {
-  const purchase = await prisma.purchase.findUnique({
-    where: { id: purchaseId },
+  const purchase = await prisma.purchase.findFirst({
+    where: { id: purchaseId, deletedAt: null },
     select: { id: true, leadId: true, amount: true, createdAt: true },
   });
   if (!purchase) throw notFound("Venda não encontrada");
 
   await prisma.$transaction(async (tx) => {
-    const lead = await tx.lead.findUnique({
-      where: { id: purchase.leadId },
+    const lead = await tx.lead.findFirst({
+      where: { id: purchase.leadId, ...activeLeadWhere },
       select: { id: true, closedAmount: true },
     });
     if (!lead) throw notFound("Lead não encontrado");
 
-    await tx.purchase.delete({ where: { id: purchaseId } });
+    await tx.purchase.update({
+      where: { id: purchaseId },
+      data: { deletedAt: new Date() },
+    });
 
     const currentClosed = lead.closedAmount ?? new Prisma.Decimal(0);
     const nextClosed = currentClosed.minus(purchase.amount);
     const flooredClosed = nextClosed.lessThan(0) ? new Prisma.Decimal(0) : nextClosed;
 
-    const remaining = await tx.purchase.count({ where: { leadId: purchase.leadId } });
+    const remaining = await tx.purchase.count({
+      where: { leadId: purchase.leadId, deletedAt: null },
+    });
 
     let salesStatusId: string | undefined;
     if (remaining === 0) {

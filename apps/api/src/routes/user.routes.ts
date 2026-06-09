@@ -1,5 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import { getUsers, patchPersonalDailyTarget, postUser } from "../controllers/user.controller.js";
+import {
+  deleteUserHandler,
+  getUsers,
+  patchPersonalDailyTarget,
+  postUser,
+} from "../controllers/user.controller.js";
 import { authenticate, requirePermission } from "../middlewares/auth.js";
 
 export async function userRoutes(app: FastifyInstance) {
@@ -10,4 +15,9 @@ export async function userRoutes(app: FastifyInstance) {
     postUser,
   );
   app.patch("/users/me/personal-daily-target", { preHandler: [authenticate] }, patchPersonalDailyTarget);
+  app.delete(
+    "/users/:id",
+    { preHandler: [authenticate, requirePermission("users.manage")] },
+    deleteUserHandler,
+  );
 }

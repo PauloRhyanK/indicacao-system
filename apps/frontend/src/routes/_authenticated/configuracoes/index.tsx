@@ -8,6 +8,7 @@ import { DomainManagerTable } from "@/components/cais/DomainManagerTable";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
   createTeamUser,
+  deleteUser,
   fetchLookups,
   fetchMetaPeriod,
   fetchProfiles,
@@ -17,6 +18,17 @@ import {
   updateUserRoles,
   type Profile,
 } from "@/lib/cais-api";
+import { ApiError } from "@/lib/api/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { usePermissions } from "@/lib/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/")({
@@ -114,6 +126,7 @@ function ConfiguracoesPage() {
                   profile={p}
                   allRoles={roles.data ?? []}
                   canEdit={canManageUsers}
+                  currentUserId={user.id}
                 />
               ))}
             </ul>
@@ -129,8 +142,8 @@ function ConfiguracoesPage() {
           </h2>
           <p className="mb-4 text-[13px] text-slate-500">
             {canManageSettings
-              ? "Gerencie os valores permitidos para status, origens, próximas ações e tipos de consórcio."
-              : "Valores permitidos para status, origens, próximas ações e tipos de consórcio (somente leitura)."}
+              ? "Gerencie os valores permitidos para status e tipos de consórcio."
+              : "Valores permitidos para status e tipos de consórcio (somente leitura)."}
           </p>
         </div>
 
@@ -142,18 +155,6 @@ function ConfiguracoesPage() {
               type="status"
               title="Status de Lead"
               items={lookups.data?.statuses ?? []}
-              readOnly={!canManageSettings}
-            />
-            <DomainManagerTable
-              type="source"
-              title="Origens"
-              items={lookups.data?.sources ?? []}
-              readOnly={!canManageSettings}
-            />
-            <DomainManagerTable
-              type="action"
-              title="Próximas Ações"
-              items={lookups.data?.nextActions ?? []}
               readOnly={!canManageSettings}
             />
             <DomainManagerTable
@@ -173,19 +174,30 @@ function TeamMemberRow({
   profile,
   allRoles,
   canEdit,
+  currentUserId,
 }: {
   profile: Profile;
   allRoles: { id: string; name: string }[];
   canEdit: boolean;
+  currentUserId: string;
 }) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string[]>(profile.roles.map((r) => r.id));
   const [dirty, setDirty] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const saveMut = useMutation({
     mutationFn: () => updateUserRoles(profile.id, selected),
     onSuccess: () => {
       setDirty(false);
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => deleteUser(profile.id),
+    onSuccess: () => {
+      setDeleteOpen(false);
       qc.invalidateQueries({ queryKey: ["profiles"] });
     },
   });
@@ -217,6 +229,15 @@ function TeamMemberRow({
           </div>
         )}
       </div>
+      {canEdit && profile.id !== currentUserId && (
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          className="mt-2 text-[12px] font-medium text-red-600 hover:text-red-700"
+        >
+          Excluir usuário
+        </button>
+      )}
       {canEdit && allRoles.length > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {allRoles.map((r) => {
@@ -252,6 +273,36 @@ function TeamMemberRow({
           )}
         </div>
       )}
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{profile.name}</strong>? Leads vinculados
+              como vendedor responsável ou co-vendedor serão desatribuídos. Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteMut.isError && (
+            <p className="px-6 text-[13px] text-red-600">
+              {deleteMut.error instanceof ApiError
+                ? deleteMut.error.message
+                : "Não foi possível excluir o usuário."}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMut.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMut.isPending}
+              onClick={() => deleteMut.mutate()}
+            >
+              {deleteMut.isPending ? "Excluindo…" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </li>
   );
 }

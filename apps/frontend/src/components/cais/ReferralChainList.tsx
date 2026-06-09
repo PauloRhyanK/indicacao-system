@@ -73,20 +73,17 @@ export function ReferralChainList({
 
 export function CommercialRolesList({
   responsavel,
-  vendedor,
   coVendedor,
   consortiumType,
   externalCode,
 }: {
   responsavel?: string | null;
-  vendedor?: string | null;
   coVendedor?: string | null;
   consortiumType?: string | null;
   externalCode?: string | null;
 }) {
   const rows = [
-    { label: "Responsável pelo lead", value: responsavel ?? UNASSIGNED },
-    { label: "Vendedor", value: vendedor ?? UNASSIGNED },
+    { label: "Vendedor responsável", value: responsavel ?? UNASSIGNED },
     { label: "Co-vendedor", value: coVendedor ?? UNASSIGNED },
     { label: "Tipo consórcio", value: consortiumType ?? "—" },
     ...(externalCode ? [{ label: "Código", value: externalCode }] : []),

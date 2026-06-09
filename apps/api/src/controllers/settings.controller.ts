@@ -10,8 +10,6 @@ import {
 
 function parseKindFromUrl(url: string): LookupKind {
   if (url.includes("lead-statuses")) return "status";
-  if (url.includes("lead-sources")) return "source";
-  if (url.includes("next-actions")) return "action";
   throw new Error("Tipo inválido");
 }
 

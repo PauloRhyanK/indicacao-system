@@ -1,8 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { createUserSchema } from "../schemas/user.schema.js";
-import { createUser, listUsers } from "../services/user.service.js";
-import { updatePersonalDailyTarget } from "../services/user.service.js";
-import { personalDailyTargetSchema } from "../schemas/user.schema.js";
+import { createUserSchema, personalDailyTargetSchema } from "../schemas/user.schema.js";
+import {
+  createUser,
+  deleteUser,
+  listUsers,
+  updatePersonalDailyTarget,
+} from "../services/user.service.js";
 
 export async function getUsers(_request: FastifyRequest, reply: FastifyReply) {
   const users = await listUsers();
@@ -23,4 +26,10 @@ export async function patchPersonalDailyTarget(request: FastifyRequest, reply: F
       amount: row.personalDailyTarget !== null ? Number(row.personalDailyTarget) : null,
     },
   });
+}
+
+export async function deleteUserHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const result = await deleteUser(id, request.user.sub);
+  return reply.send({ data: result });
 }

@@ -3,17 +3,13 @@ import { badRequest } from "../utils/httpError.js";
 import { normalizeText } from "../utils/slugify.js";
 import {
   createLookupByName,
-  findActionByName,
   findBySlug,
-  findSourceByName,
   findStatusByName,
   type LookupKind,
 } from "./lookup.service.js";
 
 export interface ImportMappings {
   statuses?: Record<string, MappingAction>;
-  sources?: Record<string, MappingAction>;
-  nextActions?: Record<string, MappingAction>;
 }
 
 export type MappingAction =
@@ -22,39 +18,25 @@ export type MappingAction =
 
 export interface UnknownValues {
   statuses: string[];
-  sources: string[];
-  nextActions: string[];
 }
 
 export async function collectUnknownValues(rows: Record<string, unknown>[]): Promise<UnknownValues> {
   const statusSet = new Set<string>();
-  const sourceSet = new Set<string>();
-  const actionSet = new Set<string>();
 
   for (const row of rows) {
     if (row.salesStatus) {
       const val = String(row.salesStatus).trim();
       if (val && !(await findStatusByName(val))) statusSet.add(val);
     }
-    if (row.source) {
-      const val = String(row.source).trim();
-      if (val && !(await findSourceByName(val))) sourceSet.add(val);
-    }
-    if (row.nextAction) {
-      const val = String(row.nextAction).trim();
-      if (val && !(await findActionByName(val))) actionSet.add(val);
-    }
   }
 
   return {
     statuses: [...statusSet].sort(),
-    sources: [...sourceSet].sort(),
-    nextActions: [...actionSet].sort(),
   };
 }
 
 export function hasUnknownValues(unknown: UnknownValues): boolean {
-  return unknown.statuses.length > 0 || unknown.sources.length > 0 || unknown.nextActions.length > 0;
+  return unknown.statuses.length > 0;
 }
 
 export async function resolveStatusId(
@@ -64,24 +46,6 @@ export async function resolveStatusId(
   cache: Map<string, string | null>
 ): Promise<string | undefined> {
   return resolveId("status", raw, mappings.statuses, findStatusByName, tx, cache);
-}
-
-export async function resolveSourceId(
-  raw: string | undefined,
-  mappings: ImportMappings,
-  tx: Prisma.TransactionClient,
-  cache: Map<string, string | null>
-): Promise<string | undefined> {
-  return resolveId("source", raw, mappings.sources, findSourceByName, tx, cache);
-}
-
-export async function resolveActionId(
-  raw: string | undefined,
-  mappings: ImportMappings,
-  tx: Prisma.TransactionClient,
-  cache: Map<string, string | null>
-): Promise<string | undefined> {
-  return resolveId("action", raw, mappings.nextActions, findActionByName, tx, cache);
 }
 
 async function resolveId(
@@ -133,12 +97,6 @@ export function validateMappingsCoverUnknown(
   const missing: string[] = [];
   for (const val of unknown.statuses) {
     if (!mappings.statuses?.[val]) missing.push(`Status: ${val}`);
-  }
-  for (const val of unknown.sources) {
-    if (!mappings.sources?.[val]) missing.push(`Origem: ${val}`);
-  }
-  for (const val of unknown.nextActions) {
-    if (!mappings.nextActions?.[val]) missing.push(`Ação: ${val}`);
   }
   return missing;
 }

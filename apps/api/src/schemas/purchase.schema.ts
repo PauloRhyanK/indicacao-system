@@ -6,7 +6,6 @@ export const createPurchaseSchema = z
     purchaseDate: z.coerce.date().default(() => new Date()),
     consortiumTypeId: z.string().uuid().optional(),
     consortiumTypeSlug: z.string().min(1).optional(),
-    vendedorId: z.string().uuid().optional().nullable(),
     coVendedorId: z.string().uuid().optional().nullable(),
   })
   .refine((data) => !(data.consortiumTypeId && data.consortiumTypeSlug), {

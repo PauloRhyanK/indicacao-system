@@ -201,7 +201,9 @@ export async function setUserRoles(
   roleIds: string[],
   actorUserId: string,
 ) {
-  const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+  const user = await prisma.user.findFirst({
+    where: { id: targetUserId, deletedAt: null },
+  });
   if (!user) throw notFound("Usuário não encontrado");
 
   if (roleIds.length > 0) {
@@ -271,8 +273,8 @@ export function leadListFilter(perms: Set<string>, _userId: string) {
 
 export async function assertLeadReadable(leadId: string, _userId: string, perms: Set<string>) {
   assertLeadViewAccess(perms);
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, deletedAt: null },
     select: { id: true },
   });
   if (!lead) throw notFound("Lead não encontrado");
@@ -283,8 +285,8 @@ export async function assertLeadEditable(leadId: string, _userId: string, perms:
   if (!perms.has("leads.edit_own")) {
     throw forbidden("Você não tem permissão para editar leads");
   }
-  const lead = await prisma.lead.findUnique({
-    where: { id: leadId },
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, deletedAt: null },
     select: { id: true },
   });
   if (!lead) throw notFound("Lead não encontrado");

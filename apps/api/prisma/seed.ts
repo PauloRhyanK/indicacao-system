@@ -19,55 +19,15 @@ const LEAD_STATUSES = [
   "Reagendar",
 ];
 
-const LEAD_SOURCES = [
-  "Base interna",
-  "MPA",
-  "Reativação",
-  "Prospecção ativa",
-  "Base Lucas",
-  "WhatsApp",
-  "Outro",
-  "Evento mulheres",
-];
-
 const CONSORTIUM_TYPES = [
   "Imóvel",
   "Automóvel",
-];
-
-const NEXT_ACTIONS = [
-  "Cobrar decisão",
-  "Mandar proposta",
-  "Reenviar proposta",
-  "Agendar retorno",
-  "Ligar novamente",
-  "Enviar mensagem",
-  "Aguardar cliente",
-  "Sem ação",
-  "Fechado",
-  "Encerrado",
 ];
 
 async function seedLookups() {
   for (const name of LEAD_STATUSES) {
     const slug = slugify(name);
     await prisma.leadStatus.upsert({
-      where: { slug },
-      update: { name },
-      create: { slug, name },
-    });
-  }
-  for (const name of LEAD_SOURCES) {
-    const slug = slugify(name);
-    await prisma.leadSource.upsert({
-      where: { slug },
-      update: { name },
-      create: { slug, name },
-    });
-  }
-  for (const name of NEXT_ACTIONS) {
-    const slug = slugify(name);
-    await prisma.nextAction.upsert({
       where: { slug },
       update: { name },
       create: { slug, name },
@@ -116,7 +76,7 @@ async function main() {
   const adminEmail = await seedAdmin(adminRoleId);
 
   console.log("Seed concluído.");
-  console.log("Domínios (status, origens, ações, consórcios) e papéis RBAC sincronizados.");
+  console.log("Domínios (status, consórcios) e papéis RBAC sincronizados.");
   console.log(`Administrador: ${adminEmail} (senha de SEED_ADMIN_PASSWORD no .env)`);
 }
 

@@ -39,7 +39,9 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export async function me(request: FastifyRequest, reply: FastifyReply) {
-  const user = await prisma.user.findUnique({ where: { id: request.user.sub } });
+  const user = await prisma.user.findFirst({
+    where: { id: request.user.sub, deletedAt: null },
+  });
   if (!user) throw notFound("Usuário não encontrado");
   const [permissions, roles] = await Promise.all([
     getUserPermissions(user.id),

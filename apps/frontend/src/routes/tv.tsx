@@ -31,6 +31,21 @@ interface Sale {
 
 const TV_TOKEN = import.meta.env.VITE_TV_TOKEN as string | undefined;
 
+const TV_THEME = {
+  bg: "#243d4f",
+  bgLoading: "#2a4558",
+  text: "#ffffff",
+  textMuted: "#e2ecf2",
+  textSoft: "#b8cad6",
+  accent: "#e8c882",
+  accentWarm: "#f5e6c8",
+  accentMint: "#8fd4b0",
+  card: "rgba(255,255,255,0.16)",
+  cardBorder: "rgba(255,255,255,0.28)",
+  cardSubtle: "rgba(255,255,255,0.09)",
+  progressTrack: "rgba(255,255,255,0.2)",
+} as const;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmt = (n: number) =>
@@ -49,6 +64,12 @@ const relTime = (date: Date) => {
 
 const initials = (name: string) =>
   name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+const fmtPeriod = (start: string, end: string) => {
+  const fmtDate = (iso: string) =>
+    new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(iso));
+  return `${fmtDate(start)} – ${fmtDate(end)}`;
+};
 
 // ─── Confetti Cannon ─────────────────────────────────────────────────────────
 
@@ -76,13 +97,13 @@ function Clock() {
   }, []);
   return (
     <div className="text-right">
-      <div style={{ fontSize: 36, fontWeight: 300, letterSpacing: "0.06em", color: "#fcfcfc", lineHeight: 1 }}>
+      <div style={{ fontSize: 36, fontWeight: 300, letterSpacing: "0.06em", color: TV_THEME.text, lineHeight: 1 }}>
         {time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        <span style={{ fontSize: 20, color: "#7ba7bc", marginLeft: 4 }}>
+        <span style={{ fontSize: 20, color: TV_THEME.textMuted, marginLeft: 4 }}>
           {time.toLocaleTimeString("pt-BR", { second: "2-digit" }).slice(-2)}
         </span>
       </div>
-      <div style={{ fontSize: 13, color: "#7ba7bc", marginTop: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+      <div style={{ fontSize: 13, color: TV_THEME.textMuted, marginTop: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
         {time.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
       </div>
     </div>
@@ -100,7 +121,7 @@ function ProgressBar({ value, total, animated }: ProgressBarProps) {
   const color = p >= 100 ? "#22c55e" : p >= 75 ? "#d9bd7e" : p >= 40 ? "#d9bd7e" : "#d9bd7e";
 
   return (
-    <div style={{ position: "relative", height: 10, background: "rgba(255,255,255,0.08)", borderRadius: 999, overflow: "hidden" }}>
+    <div style={{ position: "relative", height: 10, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
       <div
         style={{
           position: "absolute", left: 0, top: 0, bottom: 0,
@@ -138,8 +159,8 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
 
   return (
     <div style={{
-      background: "rgba(255,255,255,0.04)",
-      border: accent ? "1px solid rgba(217,189,126,0.35)" : "1px solid rgba(255,255,255,0.08)",
+      background: TV_THEME.card,
+      border: accent ? "1px solid rgba(232,200,130,0.55)" : `1px solid ${TV_THEME.cardBorder}`,
       borderRadius: 16,
       padding: "28px 32px",
       flex: 1,
@@ -154,20 +175,20 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1.4px", color: "#7ba7bc", fontWeight: 500, marginBottom: 6 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1.4px", color: TV_THEME.textMuted, fontWeight: 500, marginBottom: 6 }}>
             {label}
           </div>
-          <div style={{ fontSize: 13, color: "#5C6B7A" }}>{sublabel}</div>
+          <div style={{ fontSize: 13, color: TV_THEME.textSoft }}>{sublabel}</div>
         </div>
         <div style={{ fontSize: 28, opacity: 0.7 }}>{icon}</div>
       </div>
 
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16 }}>
-        <div style={{ fontSize: 42, fontWeight: 600, color: "#fcfcfc", lineHeight: 1, letterSpacing: "-0.02em" }}>
+        <div style={{ fontSize: 42, fontWeight: 600, color: TV_THEME.text, lineHeight: 1, letterSpacing: "-0.02em" }}>
           {fmt(value)}
         </div>
         {hasTarget && (
-          <div style={{ fontSize: 16, color: "#5C6B7A" }}>/ {fmt(total)}</div>
+          <div style={{ fontSize: 16, color: TV_THEME.textSoft }}>/ {fmt(total)}</div>
         )}
       </div>
 
@@ -186,13 +207,13 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
               }} />
               {p}% atingido
             </div>
-            <div style={{ fontSize: 13, color: "#346f93" }}>
+            <div style={{ fontSize: 13, color: TV_THEME.accentWarm }}>
               faltam {fmt(Math.max(0, total - value))}
             </div>
           </div>
         </>
       ) : (
-        <div style={{ marginTop: 4, fontSize: 13, color: value > 0 ? "#d9bd7e" : "#5C6B7A", fontWeight: 500 }}>
+        <div style={{ marginTop: 4, fontSize: 13, color: value > 0 ? TV_THEME.accent : TV_THEME.textSoft, fontWeight: 500 }}>
           {value > 0 ? "vendido hoje · sem meta definida" : "sem meta definida · nenhuma venda hoje"}
         </div>
       )}
@@ -203,6 +224,91 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
 interface SaleRowProps {
   sale: Sale;
   isNew?: boolean;
+}
+
+interface RankingEntry {
+  position: number;
+  name: string;
+  total: number;
+  count: number;
+}
+
+function SalesRanking({ entries, periodLabel }: { entries: RankingEntry[]; periodLabel?: string }) {
+  const maxTotal = entries[0]?.total ?? 1;
+
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column",
+      background: TV_THEME.card,
+      border: `1px solid ${TV_THEME.cardBorder}`,
+      borderRadius: 16, overflow: "hidden", minHeight: 0,
+    }}>
+      <div style={{
+        padding: "16px 20px 14px",
+        borderBottom: `1px solid ${TV_THEME.cardBorder}`,
+      }}>
+        <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.4px", color: TV_THEME.accent, fontWeight: 600 }}>
+          Ranking da Meta
+        </div>
+        <div style={{ fontSize: 11, color: TV_THEME.textSoft, marginTop: 4 }}>
+          {periodLabel ? `${periodLabel} · por volume` : "acumulado do período"}
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
+        {entries.length === 0 ? (
+          <div style={{ padding: 20, textAlign: "center", color: TV_THEME.textSoft, fontSize: 13 }}>
+            Nenhuma venda no período
+          </div>
+        ) : (
+          entries.map((entry) => {
+            const barPct = Math.max(8, Math.round((entry.total / maxTotal) * 100));
+            return (
+              <div
+                key={`${entry.position}-${entry.name}`}
+                style={{
+                  padding: "12px 10px",
+                  borderRadius: 10,
+                  marginBottom: 8,
+                  background: entry.position <= 3 ? "rgba(232,200,130,0.12)" : TV_THEME.cardSubtle,
+                  border: entry.position <= 3 ? "1px solid rgba(232,200,130,0.28)" : `1px solid ${TV_THEME.cardBorder}`,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                    background: "rgba(255,255,255,0.16)",
+                    border: `1px solid ${TV_THEME.cardBorder}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 700, color: TV_THEME.accent,
+                  }}>
+                    {initials(entry.name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: TV_THEME.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {entry.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: TV_THEME.textSoft }}>
+                      {entry.count} venda{entry.count !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: TV_THEME.accent, whiteSpace: "nowrap" }}>
+                    {fmt(entry.total)}
+                  </div>
+                </div>
+                <div style={{ height: 6, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", width: `${barPct}%`,
+                    background: entry.position === 1 ? TV_THEME.accent : TV_THEME.accentMint,
+                    borderRadius: 999,
+                  }} />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
 }
 
 function SaleRow({ sale, isNew }: SaleRowProps) {
@@ -222,14 +328,14 @@ function SaleRow({ sale, isNew }: SaleRowProps) {
         border: `1.5px solid ${isNew ? "rgba(217,189,126,0.4)" : "rgba(255,255,255,0.1)"}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 14, fontWeight: 600,
-        color: isNew ? "#d9bd7e" : "#7ba7bc",
+        color: isNew ? "#d9bd7e" : TV_THEME.accentWarm,
       }}>
         {initials(sale.clientName)}
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: "#fcfcfc", marginBottom: 2 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: TV_THEME.text, marginBottom: 2 }}>
           {sale.clientName}
           {isNew && (
             <span style={{
@@ -242,17 +348,17 @@ function SaleRow({ sale, isNew }: SaleRowProps) {
             </span>
           )}
         </div>
-        <div style={{ fontSize: 12, color: "#5C6B7A" }}>
-          por <span style={{ color: "#346f93" }}>{sale.sellerName}</span>
+        <div style={{ fontSize: 12, color: TV_THEME.textSoft }}>
+          por <span style={{ color: TV_THEME.accentWarm }}>{sale.sellerName}</span>
         </div>
       </div>
 
       {/* Value */}
       <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: isNew ? "#d9bd7e" : "#fcfcfc", letterSpacing: "-0.01em" }}>
+        <div style={{ fontSize: 18, fontWeight: 600, color: isNew ? TV_THEME.accent : TV_THEME.text, letterSpacing: "-0.01em" }}>
           {fmt(sale.value)}
         </div>
-        <div style={{ fontSize: 11, color: "#5C6B7A", marginTop: 2 }}>{relTime(sale.soldAt)}</div>
+        <div style={{ fontSize: 11, color: TV_THEME.textSoft, marginTop: 2 }}>{relTime(sale.soldAt)}</div>
       </div>
     </div>
   );
@@ -349,7 +455,7 @@ function PresetQuickSet({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: "#5C6B7A", fontWeight: 500 }}>
+      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textSoft, fontWeight: 500 }}>
         Meta do dia
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -397,7 +503,7 @@ function SoundPicker() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: "#5C6B7A", fontWeight: 500 }}>
+      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textSoft, fontWeight: 500 }}>
         Som da venda
       </div>
       {!soundOn && (
@@ -522,6 +628,16 @@ function TVDashboard() {
   const periodCurrent = data?.periodGoal?.currentAmount ?? 0;
   const todayCount = data?.todaySalesCount ?? 0;
   const activePreset = data?.presetSlug ?? null;
+  const salesRanking: RankingEntry[] = useMemo(
+    () =>
+      (data?.salesRanking ?? []).map((r) => ({
+        position: r.position,
+        name: r.name,
+        total: r.total,
+        count: r.count,
+      })),
+    [data?.salesRanking],
+  );
 
   const ticketMedio = todayCount > 0 ? dailyCurrent / todayCount : 0;
   const maiorVenda = sales.length ? Math.max(...sales.map((s) => s.value)) : 0;
@@ -533,7 +649,7 @@ function TVDashboard() {
     return (
       <div style={{
         height: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-        background: "#060e18", color: "#7ba7bc", fontFamily: "system-ui, sans-serif",
+        background: TV_THEME.bgLoading, color: TV_THEME.textMuted, fontFamily: "system-ui, sans-serif",
       }}>
         Carregando painel…
       </div>
@@ -544,7 +660,7 @@ function TVDashboard() {
     return (
       <div style={{
         height: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-        background: "#060e18", color: "#f87171", fontFamily: "system-ui, sans-serif",
+        background: TV_THEME.bgLoading, color: "#f87171", fontFamily: "system-ui, sans-serif",
       }}>
         Não foi possível carregar os dados. Verifique se a API está online.
       </div>
@@ -559,8 +675,8 @@ function TVDashboard() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
-          background: #060e18;
-          color: #fcfcfc;
+          background: ${TV_THEME.bg};
+          color: ${TV_THEME.text};
           font-family: 'General Sans', system-ui, sans-serif;
           overflow: hidden;
           height: 100vh;
@@ -604,7 +720,7 @@ function TVDashboard() {
       {/* Background texture */}
       <div style={{
         position: "fixed", inset: 0, zIndex: 0,
-        backgroundImage: "radial-gradient(ellipse at 20% 50%, rgba(0,43,73,0.4) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(52,111,147,0.1) 0%, transparent 50%)",
+        backgroundImage: "radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(232,200,130,0.12) 0%, transparent 50%)",
         pointerEvents: "none",
       }} />
 
@@ -628,8 +744,8 @@ function TVDashboard() {
               }}>
                 C
               </div>
-              <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: "0.12em", color: "#fcfcfc" }}>CAIS</span>
-              <span style={{ fontSize: 13, color: "#7ba7bc", fontWeight: 300 }}>Consórcios</span>
+              <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: "0.12em", color: TV_THEME.text }}>CAIS</span>
+              <span style={{ fontSize: 13, color: TV_THEME.textMuted, fontWeight: 300 }}>Consórcios</span>
               <span style={{
                 fontSize: 10, background: "rgba(217,189,126,0.12)", color: "#d9bd7e",
                 border: "1px solid rgba(217,189,126,0.25)", padding: "3px 10px", borderRadius: 999,
@@ -644,7 +760,7 @@ function TVDashboard() {
                 background: "#22c55e", boxShadow: "0 0 8px #22c55e",
                 animation: "dotPulse 2s ease-in-out infinite",
               }} />
-              <span style={{ fontSize: 12, color: "#5C6B7A", letterSpacing: "0.04em" }}>
+              <span style={{ fontSize: 12, color: TV_THEME.textSoft, letterSpacing: "0.04em" }}>
                 atualização em tempo real
               </span>
             </div>
@@ -674,11 +790,11 @@ function TVDashboard() {
           />
         </div>
 
-        {/* ── Bottom row: KPIs + Feed ── */}
+        {/* ── Bottom row: KPIs + Ranking + Feed ── */}
         <div style={{ display: "flex", gap: 20, flex: 1, minHeight: 0 }}>
 
           {/* Left: KPIs rápidos */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, width: 260 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, width: 220, flexShrink: 0 }}>
             {[
               { label: "Vendas Hoje",   value: todayCount.toString(),     sub: "conversões" },
               { label: "Ticket Médio",  value: fmt(ticketMedio), sub: "hoje" },
@@ -686,18 +802,18 @@ function TVDashboard() {
               { label: "Maior Venda",   value: fmt(maiorVenda), sub: "recentes" },
             ].map((k) => (
               <div key={k.label} style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.07)",
+                background: TV_THEME.card,
+                border: `1px solid ${TV_THEME.cardBorder}`,
                 borderRadius: 12, padding: "16px 20px",
                 display: "flex", flexDirection: "column", gap: 4,
               }}>
-                <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: "#5C6B7A", fontWeight: 500 }}>
+                <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textSoft, fontWeight: 500 }}>
                   {k.label}
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 600, color: "#fcfcfc", letterSpacing: "-0.02em" }}>
+                <div style={{ fontSize: 26, fontWeight: 600, color: TV_THEME.text, letterSpacing: "-0.02em" }}>
                   {k.value}
                 </div>
-                <div style={{ fontSize: 11, color: "#346f93" }}>{k.sub}</div>
+                <div style={{ fontSize: 11, color: TV_THEME.accentWarm }}>{k.sub}</div>
               </div>
             ))}
             {data?.presets && (
@@ -712,28 +828,40 @@ function TVDashboard() {
             <SoundPicker />
           </div>
 
-          {/* Right: Sales feed */}
-          <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: 16, overflow: "hidden",
-          }}>
+          {/* Ranking + Últimas vendas (50/50) */}
+          <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, minWidth: 0 }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+              <SalesRanking
+                entries={salesRanking}
+                periodLabel={
+                  data?.periodGoal
+                    ? fmtPeriod(data.periodGoal.startDate, data.periodGoal.endDate)
+                    : undefined
+                }
+              />
+            </div>
+
+            <div style={{
+              flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0,
+              background: TV_THEME.card,
+              border: `1px solid ${TV_THEME.cardBorder}`,
+              borderRadius: 16, overflow: "hidden",
+            }}>
             <div style={{
               padding: "16px 20px 14px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: `1px solid ${TV_THEME.cardBorder}`,
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
               <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.4px", color: "#d9bd7e", fontWeight: 500 }}>
                 Últimas Vendas
               </div>
-              <div style={{ fontSize: 11, color: "#5C6B7A" }}>
+              <div style={{ fontSize: 11, color: TV_THEME.textSoft }}>
                 {sales.length} recentes
               </div>
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "8px 8px" }}>
               {sales.length === 0 ? (
-                <div style={{ padding: 24, textAlign: "center", color: "#5C6B7A", fontSize: 13 }}>
+                <div style={{ padding: 24, textAlign: "center", color: TV_THEME.textSoft, fontSize: 13 }}>
                   Nenhuma venda registrada ainda
                 </div>
               ) : (
@@ -741,6 +869,7 @@ function TVDashboard() {
                   <SaleRow key={sale.id} sale={sale} isNew={sale.isNew} />
                 ))
               )}
+            </div>
             </div>
           </div>
         </div>

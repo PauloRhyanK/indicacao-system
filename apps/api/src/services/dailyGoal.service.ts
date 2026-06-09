@@ -143,7 +143,11 @@ export async function deleteOverride(dateStr: string) {
 export async function getDailyProgress(date: Date) {
   const { start, end } = dayBoundsBusiness(date);
   const agg = await prisma.purchase.aggregate({
-    where: { purchaseDate: { gte: start, lt: end } },
+    where: {
+      deletedAt: null,
+      lead: { deletedAt: null },
+      purchaseDate: { gte: start, lt: end },
+    },
     _sum: { amount: true },
   });
   return decimalToNumber(agg._sum.amount);
@@ -185,6 +189,51 @@ export async function resolveDailyTarget(date: Date) {
   };
 }
 
+async function getPeriodSalesRanking(start: Date, end: Date) {
+  const purchases = await prisma.purchase.findMany({
+    where: {
+      deletedAt: null,
+      lead: { deletedAt: null },
+      purchaseDate: { gte: start, lte: end },
+    },
+    select: {
+      amount: true,
+      lead: {
+        select: {
+          responsavel: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+
+  const totals = new Map<string, { userId: string; name: string; total: number; count: number }>();
+
+  for (const p of purchases) {
+    const seller = p.lead.responsavel;
+    if (!seller) continue;
+
+    const entry = totals.get(seller.id) ?? {
+      userId: seller.id,
+      name: seller.name,
+      total: 0,
+      count: 0,
+    };
+    entry.total += decimalToNumber(p.amount);
+    entry.count += 1;
+    totals.set(seller.id, entry);
+  }
+
+  return [...totals.values()]
+    .sort((a, b) => b.total - a.total || b.count - a.count)
+    .map((row, index) => ({
+      position: index + 1,
+      userId: row.userId,
+      name: row.name,
+      total: row.total,
+      count: row.count,
+    }));
+}
+
 export async function getDailyTodaySummary() {
   const today = new Date();
   const { start, end } = dayBoundsBusiness(today);
@@ -195,22 +244,30 @@ export async function getDailyTodaySummary() {
   const [periodGoal, recentPurchases, todayCount] = await Promise.all([
     getCurrentGoal(),
     prisma.purchase.findMany({
+      where: { deletedAt: null, lead: { deletedAt: null } },
       orderBy: { purchaseDate: "desc" },
       take: 10,
       include: {
         lead: {
           select: {
             name: true,
-            vendedor: { select: { name: true } },
             responsavel: { select: { name: true } },
           },
         },
       },
     }),
     prisma.purchase.count({
-      where: { purchaseDate: { gte: start, lt: end } },
+      where: {
+        deletedAt: null,
+        lead: { deletedAt: null },
+        purchaseDate: { gte: start, lt: end },
+      },
     }),
   ]);
+
+  const salesRanking = periodGoal
+    ? await getPeriodSalesRanking(periodGoal.startDate, periodGoal.endDate)
+    : [];
 
   const period = periodGoal
     ? {
@@ -231,10 +288,11 @@ export async function getDailyTodaySummary() {
     recentSales: recentPurchases.map((p) => ({
       id: p.id,
       leadName: p.lead.name,
-      sellerName: p.lead.vendedor?.name ?? p.lead.responsavel?.name ?? "Equipe CAIS",
+      sellerName: p.lead.responsavel?.name ?? "Equipe CAIS",
       saleValue: decimalToNumber(p.amount),
       soldAt: p.purchaseDate.toISOString(),
     })),
+    salesRanking,
     presets: DAILY_PRESET_SLUGS.map((slug) => ({
       slug,
       label: DAILY_PRESETS[slug].label,

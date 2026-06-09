@@ -21,7 +21,6 @@ export interface SaleRegistrationResult {
   purchaseId: string;
   leadId: string;
   responsavel?: string | null;
-  vendedor?: string | null;
   coVendedor?: string | null;
   consortiumType?: string | null;
 }
@@ -54,7 +53,6 @@ export function SaleRegistrationForm({
   const [selectedLeadId, setSelectedLeadId] = useState(fixedLeadId ?? "");
   const [value, setValue] = useState("");
   const [consortiumTypeId, setConsortiumTypeId] = useState("");
-  const [vendedorId, setVendedorId] = useState(initialLead?.vendedor?.id ?? "");
   const [coVendedorId, setCoVendedorId] = useState(initialLead?.co_vendedor?.id ?? "");
   const [result, setResult] = useState<SaleRegistrationResult | null>(null);
 
@@ -93,7 +91,6 @@ export function SaleRegistrationForm({
         lead_id: activeLeadId,
         sale_value: Number(value),
         consortium_type_id: consortiumTypeId || undefined,
-        vendedor_id: vendedorId || null,
         co_vendedor_id: coVendedorId || null,
       }),
     onSuccess: (data) => {
@@ -105,7 +102,6 @@ export function SaleRegistrationForm({
         purchaseId: data.purchaseId,
         leadId: data.leadId,
         responsavel: activeLead?.responsavel?.name ?? null,
-        vendedor: vendedorId ? profileName(vendedorId) : null,
         coVendedor: coVendedorId ? profileName(coVendedorId) : null,
         consortiumType: consortiumTypeName,
       };
@@ -134,7 +130,6 @@ export function SaleRegistrationForm({
       <div className="space-y-4">
         <CommercialRolesList
           responsavel={result.responsavel}
-          vendedor={result.vendedor}
           coVendedor={result.coVendedor}
           consortiumType={result.consortiumType}
         />
@@ -215,22 +210,6 @@ export function SaleRegistrationForm({
             {(lookups.data?.consortiumTypes ?? []).map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-[12px] font-medium text-slate-700">Vendedor</label>
-          <select
-            className={inputClass}
-            value={vendedorId}
-            onChange={(e) => setVendedorId(e.target.value)}
-          >
-            <option value="">Não atribuído</option>
-            {(profiles.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
               </option>
             ))}
           </select>

@@ -16,10 +16,16 @@ export async function validateReferrer(referrer: ReferrerInput, referredLeadId: 
     if (referrer.id === referredLeadId) {
       throw badRequest("Um lead não pode indicar a si mesmo");
     }
-    const exists = await prisma.lead.findUnique({ where: { id: referrer.id }, select: { id: true } });
+    const exists = await prisma.lead.findFirst({
+      where: { id: referrer.id, deletedAt: null },
+      select: { id: true },
+    });
     if (!exists) throw notFound("Lead indicador não encontrado");
   } else {
-    const exists = await prisma.user.findUnique({ where: { id: referrer.id }, select: { id: true } });
+    const exists = await prisma.user.findFirst({
+      where: { id: referrer.id, deletedAt: null },
+      select: { id: true },
+    });
     if (!exists) throw notFound("Usuário indicador não encontrado");
   }
 }
@@ -55,14 +61,24 @@ export async function getReferrerOf(leadId: string) {
   if (referral.referrerType === "USER") {
     const user = await prisma.user.findUnique({
       where: { id: referral.referrerId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, deletedAt: true },
     });
-    return user ? { type: "USER" as const, id: user.id, name: user.name } : null;
+    if (!user) return null;
+    return {
+      type: "USER" as const,
+      id: user.id,
+      name: user.deletedAt ? "Usuário excluído" : user.name,
+    };
   }
 
   const lead = await prisma.lead.findUnique({
     where: { id: referral.referrerId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, deletedAt: true },
   });
-  return lead ? { type: "LEAD" as const, id: lead.id, name: lead.name } : null;
+  if (!lead) return null;
+  return {
+    type: "LEAD" as const,
+    id: lead.id,
+    name: lead.deletedAt ? "Lead excluído" : lead.name,
+  };
 }

@@ -13,19 +13,20 @@ enum ReferrerType {
 }
 
 model User {
-  id                  String   @id @default(uuid()) @db.Uuid
+  id                  String    @id @default(uuid()) @db.Uuid
   name                String
-  email               String   @unique
+  email               String    @unique
   phone               String?
-  passwordHash        String   @map("password_hash")
-  personalDailyTarget Decimal? @map("personal_daily_target") @db.Decimal(14, 2)
-  createdAt           DateTime @default(now()) @map("created_at")
+  passwordHash        String    @map("password_hash")
+  personalDailyTarget Decimal?  @map("personal_daily_target") @db.Decimal(14, 2)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  deletedAt           DateTime? @map("deleted_at")
 
   leadsAsResponsavel Lead[]     @relation("LeadResponsavel")
-  leadsAsVendedor    Lead[]     @relation("LeadVendedor")
   leadsAsCoVendedor  Lead[]     @relation("LeadCoVendedor")
   userRoles          UserRole[]
 
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -84,26 +85,6 @@ model LeadStatus {
   @@map("lead_statuses")
 }
 
-model LeadSource {
-  id   String @id @default(uuid()) @db.Uuid
-  slug String @unique
-  name String
-
-  leads Lead[]
-
-  @@map("lead_sources")
-}
-
-model NextAction {
-  id   String @id @default(uuid()) @db.Uuid
-  slug String @unique
-  name String
-
-  leads Lead[]
-
-  @@map("next_actions")
-}
-
 model ConsortiumType {
   id   String @id @default(uuid()) @db.Uuid
   slug String @unique
@@ -115,39 +96,31 @@ model ConsortiumType {
 }
 
 model Lead {
-  id               String    @id @default(uuid()) @db.Uuid
-  externalCode     String?   @unique @map("external_code")
-  name             String
-  phone            String?
-  sourceId         String?   @map("source_id") @db.Uuid
-  responsavelId    String?   @map("responsavel_id") @db.Uuid
-  vendedorId       String?   @map("vendedor_id") @db.Uuid
-  coVendedorId     String?   @map("co_vendedor_id") @db.Uuid
-  salesStatusId    String?   @map("sales_status_id") @db.Uuid
-  nextActionId     String?   @map("next_action_id") @db.Uuid
-  nextFollowUpAt   DateTime? @map("next_follow_up_at")
-  notes            String?
-  offeredAmount    Decimal?  @map("offered_amount") @db.Decimal(15, 2)
-  closedAmount     Decimal?  @map("closed_amount") @db.Decimal(15, 2)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  externalCode  String?   @unique @map("external_code")
+  name          String
+  phone         String?
+  responsavelId String?   @map("responsavel_id") @db.Uuid
+  coVendedorId  String?   @map("co_vendedor_id") @db.Uuid
+  salesStatusId String?   @map("sales_status_id") @db.Uuid
+  notes         String?
+  offeredAmount Decimal?  @map("offered_amount") @db.Decimal(15, 2)
+  closedAmount  Decimal?  @map("closed_amount") @db.Decimal(15, 2)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  source          LeadSource?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
-  salesStatus     LeadStatus?  @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
-  nextAction      NextAction?  @relation(fields: [nextActionId], references: [id], onDelete: SetNull)
-  responsavel     User?        @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  vendedor        User?        @relation("LeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
-  coVendedor      User?        @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
+  salesStatus     LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
+  responsavel     User?       @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  coVendedor      User?       @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
   purchases       Purchase[]
-  referralsAsLead Referral[]   @relation("ReferredLead")
+  referralsAsLead Referral[]  @relation("ReferredLead")
 
   @@index([externalCode])
   @@index([salesStatusId])
-  @@index([sourceId])
-  @@index([nextFollowUpAt])
   @@index([responsavelId])
-  @@index([vendedorId])
   @@index([coVendedorId])
+  @@index([deletedAt])
   @@map("leads")
 }
 
@@ -172,12 +145,14 @@ model Purchase {
   amount           Decimal   @db.Decimal(15, 2)
   purchaseDate     DateTime  @map("purchase_date")
   createdAt        DateTime  @default(now()) @map("created_at")
+  deletedAt        DateTime? @map("deleted_at")
 
   lead           Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
   consortiumType ConsortiumType? @relation(fields: [consortiumTypeId], references: [id], onDelete: SetNull)
 
   @@index([leadId])
   @@index([consortiumTypeId])
+  @@index([deletedAt])
   @@map("purchases")
 }
 

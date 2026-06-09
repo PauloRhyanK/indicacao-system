@@ -31,9 +31,9 @@ export function AssignResponsavelDialog({
     <SlideOver
       open={open}
       onClose={onClose}
-      title={leadName ? `Atribuir responsável — ${leadName}` : "Atribuir responsável"}
+      title={leadName ? `Atribuir vendedor responsável — ${leadName}` : "Atribuir vendedor responsável"}
     >
-      <Field label="Responsável pelo lead *">
+      <Field label="Vendedor responsável *">
         <select
           required
           className={inputClass}
