@@ -76,6 +76,11 @@ function LeadsPage() {
     },
   });
 
+  const openDeleteDialog = (lead: Lead) => {
+    deleteMutation.reset();
+    setDeleteTarget(lead);
+  };
+
   const queryFilters = useMemo(
     () => ({
       ...filters,
@@ -228,7 +233,7 @@ function LeadsPage() {
           onPageChange={handlePageChange}
           onRegisterSale={setSaleFor}
           canDelete={canDelete}
-          onDelete={setDeleteTarget}
+          onDelete={openDeleteDialog}
           showAssignAction={leadTab === "unassigned"}
           onAssignResponsavel={setAssignTarget}
         />
@@ -264,7 +269,12 @@ function LeadsPage() {
 
       <AlertDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            deleteMutation.reset();
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -286,7 +296,10 @@ function LeadsPage() {
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               disabled={deleteMutation.isPending}
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+              }}
             >
               {deleteMutation.isPending ? "Excluindo…" : "Excluir"}
             </AlertDialogAction>

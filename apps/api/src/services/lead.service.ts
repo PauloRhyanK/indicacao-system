@@ -238,11 +238,36 @@ export async function deleteLead(
   });
   if (!existing) throw notFound("Lead não encontrado");
 
-  const salesCount = await prisma.purchase.count({
-    where: { leadId: id, deletedAt: null },
-  });
+  const salesWhere = { leadId: id, deletedAt: null };
+  const [sales, salesCount] = await Promise.all([
+    prisma.purchase.findMany({
+      where: salesWhere,
+      select: {
+        amount: true,
+        purchaseDate: true,
+        consortiumType: { select: { name: true } },
+      },
+      orderBy: { purchaseDate: "desc" },
+      take: 3,
+    }),
+    prisma.purchase.count({ where: salesWhere }),
+  ]);
   if (salesCount > 0) {
-    throw conflict("Lead possui vendas registradas. Remova as vendas antes de excluir.");
+    const fmtMoney = (n: Prisma.Decimal) =>
+      new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n));
+    const fmtDate = (d: Date) =>
+      new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(d);
+    const listed = sales
+      .map((s) => {
+        const type = s.consortiumType?.name ? ` (${s.consortiumType.name})` : "";
+        return `${fmtMoney(s.amount)} em ${fmtDate(s.purchaseDate)}${type}`;
+      })
+      .join("; ");
+    const suffix = salesCount > sales.length ? "…" : "";
+    throw conflict(
+      `Não é possível excluir: este lead possui ${salesCount} venda(s) registrada(s) — ${listed}${suffix}. Estorne ou remova as vendas antes de excluir.`,
+      { salesCount },
+    );
   }
 
   await prisma.lead.update({

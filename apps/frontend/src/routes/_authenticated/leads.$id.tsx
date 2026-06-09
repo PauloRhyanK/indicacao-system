@@ -56,9 +56,15 @@ function LeadDetail() {
     mutationFn: () => deleteLead(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setDeleteOpen(false);
       navigate({ to: "/leads" });
     },
   });
+
+  const openDeleteDialog = () => {
+    deleteMutation.reset();
+    setDeleteOpen(true);
+  };
 
   if (lead.isLoading) {
     return (
@@ -109,7 +115,7 @@ function LeadDetail() {
             <Button
               variant="ghost"
               className="text-red-600 hover:bg-red-50 hover:text-red-700"
-              onClick={() => setDeleteOpen(true)}
+              onClick={openDeleteDialog}
             >
               <Trash2 className="h-4 w-4" />
               Excluir
@@ -199,7 +205,13 @@ function LeadDetail() {
 
       <EditLeadForm open={editOpen} onClose={() => setEditOpen(false)} lead={l} />
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open);
+          if (!open) deleteMutation.reset();
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir lead</AlertDialogTitle>
@@ -220,7 +232,10 @@ function LeadDetail() {
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               disabled={deleteMutation.isPending}
-              onClick={() => deleteMutation.mutate()}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteMutation.mutate();
+              }}
             >
               {deleteMutation.isPending ? "Excluindo…" : "Excluir"}
             </AlertDialogAction>
