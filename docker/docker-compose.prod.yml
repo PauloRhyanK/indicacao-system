@@ -65,8 +65,8 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
-      cais_internal: {}
-      proxy:
+      - cais_internal: {}
+      - proxy-network:
         aliases:
           - cais-db
 
@@ -74,10 +74,8 @@ services:
 networks:
   cais_internal:
     driver: bridge
-  proxy:
+  proxy-network:
     external: true
-    name: ${PROXY_NETWORK:?defina PROXY_NETWORK no .env — rede do global-proxy}
-
 volumes:
   postgres_data:
   pgadmin_data:
