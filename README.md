@@ -154,6 +154,7 @@ Esperado: `HTTP/1.1 302` com redirect para `/login`. Se `connection refused`, o 
 | Problema | Solução |
 |----------|---------|
 | `PGADMIN_*` ausente no `.env` | Preencher e `docker compose ... up -d pgadmin` |
+| `NameError: name 'https' is not defined` nos logs | `git pull` (remove `PGADMIN_CONFIG_PREFERRED_URL_SCHEME` inválido) e `docker compose ... up -d pgadmin --force-recreate` |
 | NPM aponta para `localhost` | Usar **`cais-db`**, porta **80** |
 | Redes Docker diferentes | `PROXY_NETWORK=proxy-network` (ou nome da rede do `global-proxy`) |
 
