@@ -65,12 +65,6 @@ const relTime = (date: Date) => {
 const initials = (name: string) =>
   name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
-const fmtPeriod = (start: string, end: string) => {
-  const fmtDate = (iso: string) =>
-    new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(iso));
-  return `${fmtDate(start)} – ${fmtDate(end)}`;
-};
-
 // ─── Confetti Cannon ─────────────────────────────────────────────────────────
 
 function fireConfetti() {
@@ -233,7 +227,7 @@ interface RankingEntry {
   count: number;
 }
 
-function SalesRanking({ entries, periodLabel }: { entries: RankingEntry[]; periodLabel?: string }) {
+function SalesRanking({ entries }: { entries: RankingEntry[] }) {
   const maxTotal = entries[0]?.total ?? 1;
 
   return (
@@ -249,9 +243,6 @@ function SalesRanking({ entries, periodLabel }: { entries: RankingEntry[]; perio
       }}>
         <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.4px", color: TV_THEME.accent, fontWeight: 600 }}>
           Ranking da Meta
-        </div>
-        <div style={{ fontSize: 11, color: TV_THEME.textSoft, marginTop: 4 }}>
-          {periodLabel ? `${periodLabel} · por volume` : "acumulado do período"}
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
@@ -831,14 +822,7 @@ function TVDashboard() {
           {/* Ranking + Últimas vendas (50/50) */}
           <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, minWidth: 0 }}>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
-              <SalesRanking
-                entries={salesRanking}
-                periodLabel={
-                  data?.periodGoal
-                    ? fmtPeriod(data.periodGoal.startDate, data.periodGoal.endDate)
-                    : undefined
-                }
-              />
+              <SalesRanking entries={salesRanking} />
             </div>
 
             <div style={{
