@@ -7,6 +7,7 @@ import { Button } from "@/components/cais/Button";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
 import { NewLeadForm } from "@/components/cais/NewLeadForm";
 import { ImportExcelDialog } from "@/components/cais/ImportExcelDialog";
+import { ImportConsorcioDialog } from "@/components/cais/ImportConsorcioDialog";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import { LeadsDataGrid } from "@/components/cais/LeadsDataGrid";
 import { LeadsFilterModal } from "@/components/cais/LeadsFilterModal";
@@ -62,6 +63,8 @@ function LeadsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [consorcioImportOpen, setConsorcioImportOpen] = useState(false);
+  const canImport = can("leads.import");
   const [saleFor, setSaleFor] = useState<Lead | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
   const [assignTarget, setAssignTarget] = useState<Lead | null>(null);
@@ -134,9 +137,16 @@ function LeadsPage() {
           <p className="text-[14px] text-slate-500">Gerencie e acompanhe suas indicações.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={() => setImportOpen(true)}>
-            Importar Excel
-          </Button>
+          {canImport && (
+            <>
+              <Button variant="ghost" onClick={() => setImportOpen(true)}>
+                Importar Excel
+              </Button>
+              <Button variant="ghost" onClick={() => setConsorcioImportOpen(true)}>
+                Importar vendas (campanha)
+              </Button>
+            </>
+          )}
           <Button variant="gold" onClick={() => setNewOpen(true)}>
             + Novo Lead
           </Button>
@@ -242,6 +252,10 @@ function LeadsPage() {
 
       <NewLeadForm open={newOpen} onClose={() => setNewOpen(false)} />
       <ImportExcelDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <ImportConsorcioDialog
+        open={consorcioImportOpen}
+        onClose={() => setConsorcioImportOpen(false)}
+      />
       {saleFor && (
         <RegisterSaleDialog
           open={!!saleFor}

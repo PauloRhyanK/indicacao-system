@@ -810,8 +810,28 @@ export type MappingAction =
   | { action: "map"; targetSlug: string }
   | { action: "create"; name: string };
 
+export type UserMappingAction =
+  | { action: "map"; userId: string }
+  | { action: "create"; name: string; email: string; password?: string }
+  | { action: "skip" };
+
 export interface ImportMappings {
   statuses?: Record<string, MappingAction>;
+  users?: Record<string, UserMappingAction>;
+}
+
+export interface ConsorcioUnknownValues {
+  users: string[];
+}
+
+export interface ConsorcioImportPreview {
+  sheets: SheetInfo[];
+  defaultSheet: string | null;
+  unknownValues: ConsorcioUnknownValues;
+  suggestedUserMappings: Record<string, { userId: string; userName: string }>;
+  dataRowCount: number;
+  sellerNames: string[];
+  canImport: boolean;
 }
 
 async function buildImportForm(
@@ -846,6 +866,46 @@ export async function importLeadsFromExcel(
 ): Promise<ImportReport> {
   const form = await buildImportForm(file, sheetName, mappings);
   return apiFetch<ImportReport>("/leads/import", {
+    method: "POST",
+    body: form,
+  });
+}
+
+async function buildConsorcioImportForm(
+  file: File,
+  purchaseDate: string,
+  sheetName?: string,
+  mappings?: ImportMappings,
+): Promise<FormData> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("purchaseDate", purchaseDate);
+  if (sheetName) form.append("sheetName", sheetName);
+  if (mappings?.users && Object.keys(mappings.users).length > 0) {
+    form.append("mappings", JSON.stringify({ users: mappings.users }));
+  }
+  return form;
+}
+
+export async function previewConsorcioImport(
+  file: File,
+  sheetName?: string,
+): Promise<ConsorcioImportPreview> {
+  const form = await buildImportForm(file, sheetName);
+  return apiFetch<ConsorcioImportPreview>("/purchases/import/preview", {
+    method: "POST",
+    body: form,
+  });
+}
+
+export async function importConsorcioFromExcel(
+  file: File,
+  purchaseDate: string,
+  sheetName?: string,
+  mappings?: ImportMappings,
+): Promise<ImportReport> {
+  const form = await buildConsorcioImportForm(file, purchaseDate, sheetName, mappings);
+  return apiFetch<ImportReport>("/purchases/import", {
     method: "POST",
     body: form,
   });

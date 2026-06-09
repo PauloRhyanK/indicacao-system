@@ -25,9 +25,23 @@ model User {
   leadsAsResponsavel Lead[]     @relation("LeadResponsavel")
   leadsAsCoVendedor  Lead[]     @relation("LeadCoVendedor")
   userRoles          UserRole[]
+  aliases            UserAlias[]
 
   @@index([deletedAt])
   @@map("users")
+}
+
+model UserAlias {
+  id              String   @id @default(uuid()) @db.Uuid
+  aliasNormalized String   @unique @map("alias_normalized")
+  aliasRaw        String   @map("alias_raw")
+  userId          String   @map("user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_aliases")
 }
 
 model Permission {

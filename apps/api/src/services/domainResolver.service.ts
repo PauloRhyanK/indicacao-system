@@ -8,8 +8,14 @@ import {
   type LookupKind,
 } from "./lookup.service.js";
 
+export type UserMappingAction =
+  | { action: "map"; userId: string }
+  | { action: "create"; name: string; email: string; password?: string }
+  | { action: "skip" };
+
 export interface ImportMappings {
   statuses?: Record<string, MappingAction>;
+  users?: Record<string, UserMappingAction>;
 }
 
 export type MappingAction =
