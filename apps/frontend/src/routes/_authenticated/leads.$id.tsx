@@ -23,6 +23,7 @@ import {
   deleteLead,
   fetchBonusChain,
   fetchLead,
+  formatBRL,
   formatDate,
   formatDateTime,
   isLeadClosed,
@@ -141,6 +142,26 @@ function LeadDetail() {
               <dd className="text-[14px] text-azul-profundo">{l.phone}</dd>
             </div>
             <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Oportunidade</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.external_code ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Valor ofertado</dt>
+              <dd className="text-[14px] text-azul-profundo">
+                {l.offered_amount != null ? formatBRL(l.offered_amount) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Valor fechado</dt>
+              <dd className="text-[14px] text-azul-profundo">
+                {l.closed_amount != null ? formatBRL(l.closed_amount) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Indicado por</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.referrer?.name ?? "—"}</dd>
+            </div>
+            <div>
               <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Observações</dt>
               <dd className="text-[14px] text-azul-profundo">{l.notes ?? "—"}</dd>
             </div>
@@ -154,6 +175,16 @@ function LeadDetail() {
             coVendedor={l.co_vendedor?.name}
             externalCode={l.external_code}
           />
+          <dl className="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4">
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Criado por</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.created_by?.name ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Primeiro contato</dt>
+              <dd className="text-[14px] text-azul-profundo">{l.first_contact?.name ?? "—"}</dd>
+            </div>
+          </dl>
         </div>
       </div>
 

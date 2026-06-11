@@ -52,6 +52,7 @@ export function SaleRegistrationForm({
 
   const [selectedLeadId, setSelectedLeadId] = useState(fixedLeadId ?? "");
   const [value, setValue] = useState("");
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [consortiumTypeId, setConsortiumTypeId] = useState("");
   const [coVendedorId, setCoVendedorId] = useState(initialLead?.co_vendedor?.id ?? "");
   const [result, setResult] = useState<SaleRegistrationResult | null>(null);
@@ -90,6 +91,7 @@ export function SaleRegistrationForm({
       registerSale({
         lead_id: activeLeadId,
         sale_value: Number(value),
+        sale_date: saleDate,
         consortium_type_id: consortiumTypeId || undefined,
         co_vendedor_id: coVendedorId || null,
       }),
@@ -118,6 +120,7 @@ export function SaleRegistrationForm({
       qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
 
       setValue("");
+      setSaleDate(new Date().toISOString().slice(0, 10));
       if (!selectable) setConsortiumTypeId("");
 
       onSuccess?.(mapped);
@@ -194,6 +197,19 @@ export function SaleRegistrationForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="0,00"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
+            Data da venda
+          </label>
+          <input
+            type="date"
+            required
+            className={inputClass}
+            value={saleDate}
+            onChange={(e) => setSaleDate(e.target.value)}
           />
         </div>
 

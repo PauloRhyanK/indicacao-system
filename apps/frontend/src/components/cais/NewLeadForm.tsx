@@ -36,6 +36,8 @@ export function NewLeadForm({
   const [showOpts, setShowOpts] = useState(false);
   const [responsavelId, setResponsavelId] = useState("");
   const [coVendedorId, setCoVendedorId] = useState("");
+  const [firstContactId, setFirstContactId] = useState("");
+  const [offeredAmount, setOfferedAmount] = useState("");
 
   const options: RefOption[] = useMemo(() => {
     const us = (profiles.data ?? []).map((p) => ({
@@ -64,6 +66,15 @@ export function NewLeadForm({
     setRefSelected(null);
     setResponsavelId("");
     setCoVendedorId("");
+    setFirstContactId("");
+    setOfferedAmount("");
+  };
+
+  const parseAmount = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) && n >= 0 ? n : null;
   };
 
   const mutation = useMutation({
@@ -73,10 +84,12 @@ export function NewLeadForm({
         phone: phone.trim(),
         salesStatusSlug: statusSlug || undefined,
         notes: notes.trim(),
+        offered_amount: parseAmount(offeredAmount),
         referrer_type: refSelected?.type ?? null,
         referrer_id: refSelected?.id ?? null,
         responsavel_id: responsavelId || null,
         co_vendedor_id: coVendedorId || null,
+        first_contact_id: firstContactId || null,
       }),
     onSuccess: () => {
       qc.invalidateQueries();
@@ -111,34 +124,16 @@ export function NewLeadForm({
           />
         </Field>
 
-        <Field label="Vendedor responsável">
-          <select
+        <Field label="Valor ofertado (R$)">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
             className={inputClass}
-            value={responsavelId}
-            onChange={(e) => setResponsavelId(e.target.value)}
-          >
-            <option value="">Não atribuído</option>
-            {(profiles.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Co-vendedor">
-          <select
-            className={inputClass}
-            value={coVendedorId}
-            onChange={(e) => setCoVendedorId(e.target.value)}
-          >
-            <option value="">Não atribuído</option>
-            {(profiles.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            value={offeredAmount}
+            onChange={(e) => setOfferedAmount(e.target.value)}
+            placeholder="0,00"
+          />
         </Field>
 
         <Field label="Indicado por">
@@ -172,6 +167,51 @@ export function NewLeadForm({
               </div>
             )}
           </div>
+        </Field>
+
+        <Field label="Primeiro contato">
+          <select
+            className={inputClass}
+            value={firstContactId}
+            onChange={(e) => setFirstContactId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Vendedor responsável">
+          <select
+            className={inputClass}
+            value={responsavelId}
+            onChange={(e) => setResponsavelId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Co-vendedor">
+          <select
+            className={inputClass}
+            value={coVendedorId}
+            onChange={(e) => setCoVendedorId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Status">

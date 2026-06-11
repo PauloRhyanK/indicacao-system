@@ -20,31 +20,38 @@ export interface LeadGridRow {
   lead: Lead;
   name: string;
   phone: string;
+  opportunity: string;
   created_at: string;
+  created_by_name: string;
   status_name: string;
   status_slug: string | null;
   offered_amount: number | null;
   closed_amount: number | null;
   assigned_name: string;
+  first_contact_name: string;
   updated_at: string;
   referrer_label: string;
   notes: string;
 }
 
 function toGridRow(lead: Lead, referrerLabel: Map<string, string>): LeadGridRow {
+  const referrerFromLead = lead.referrer?.name;
   return {
     id: lead.id,
     lead,
     name: lead.name,
     phone: lead.phone,
+    opportunity: lead.external_code ?? "—",
     created_at: lead.created_at,
+    created_by_name: lead.created_by?.name ?? "—",
     status_name: lead.salesStatus?.name ?? "Sem status",
     status_slug: lead.salesStatus?.slug ?? null,
     offered_amount: lead.offered_amount,
     closed_amount: lead.closed_amount,
     assigned_name: lead.responsavel?.name ?? "—",
+    first_contact_name: lead.first_contact?.name ?? "—",
     updated_at: lead.updated_at,
-    referrer_label: referrerLabel.get(lead.id) ?? "—",
+    referrer_label: referrerFromLead ?? referrerLabel.get(lead.id) ?? "—",
     notes: lead.notes ?? "—",
   };
 }
@@ -94,12 +101,14 @@ export function LeadsDataGrid({
     () => [
       { field: "name", headerName: "Nome", minWidth: 140, flex: 1 },
       { field: "phone", headerName: "Celular", minWidth: 120 },
+      { field: "opportunity", headerName: "Oportunidade", minWidth: 110 },
       {
         field: "created_at",
         headerName: "Data registro",
         minWidth: 110,
         valueFormatter: (v) => (v ? formatDate(String(v)) : "—"),
       },
+      { field: "created_by_name", headerName: "Criado por", minWidth: 120 },
       {
         field: "status_name",
         headerName: "Status",
@@ -129,6 +138,7 @@ export function LeadsDataGrid({
           v != null && v !== "" ? formatBRL(Number(v)) : "—",
       },
       { field: "assigned_name", headerName: "Vendedor responsável", minWidth: 140 },
+      { field: "first_contact_name", headerName: "Primeiro contato", minWidth: 130 },
       {
         field: "updated_at",
         headerName: "Última atualização",

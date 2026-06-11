@@ -1,5 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { getAllPurchases, removePurchase } from "../controllers/purchase.controller.js";
+import {
+  getAllPurchases,
+  patchPurchase,
+  removePurchase,
+} from "../controllers/purchase.controller.js";
 import {
   importConsorcio,
   previewConsorcioImport,
@@ -23,6 +27,12 @@ export async function purchaseRoutes(app: FastifyInstance) {
     "/purchases/import",
     { preHandler: [authenticate, requirePermission("leads.import")] },
     importConsorcio,
+  );
+
+  app.patch(
+    "/purchases/:id",
+    { preHandler: [authenticate, requirePermission("sales.create")] },
+    patchPurchase,
   );
 
   app.delete(

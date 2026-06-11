@@ -469,6 +469,7 @@ export async function importLeadsFromBuffer(
           name,
           phone,
           responsavelId,
+          firstContactId: responsavelId,
           salesStatusId: fechadoStatus ? fechadoStatus.id : salesStatusId,
           notes: fields.notes ? String(fields.notes) : undefined,
           offeredAmount: parseDecimal(fields.offeredAmount as string | number | null),

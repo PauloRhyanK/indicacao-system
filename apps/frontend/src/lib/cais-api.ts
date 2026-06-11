@@ -25,6 +25,12 @@ export interface AssignedUser {
   name: string;
 }
 
+export interface LeadReferrer {
+  type: "user" | "lead";
+  id: string;
+  name: string;
+}
+
 export interface Lead {
   id: string;
   name: string;
@@ -36,6 +42,9 @@ export interface Lead {
   closed_amount: number | null;
   responsavel: AssignedUser | null;
   co_vendedor: AssignedUser | null;
+  created_by: AssignedUser | null;
+  first_contact: AssignedUser | null;
+  referrer: LeadReferrer | null;
   created_at: string;
   updated_at: string;
 }
@@ -84,6 +93,7 @@ export interface Sale {
   sale_value: number;
   consortium_type: string | null;
   sold_at: string;
+  boleto_paid: boolean;
   commercial: SaleCommercialRoles;
 }
 
@@ -219,6 +229,7 @@ export interface ApiPurchase {
   leadId: string;
   amount: unknown;
   purchaseDate: string;
+  boletoPaid?: boolean;
   createdAt: string;
   consortiumType?: ApiLookup | null;
   lead?: {
@@ -295,8 +306,11 @@ interface ApiLead {
   assignedToUserId?: string | null;
   responsavel?: ApiAssignedUser | null;
   coVendedor?: ApiAssignedUser | null;
+  createdBy?: ApiAssignedUser | null;
+  firstContact?: ApiAssignedUser | null;
   responsavelId?: string | null;
   coVendedorId?: string | null;
+  referrer?: { type: "USER" | "LEAD"; id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -341,6 +355,17 @@ function mapUserRef(user?: ApiAssignedUser | null): AssignedUser | null {
   return { id: user.id, name: user.name };
 }
 
+function mapLeadReferrer(
+  ref?: { type: "USER" | "LEAD"; id: string; name: string } | null,
+): LeadReferrer | null {
+  if (!ref) return null;
+  return {
+    type: ref.type === "USER" ? "user" : "lead",
+    id: ref.id,
+    name: ref.name,
+  };
+}
+
 function mapLead(api: ApiLead): Lead {
   const responsavel =
     mapUserRef(api.responsavel) ?? mapUserRef(api.assignedTo);
@@ -355,6 +380,9 @@ function mapLead(api: ApiLead): Lead {
     closed_amount: api.closedAmount != null ? decimalToNumber(api.closedAmount) : null,
     responsavel,
     co_vendedor: mapUserRef(api.coVendedor),
+    created_by: mapUserRef(api.createdBy),
+    first_contact: mapUserRef(api.firstContact),
+    referrer: mapLeadReferrer(api.referrer),
     created_at: api.createdAt,
     updated_at: api.updatedAt,
   };
@@ -397,6 +425,7 @@ function mapSale(api: ApiPurchase): Sale {
     sale_value: decimalToNumber(api.amount),
     consortium_type: api.consortiumType?.name ?? null,
     sold_at: api.purchaseDate,
+    boleto_paid: api.boletoPaid ?? false,
     commercial: {
       responsavel: mapUserRef(lead?.responsavel),
       co_vendedor: mapUserRef(lead?.coVendedor),
@@ -523,6 +552,21 @@ export async function fetchProfiles(): Promise<Profile[]> {
 export async function fetchSales(): Promise<Sale[]> {
   const res = await apiFetch<{ data: ApiPurchase[] }>("/purchases");
   return res.data.map(mapSale);
+}
+
+export async function updateSale(
+  id: string,
+  patch: { sale_date?: string; boleto_paid?: boolean },
+): Promise<Sale> {
+  const body: Record<string, unknown> = {};
+  if (patch.sale_date) body.purchaseDate = toPurchaseDateIso(patch.sale_date);
+  if (patch.boleto_paid !== undefined) body.boletoPaid = patch.boleto_paid;
+
+  const res = await apiFetch<{ data: ApiPurchase }>(`/purchases/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+  return mapSale(res.data);
 }
 
 export async function deleteSale(
@@ -659,10 +703,12 @@ export interface NewLeadInput {
   phone: string;
   salesStatusSlug?: string;
   notes?: string;
+  offered_amount?: number | null;
   referrer_type?: "user" | "lead" | null;
   referrer_id?: string | null;
   responsavel_id?: string | null;
   co_vendedor_id?: string | null;
+  first_contact_id?: string | null;
 }
 
 export async function createLead(input: NewLeadInput): Promise<Lead> {
@@ -673,6 +719,8 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
     notes: input.notes?.trim() || undefined,
     responsavelId: input.responsavel_id ?? undefined,
     coVendedorId: input.co_vendedor_id ?? undefined,
+    firstContactId: input.first_contact_id ?? undefined,
+    ...(input.offered_amount != null ? { offeredAmount: input.offered_amount } : {}),
   };
 
   if (input.referrer_type && input.referrer_id) {
@@ -698,6 +746,9 @@ export async function updateLead(
     notes: string;
     responsavelId: string | null;
     coVendedorId: string | null;
+    firstContactId: string | null;
+    offeredAmount: number | null;
+    referrer: { type: "USER" | "LEAD"; id: string } | null;
   }>,
 ): Promise<void> {
   await apiFetch(`/leads/${id}`, {
@@ -727,19 +778,29 @@ export interface RegisterSaleResult extends BonusChainResult {
   leadId: string;
 }
 
+function toPurchaseDateIso(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString();
+}
+
 export async function registerSale(input: {
   lead_id: string;
   sale_value: number;
+  sale_date?: string;
   consortium_type_id?: string;
   co_vendedor_id?: string | null;
 }): Promise<RegisterSaleResult> {
+  const purchaseDate = input.sale_date
+    ? toPurchaseDateIso(input.sale_date)
+    : toPurchaseDateIso(new Date().toISOString().slice(0, 10));
+
   const res = await apiFetch<{ data: ApiRegisterSaleResponse }>(
     `/leads/${input.lead_id}/purchases`,
     {
       method: "POST",
       body: JSON.stringify({
         amount: input.sale_value,
-        purchaseDate: new Date().toISOString(),
+        purchaseDate,
         consortiumTypeId: input.consortium_type_id,
         coVendedorId: input.co_vendedor_id,
       }),

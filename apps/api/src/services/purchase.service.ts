@@ -1,9 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { badRequest, notFound } from "../utils/httpError.js";
-import { decrementGoalAtDate, incrementCurrentGoal } from "./goal.service.js";
+import { decrementGoalAtDate } from "./goal.service.js";
 import { findBySlug } from "./lookup.service.js";
-import type { DeletePurchaseInput } from "../schemas/purchase.schema.js";
+import type { DeletePurchaseInput, UpdatePurchaseInput } from "../schemas/purchase.schema.js";
 import { getBonusChain } from "./bonusChain.service.js";
 import {
   findConsortiumTypeById,
@@ -72,7 +72,7 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
       },
     });
 
-    await incrementCurrentGoal(amount, tx);
+    await incrementCurrentGoalAtDate(amount, input.purchaseDate, tx);
 
     return created;
   });
@@ -105,6 +105,53 @@ export async function listAllPurchases() {
     where: activePurchaseWhere,
     orderBy: { purchaseDate: "desc" },
     include: purchaseInclude,
+  });
+}
+
+export async function updatePurchase(purchaseId: string, input: UpdatePurchaseInput) {
+  const purchase = await prisma.purchase.findFirst({
+    where: { id: purchaseId, deletedAt: null },
+    select: { id: true, amount: true, purchaseDate: true, boletoPaid: true },
+  });
+  if (!purchase) throw notFound("Venda não encontrada");
+
+  const nextDate = input.purchaseDate ?? purchase.purchaseDate;
+  const nextBoletoPaid = input.boletoPaid ?? purchase.boletoPaid;
+  const dateChanged =
+    input.purchaseDate !== undefined &&
+    purchase.purchaseDate.getTime() !== input.purchaseDate.getTime();
+
+  return prisma.$transaction(async (tx) => {
+    if (dateChanged) {
+      await decrementGoalAtDate(purchase.amount, purchase.purchaseDate, tx);
+      await incrementCurrentGoalAtDate(purchase.amount, input.purchaseDate!, tx);
+    }
+
+    return tx.purchase.update({
+      where: { id: purchaseId },
+      data: {
+        ...(input.purchaseDate !== undefined ? { purchaseDate: nextDate } : {}),
+        ...(input.boletoPaid !== undefined ? { boletoPaid: nextBoletoPaid } : {}),
+      },
+      include: purchaseInclude,
+    });
+  });
+}
+
+async function incrementCurrentGoalAtDate(
+  amount: Prisma.Decimal,
+  at: Date,
+  tx: Prisma.TransactionClient,
+) {
+  const goal = await tx.goal.findFirst({
+    where: { startDate: { lte: at }, endDate: { gte: at } },
+    orderBy: { startDate: "desc" },
+  });
+  if (!goal) return null;
+
+  return tx.goal.update({
+    where: { id: goal.id },
+    data: { currentAmount: { increment: amount } },
   });
 }
 

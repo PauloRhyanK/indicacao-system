@@ -23,9 +23,11 @@ model User {
   createdAt           DateTime  @default(now()) @map("created_at")
   deletedAt           DateTime? @map("deleted_at")
 
-  leadsAsResponsavel Lead[]     @relation("LeadResponsavel")
-  leadsAsCoVendedor  Lead[]     @relation("LeadCoVendedor")
-  userRoles          UserRole[]
+  leadsAsResponsavel     Lead[]     @relation("LeadResponsavel")
+  leadsAsCoVendedor      Lead[]     @relation("LeadCoVendedor")
+  leadsCreated           Lead[]     @relation("LeadCreatedBy")
+  leadsFirstContact      Lead[]     @relation("LeadFirstContact")
+  userRoles              UserRole[]
   aliases            UserAlias[]
 
   @@index([deletedAt])
@@ -111,30 +113,36 @@ model ConsortiumType {
 }
 
 model Lead {
-  id            String    @id @default(uuid()) @db.Uuid
-  externalCode  String?   @unique @map("external_code")
-  name          String
-  phone         String?
-  responsavelId String?   @map("responsavel_id") @db.Uuid
-  coVendedorId  String?   @map("co_vendedor_id") @db.Uuid
-  salesStatusId String?   @map("sales_status_id") @db.Uuid
-  notes         String?
-  offeredAmount Decimal?  @map("offered_amount") @db.Decimal(15, 2)
-  closedAmount  Decimal?  @map("closed_amount") @db.Decimal(15, 2)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  id                 String    @id @default(uuid()) @db.Uuid
+  externalCode       String?   @unique @map("external_code")
+  name               String
+  phone              String?
+  responsavelId      String?   @map("responsavel_id") @db.Uuid
+  coVendedorId       String?   @map("co_vendedor_id") @db.Uuid
+  createdById        String?   @map("created_by_id") @db.Uuid
+  firstContactId     String?   @map("first_contact_id") @db.Uuid
+  salesStatusId      String?   @map("sales_status_id") @db.Uuid
+  notes              String?
+  offeredAmount      Decimal?  @map("offered_amount") @db.Decimal(15, 2)
+  closedAmount       Decimal?  @map("closed_amount") @db.Decimal(15, 2)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
 
-  salesStatus     LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
-  responsavel     User?       @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  coVendedor      User?       @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
-  purchases       Purchase[]
-  referralsAsLead Referral[]  @relation("ReferredLead")
+  salesStatus      LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
+  responsavel      User?       @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  coVendedor       User?       @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
+  createdBy        User?       @relation("LeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  firstContact     User?       @relation("LeadFirstContact", fields: [firstContactId], references: [id], onDelete: SetNull)
+  purchases        Purchase[]
+  referralsAsLead  Referral[]  @relation("ReferredLead")
 
   @@index([externalCode])
   @@index([salesStatusId])
   @@index([responsavelId])
   @@index([coVendedorId])
+  @@index([createdById])
+  @@index([firstContactId])
   @@index([deletedAt])
   @@map("leads")
 }
@@ -159,6 +167,7 @@ model Purchase {
   consortiumTypeId String?   @map("consortium_type_id") @db.Uuid
   amount           Decimal   @db.Decimal(15, 2)
   purchaseDate     DateTime  @map("purchase_date")
+  boletoPaid       Boolean   @default(false) @map("boleto_paid")
   createdAt        DateTime  @default(now()) @map("created_at")
   deletedAt        DateTime? @map("deleted_at")
 

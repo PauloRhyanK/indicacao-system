@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
@@ -8,26 +8,68 @@ import { Badge } from "./Badge";
 import { EmptyState, Spinner } from "./Feedback";
 import { ReverseSaleDialog } from "./ReverseSaleDialog";
 import { SaleExpandedPanel } from "./SaleExpandedPanel";
-import { fetchSales, formatBRL, formatDate, type Sale } from "@/lib/cais-api";
+import { inputClass } from "./SlideOver";
+import {
+  fetchSales,
+  formatBRL,
+  formatDate,
+  updateSale,
+  type Sale,
+} from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
 import { cn } from "@/lib/utils";
 
 const GRID_COLS =
-  "grid grid-cols-[minmax(90px,1fr)_minmax(120px,2fr)_minmax(100px,1fr)_minmax(100px,1fr)_72px_28px] gap-3 items-center";
+  "grid grid-cols-[minmax(110px,1fr)_minmax(120px,2fr)_minmax(100px,1fr)_minmax(90px,1fr)_minmax(100px,1fr)_72px_28px] gap-3 items-center";
+
+function toDateInputValue(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function SaleRowTrigger({
   sale,
   isHighlighted,
-  isExpanded,
+  canEdit,
   canDelete,
   onCancel,
 }: {
   sale: Sale;
   isHighlighted: boolean;
-  isExpanded: boolean;
+  canEdit: boolean;
   canDelete: boolean;
   onCancel: (sale: Sale) => void;
 }) {
+  const qc = useQueryClient();
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateValue, setDateValue] = useState(toDateInputValue(sale.sold_at));
+
+  useEffect(() => {
+    setDateValue(toDateInputValue(sale.sold_at));
+  }, [sale.sold_at]);
+
+  const updateMutation = useMutation({
+    mutationFn: (patch: { sale_date?: string; boleto_paid?: boolean }) =>
+      updateSale(sale.id, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["meta"] });
+      qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
+      setEditingDate(false);
+    },
+  });
+
+  const saveDate = () => {
+    if (dateValue && dateValue !== toDateInputValue(sale.sold_at)) {
+      updateMutation.mutate({ sale_date: dateValue });
+    } else {
+      setEditingDate(false);
+    }
+  };
+
   return (
     <AccordionPrimitive.Header className="flex">
       <AccordionPrimitive.Trigger
@@ -37,7 +79,41 @@ function SaleRowTrigger({
           isHighlighted && "bg-ouro/5",
         )}
       >
-        <span className="text-slate-600">{formatDate(sale.sold_at)}</span>
+        <span
+          className="text-slate-600"
+          onClick={(e) => {
+            if (canEdit) {
+              e.stopPropagation();
+              setEditingDate(true);
+            }
+          }}
+        >
+          {editingDate && canEdit ? (
+            <input
+              type="date"
+              className={inputClass + " h-8 px-2 text-[12px]"}
+              value={dateValue}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setDateValue(e.target.value)}
+              onBlur={saveDate}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveDate();
+                }
+                if (e.key === "Escape") {
+                  setEditingDate(false);
+                  setDateValue(toDateInputValue(sale.sold_at));
+                }
+              }}
+              autoFocus
+            />
+          ) : (
+            <span className={canEdit ? "cursor-pointer hover:underline" : undefined}>
+              {formatDate(sale.sold_at)}
+            </span>
+          )}
+        </span>
         <span className="min-w-0 truncate font-medium text-azul-profundo">
           <Link
             to="/leads/$id"
@@ -56,6 +132,26 @@ function SaleRowTrigger({
             <Badge variant="gray">{sale.consortium_type}</Badge>
           ) : (
             <span className="text-slate-400">—</span>
+          )}
+        </span>
+        <span onClick={(e) => e.stopPropagation()}>
+          {canEdit ? (
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] text-slate-700">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300"
+                checked={sale.boleto_paid}
+                disabled={updateMutation.isPending}
+                onChange={(e) =>
+                  updateMutation.mutate({ boleto_paid: e.target.checked })
+                }
+              />
+              {sale.boleto_paid ? "Pago" : "Pendente"}
+            </label>
+          ) : sale.boleto_paid ? (
+            <Badge variant="green">Pago</Badge>
+          ) : (
+            <Badge variant="gray">Pendente</Badge>
           )}
         </span>
         <span>
@@ -87,6 +183,7 @@ export function SalesAccordionTable({
 }) {
   const { can } = usePermissions();
   const canDelete = can("sales.delete");
+  const canEdit = can("sales.create");
 
   const sales = useQuery({ queryKey: ["sales"], queryFn: fetchSales });
   const [expandedId, setExpandedId] = useState<string | undefined>();
@@ -160,6 +257,7 @@ export function SalesAccordionTable({
           <span>Lead</span>
           <span>Valor</span>
           <span>Consórcio</span>
+          <span>Boleto</span>
           {canDelete ? <span>Ações</span> : <span aria-hidden />}
           <span aria-hidden />
         </div>
@@ -183,7 +281,7 @@ export function SalesAccordionTable({
                 <SaleRowTrigger
                   sale={sale}
                   isHighlighted={highlightSaleId === sale.id}
-                  isExpanded={isExpanded}
+                  canEdit={canEdit}
                   canDelete={canDelete}
                   onCancel={setReverseTarget}
                 />

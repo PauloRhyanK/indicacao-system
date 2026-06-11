@@ -14,6 +14,17 @@ export const createPurchaseSchema = z
 
 export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
 
+export const updatePurchaseSchema = z
+  .object({
+    purchaseDate: z.coerce.date().optional(),
+    boletoPaid: z.boolean().optional(),
+  })
+  .refine((data) => data.purchaseDate !== undefined || data.boletoPaid !== undefined, {
+    message: "Informe ao menos um campo para atualizar",
+  });
+
+export type UpdatePurchaseInput = z.infer<typeof updatePurchaseSchema>;
+
 export const deletePurchaseSchema = z.object({
   leadStatusSlug: z.string().min(1).default("em-negociacao"),
 });

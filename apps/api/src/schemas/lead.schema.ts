@@ -11,12 +11,13 @@ export const createLeadSchema = z.object({
   phone: z.string().optional(),
   responsavelId: z.string().uuid().optional().nullable(),
   coVendedorId: z.string().uuid().optional().nullable(),
+  firstContactId: z.string().uuid().optional().nullable(),
   salesStatusId: z.string().uuid().optional(),
   salesStatusSlug: z.string().optional(),
   notes: z.string().optional(),
-  offeredAmount: z.coerce.number().nonnegative().optional(),
-  closedAmount: z.coerce.number().nonnegative().optional(),
-  referrer: referrerSchema.optional(),
+  offeredAmount: z.coerce.number().nonnegative().optional().nullable(),
+  closedAmount: z.coerce.number().nonnegative().optional().nullable(),
+  referrer: referrerSchema.optional().nullable(),
 });
 
 export const updateLeadSchema = createLeadSchema.partial();

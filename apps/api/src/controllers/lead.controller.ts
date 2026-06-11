@@ -37,7 +37,7 @@ export async function getLead(request: FastifyRequest, reply: FastifyReply) {
 
 export async function postLead(request: FastifyRequest, reply: FastifyReply) {
   const input = createLeadSchema.parse(request.body);
-  const lead = await createLead(input);
+  const lead = await createLead(input, request.user.sub);
   return reply.status(201).send({ data: lead });
 }
 

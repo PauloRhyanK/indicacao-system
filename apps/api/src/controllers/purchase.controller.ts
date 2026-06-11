@@ -1,10 +1,15 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { createPurchaseSchema, deletePurchaseSchema } from "../schemas/purchase.schema.js";
+import {
+  createPurchaseSchema,
+  deletePurchaseSchema,
+  updatePurchaseSchema,
+} from "../schemas/purchase.schema.js";
 import {
   deletePurchase,
   listAllPurchases,
   listPurchases,
   registerPurchase,
+  updatePurchase,
 } from "../services/purchase.service.js";
 
 export async function postPurchase(request: FastifyRequest, reply: FastifyReply) {
@@ -23,6 +28,13 @@ export async function getPurchases(request: FastifyRequest, reply: FastifyReply)
 export async function getAllPurchases(_request: FastifyRequest, reply: FastifyReply) {
   const purchases = await listAllPurchases();
   return reply.send({ data: purchases });
+}
+
+export async function patchPurchase(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const input = updatePurchaseSchema.parse(request.body);
+  const purchase = await updatePurchase(id, input);
+  return reply.send({ data: purchase });
 }
 
 export async function removePurchase(request: FastifyRequest, reply: FastifyReply) {

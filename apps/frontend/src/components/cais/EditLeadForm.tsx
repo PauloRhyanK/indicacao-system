@@ -1,8 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./Button";
 import { Field, inputClass, SlideOver } from "./SlideOver";
-import { fetchLookups, fetchProfiles, updateLead, type Lead } from "@/lib/cais-api";
+import {
+  fetchAllLeads,
+  fetchLookups,
+  fetchProfiles,
+  updateLead,
+  type Lead,
+} from "@/lib/cais-api";
+
+interface RefOption {
+  id: string;
+  label: string;
+  type: "user" | "lead";
+}
 
 export function EditLeadForm({
   open,
@@ -16,13 +28,41 @@ export function EditLeadForm({
   const qc = useQueryClient();
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles, enabled: open });
+  const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads, enabled: open });
 
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [responsavelId, setResponsavelId] = useState(lead.responsavel?.id ?? "");
   const [coVendedorId, setCoVendedorId] = useState(lead.co_vendedor?.id ?? "");
+  const [firstContactId, setFirstContactId] = useState(lead.first_contact?.id ?? "");
   const [statusSlug, setStatusSlug] = useState(lead.salesStatus?.slug ?? "");
   const [notes, setNotes] = useState(lead.notes ?? "");
+  const [offeredAmount, setOfferedAmount] = useState(
+    lead.offered_amount != null ? String(lead.offered_amount) : "",
+  );
+  const [refSearch, setRefSearch] = useState("");
+  const [refSelected, setRefSelected] = useState<RefOption | null>(null);
+  const [showOpts, setShowOpts] = useState(false);
+
+  const refOptions: RefOption[] = useMemo(() => {
+    const us = (profiles.data ?? []).map((p) => ({
+      id: p.id,
+      label: `${p.name} (Usuário)`,
+      type: "user" as const,
+    }));
+    const ls = (leads.data ?? [])
+      .filter((l) => l.id !== lead.id)
+      .map((l) => ({
+        id: l.id,
+        label: `${l.name} (Lead)`,
+        type: "lead" as const,
+      }));
+    return [...us, ...ls];
+  }, [profiles.data, leads.data, lead.id]);
+
+  const filteredRefs = refOptions.filter((o) =>
+    o.label.toLowerCase().includes(refSearch.toLowerCase()),
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -30,24 +70,61 @@ export function EditLeadForm({
     setPhone(lead.phone);
     setResponsavelId(lead.responsavel?.id ?? "");
     setCoVendedorId(lead.co_vendedor?.id ?? "");
+    setFirstContactId(lead.first_contact?.id ?? "");
     setStatusSlug(lead.salesStatus?.slug ?? "");
     setNotes(lead.notes ?? "");
+    setOfferedAmount(lead.offered_amount != null ? String(lead.offered_amount) : "");
+    if (lead.referrer) {
+      setRefSelected({
+        id: lead.referrer.id,
+        label: `${lead.referrer.name} (${lead.referrer.type === "user" ? "Usuário" : "Lead"})`,
+        type: lead.referrer.type,
+      });
+      setRefSearch("");
+    } else {
+      setRefSelected(null);
+      setRefSearch("");
+    }
   }, [open, lead]);
 
+  const parseAmount = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+
   const mutation = useMutation({
-    mutationFn: () =>
-      updateLead(lead.id, {
+    mutationFn: () => {
+      const offered = parseAmount(offeredAmount);
+
+      let referrer: { type: "USER" | "LEAD"; id: string } | null | undefined;
+      if (refSelected) {
+        referrer = {
+          type: refSelected.type === "user" ? "USER" : "LEAD",
+          id: refSelected.id,
+        };
+      } else if (lead.referrer) {
+        referrer = null;
+      }
+
+      return updateLead(lead.id, {
         name: name.trim(),
         phone: phone.trim(),
         salesStatusSlug: statusSlug || undefined,
         notes: notes.trim(),
         responsavelId: responsavelId || null,
         coVendedorId: coVendedorId || null,
-      }),
+        firstContactId: firstContactId || null,
+        offeredAmount: offered,
+        ...(referrer !== undefined ? { referrer } : {}),
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lead", lead.id] });
       qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["leads-all"] });
+      qc.invalidateQueries({ queryKey: ["referrals"] });
       onClose();
     },
   });
@@ -77,6 +154,78 @@ export function EditLeadForm({
             onChange={(e) => setPhone(e.target.value)}
             placeholder="(11) 99999-0000"
           />
+        </Field>
+
+        <Field label="Valor ofertado (R$)">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className={inputClass}
+            value={offeredAmount}
+            onChange={(e) => setOfferedAmount(e.target.value)}
+            placeholder="0,00"
+          />
+        </Field>
+
+        <Field label="Indicado por">
+          <div className="relative">
+            <input
+              className={inputClass}
+              value={refSelected ? refSelected.label : refSearch}
+              onChange={(e) => {
+                setRefSelected(null);
+                setRefSearch(e.target.value);
+                setShowOpts(true);
+              }}
+              onFocus={() => setShowOpts(true)}
+              placeholder="Buscar usuário ou lead..."
+            />
+            {refSelected && (
+              <button
+                type="button"
+                className="mt-1 text-[12px] text-slate-500 hover:text-azul-profundo"
+                onClick={() => {
+                  setRefSelected(null);
+                  setRefSearch("");
+                }}
+              >
+                Limpar indicador
+              </button>
+            )}
+            {showOpts && refSearch && !refSelected && filteredRefs.length > 0 && (
+              <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-sm">
+                {filteredRefs.slice(0, 8).map((o) => (
+                  <button
+                    type="button"
+                    key={`${o.type}-${o.id}`}
+                    className="block w-full px-3 py-2 text-left text-[13px] text-azul-profundo hover:bg-slate-100"
+                    onClick={() => {
+                      setRefSelected(o);
+                      setShowOpts(false);
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </Field>
+
+        <Field label="Primeiro contato">
+          <select
+            className={inputClass}
+            value={firstContactId}
+            onChange={(e) => setFirstContactId(e.target.value)}
+          >
+            <option value="">Não atribuído</option>
+            {(profiles.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Vendedor responsável">

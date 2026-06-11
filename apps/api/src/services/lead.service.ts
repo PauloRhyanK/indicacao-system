@@ -23,6 +23,8 @@ const lookupSelect = {
 const leadInclude = {
   responsavel: userRoleSelect,
   coVendedor: userRoleSelect,
+  createdBy: userRoleSelect,
+  firstContact: userRoleSelect,
   salesStatus: lookupSelect,
 } as const;
 
@@ -154,7 +156,7 @@ export async function getLeadById(
   return { ...lead, referrer };
 }
 
-export async function createLead(input: CreateLeadInput) {
+export async function createLead(input: CreateLeadInput, createdById?: string) {
   const { referrer, ...data } = input;
   const salesStatusId = await resolveSalesStatusId(data);
 
@@ -166,10 +168,12 @@ export async function createLead(input: CreateLeadInput) {
         phone: normalizePhone(data.phone),
         responsavelId: data.responsavelId,
         coVendedorId: data.coVendedorId ?? undefined,
+        firstContactId: data.firstContactId ?? undefined,
+        createdById: createdById ?? undefined,
         salesStatusId,
         notes: data.notes,
-        offeredAmount: toDecimal(data.offeredAmount),
-        closedAmount: toDecimal(data.closedAmount),
+        offeredAmount: toDecimal(data.offeredAmount ?? undefined),
+        closedAmount: toDecimal(data.closedAmount ?? undefined),
       },
       include: leadInclude,
     });
@@ -211,15 +215,22 @@ export async function updateLead(
         ...(data.phone !== undefined ? { phone: normalizePhone(data.phone) } : {}),
         ...(data.responsavelId !== undefined ? { responsavelId: data.responsavelId } : {}),
         ...(data.coVendedorId !== undefined ? { coVendedorId: data.coVendedorId } : {}),
+        ...(data.firstContactId !== undefined ? { firstContactId: data.firstContactId } : {}),
         ...(salesStatusId !== undefined ? { salesStatusId } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
-        ...(data.offeredAmount !== undefined ? { offeredAmount: toDecimal(data.offeredAmount) } : {}),
-        ...(data.closedAmount !== undefined ? { closedAmount: toDecimal(data.closedAmount) } : {}),
+        ...(data.offeredAmount !== undefined
+          ? { offeredAmount: data.offeredAmount === null ? null : toDecimal(data.offeredAmount) }
+          : {}),
+        ...(data.closedAmount !== undefined
+          ? { closedAmount: data.closedAmount === null ? null : toDecimal(data.closedAmount) }
+          : {}),
       },
       include: leadInclude,
     });
 
-    if (referrer) {
+    if (referrer === null) {
+      await tx.referral.deleteMany({ where: { referredLeadId: id } });
+    } else if (referrer) {
       await upsertReferral(lead.id, referrer, tx);
     }
 
