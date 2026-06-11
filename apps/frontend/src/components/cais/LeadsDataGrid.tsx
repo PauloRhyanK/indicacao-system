@@ -15,6 +15,11 @@ import {
   type Lead,
   type LeadsPagination,
 } from "@/lib/cais-api";
+import {
+  getDefaultColumnVisibility,
+  type LeadColumnVisibility,
+  type LeadGridColumnField,
+} from "@/lib/leads-columns";
 
 export interface LeadGridRow {
   id: string;
@@ -72,6 +77,7 @@ export function LeadsDataGrid({
   onDelete,
   showAssignAction,
   onAssignResponsavel,
+  columnVisibility,
 }: {
   leads: Lead[];
   pagination: LeadsPagination;
@@ -85,6 +91,7 @@ export function LeadsDataGrid({
   onDelete?: (lead: Lead) => void;
   showAssignAction?: boolean;
   onAssignResponsavel?: (lead: Lead) => void;
+  columnVisibility?: LeadColumnVisibility;
 }) {
   const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -100,7 +107,9 @@ export function LeadsDataGrid({
     [leads, referrerLabel],
   );
 
-  const columns: GridColDef<LeadGridRow>[] = useMemo(
+  const visibility = columnVisibility ?? getDefaultColumnVisibility();
+
+  const allColumns: GridColDef<LeadGridRow>[] = useMemo(
     () => [
       { field: "name", headerName: "Nome", minWidth: 140, flex: 1 },
       { field: "phone", headerName: "Celular", minWidth: 120 },
@@ -199,6 +208,15 @@ export function LeadsDataGrid({
       },
     ],
     [menuRow],
+  );
+
+  const columns = useMemo(
+    () =>
+      allColumns.filter((col) => {
+        if (col.field === "actions") return true;
+        return visibility[col.field as LeadGridColumnField] !== false;
+      }),
+    [allColumns, visibility],
   );
 
   const paginationModel: GridPaginationModel = {

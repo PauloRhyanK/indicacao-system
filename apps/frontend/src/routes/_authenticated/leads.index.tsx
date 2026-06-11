@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Filter, X } from "lucide-react";
+import { Columns3, Filter, X } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Button } from "@/components/cais/Button";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
@@ -10,6 +10,7 @@ import { ImportExcelDialog } from "@/components/cais/ImportExcelDialog";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import { LeadsDataGrid } from "@/components/cais/LeadsDataGrid";
 import { LeadsFilterModal } from "@/components/cais/LeadsFilterModal";
+import { LeadsColumnsModal } from "@/components/cais/LeadsColumnsModal";
 import { AssignResponsavelDialog } from "@/components/cais/AssignResponsavelDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { inputClass } from "@/components/cais/SlideOver";
@@ -39,6 +40,12 @@ import {
   filterRowLabel,
   type FilterRow,
 } from "@/lib/leads-filters";
+import {
+  countHiddenColumns,
+  loadColumnVisibility,
+  saveColumnVisibility,
+  type LeadColumnVisibility,
+} from "@/lib/leads-columns";
 
 export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({ meta: [{ title: "Leads — CAIS" }] }),
@@ -60,6 +67,10 @@ function LeadsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState<LeadColumnVisibility>(
+    loadColumnVisibility,
+  );
   const [newOpen, setNewOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const canImport = can("leads.import");
@@ -111,6 +122,7 @@ function LeadsPage() {
   }, [referrals.data, profiles.data, leadsQuery.data?.leads]);
 
   const activeFilterCount = countActiveFilters(filterRows);
+  const hiddenColumnCount = countHiddenColumns(columnVisibility);
   const activeChips = filterRows.filter((r) => r.field && r.value).map(filterRowLabel);
 
   const handleApplyFilters = (compiled: LeadsFilters, rows: FilterRow[]) => {
@@ -184,6 +196,15 @@ function LeadsPage() {
             </span>
           )}
         </Button>
+        <Button variant="ghost" onClick={() => setColumnsOpen(true)}>
+          <Columns3 className="mr-1.5 h-4 w-4" />
+          Colunas
+          {hiddenColumnCount > 0 && (
+            <span className="ml-1.5 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              {hiddenColumnCount} oculta{hiddenColumnCount !== 1 ? "s" : ""}
+            </span>
+          )}
+        </Button>
       </div>
 
       {activeChips.length > 0 && (
@@ -236,8 +257,19 @@ function LeadsPage() {
           onDelete={openDeleteDialog}
           showAssignAction={leadTab === "unassigned"}
           onAssignResponsavel={setAssignTarget}
+          columnVisibility={columnVisibility}
         />
       )}
+
+      <LeadsColumnsModal
+        open={columnsOpen}
+        onClose={() => setColumnsOpen(false)}
+        visibility={columnVisibility}
+        onApply={(next) => {
+          setColumnVisibility(next);
+          saveColumnVisibility(next);
+        }}
+      />
 
       <LeadsFilterModal
         open={filterOpen}
