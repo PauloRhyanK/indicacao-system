@@ -7,7 +7,9 @@ import {
   fetchLookups,
   fetchProfiles,
   updateLead,
+  OPPORTUNITY_GRADE_LABELS,
   type Lead,
+  type OpportunityGrade,
 } from "@/lib/cais-api";
 
 interface RefOption {
@@ -36,6 +38,9 @@ export function EditLeadForm({
   const [coVendedorId, setCoVendedorId] = useState(lead.co_vendedor?.id ?? "");
   const [firstContactId, setFirstContactId] = useState(lead.first_contact?.id ?? "");
   const [statusSlug, setStatusSlug] = useState(lead.salesStatus?.slug ?? "");
+  const [opportunityGrade, setOpportunityGrade] = useState<OpportunityGrade | "">(
+    lead.opportunity_grade ?? "",
+  );
   const [notes, setNotes] = useState(lead.notes ?? "");
   const [offeredAmount, setOfferedAmount] = useState(
     lead.offered_amount != null ? String(lead.offered_amount) : "",
@@ -72,6 +77,7 @@ export function EditLeadForm({
     setCoVendedorId(lead.co_vendedor?.id ?? "");
     setFirstContactId(lead.first_contact?.id ?? "");
     setStatusSlug(lead.salesStatus?.slug ?? "");
+    setOpportunityGrade(lead.opportunity_grade ?? "");
     setNotes(lead.notes ?? "");
     setOfferedAmount(lead.offered_amount != null ? String(lead.offered_amount) : "");
     if (lead.referrer) {
@@ -112,6 +118,7 @@ export function EditLeadForm({
         name: name.trim(),
         phone: phone.trim(),
         salesStatusSlug: statusSlug || undefined,
+        opportunityGrade: opportunityGrade || null,
         notes: notes.trim(),
         responsavelId: responsavelId || null,
         coVendedorId: coVendedorId || null,
@@ -270,6 +277,25 @@ export function EditLeadForm({
                 {s.name}
               </option>
             ))}
+          </select>
+        </Field>
+
+        <Field label="Grau de oportunidade">
+          <select
+            className={inputClass}
+            value={opportunityGrade}
+            onChange={(e) =>
+              setOpportunityGrade((e.target.value || "") as OpportunityGrade | "")
+            }
+          >
+            <option value="">— Selecione —</option>
+            {(Object.entries(OPPORTUNITY_GRADE_LABELS) as [OpportunityGrade, string][]).map(
+              ([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ),
+            )}
           </select>
         </Field>
 

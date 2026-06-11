@@ -26,6 +26,7 @@ import {
   formatBRL,
   formatDate,
   formatDateTime,
+  formatOpportunityGrade,
   isLeadClosed,
 } from "@/lib/cais-api";
 import { ApiError } from "@/lib/api/client";
@@ -144,6 +145,14 @@ function LeadDetail() {
             <div>
               <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Oportunidade</dt>
               <dd className="text-[14px] text-azul-profundo">{l.external_code ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">
+                Grau de oportunidade
+              </dt>
+              <dd className="text-[14px] text-azul-profundo">
+                {formatOpportunityGrade(l.opportunity_grade)}
+              </dd>
             </div>
             <div>
               <dt className="text-[11px] uppercase tracking-[0.5px] text-slate-500">Valor ofertado</dt>

@@ -12,7 +12,8 @@ const TYPE_META: Record<
 > = {
   leads: {
     title: "Leads",
-    description: "Planilha BASE_CRM com colunas ID, Nome do cliente, status, etc.",
+    description:
+      "Modelo simples (Nome, Grau, Telefone, Observações) ou planilha BASE_CRM completa.",
     icon: Users,
   },
   sales: {

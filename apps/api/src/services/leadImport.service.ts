@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { Prisma } from "@prisma/client";
+import { OpportunityGrade, Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { badRequest } from "../utils/httpError.js";
 import { normalizePhone, parseDate, parseDecimal } from "../utils/format.js";
@@ -81,15 +81,63 @@ function normalizeHeader(value: string): string {
 const COLUMN_ALIASES: Record<string, string[]> = {
   externalCode: ["id"],
   createdAt: ["data do registro", "data de registro"],
-  name: ["nome do cliente", "nome", "cliente"],
+  name: ["nome do cliente", "nome dos clientes", "nome", "cliente"],
   phone: ["telefone", "celular"],
   assignedTo: ["responsavel pela reuniao", "responsavel"],
   salesStatus: ["status atual da oportunidade", "status"],
+  opportunityGrade: ["grau de oportunidade", "grau da oportunidade"],
   notes: ["observacoes", "observacao", "obs"],
   offeredAmount: ["valor da carta ofertada", "valor ofertado", "carta ofertada"],
   closedAmount: ["valor fechado", "valor da venda"],
   updatedAt: ["ultima atualizacao", "atualizado em"],
 };
+
+const OPPORTUNITY_GRADE_MAP: Record<string, OpportunityGrade> = {
+  baixo: OpportunityGrade.BAIXO,
+  medio: OpportunityGrade.MEDIO,
+  alto: OpportunityGrade.ALTO,
+  extremo: OpportunityGrade.EXTREMO,
+};
+
+const OPPORTUNITY_GRADE_LABELS: Record<OpportunityGrade, string> = {
+  [OpportunityGrade.BAIXO]: "Baixo",
+  [OpportunityGrade.MEDIO]: "Médio",
+  [OpportunityGrade.ALTO]: "Alto",
+  [OpportunityGrade.EXTREMO]: "Extremo",
+};
+
+function parseOpportunityGrade(
+  raw: unknown,
+): { grade?: OpportunityGrade; error?: string } {
+  if (raw == null || String(raw).trim() === "") return { grade: undefined };
+  const norm = normalizeHeader(String(raw));
+  const grade = OPPORTUNITY_GRADE_MAP[norm];
+  if (!grade) {
+    return {
+      error: `Grau de oportunidade inválido: "${String(raw).trim()}". Use Extremo, Alto, Médio ou Baixo.`,
+    };
+  }
+  return { grade };
+}
+
+function formatOpportunityGradeLabel(
+  grade: OpportunityGrade | null | undefined,
+): string {
+  if (!grade) return "—";
+  return OPPORTUNITY_GRADE_LABELS[grade];
+}
+
+function rowLooksLikeHeader(headers: string[]): boolean {
+  const index = buildHeaderIndex(headers.filter(Boolean));
+  const fields = new Set(index.values());
+  const hasName = fields.has("name");
+  const hasId = fields.has("externalCode");
+
+  if (hasId && hasName) return true;
+  if (hasName && fields.size >= 2) return true;
+
+  return false;
+}
 
 function buildHeaderIndex(headers: string[]): Map<string, string> {
   const index = new Map<string, string>();
@@ -176,6 +224,7 @@ function computeLeadChanges(
     name: string;
     phone: string | null;
     externalCode: string | null;
+    opportunityGrade: OpportunityGrade | null;
     notes: string | null;
     offeredAmount: Prisma.Decimal | null;
     closedAmount: Prisma.Decimal | null;
@@ -186,6 +235,7 @@ function computeLeadChanges(
     name: string;
     phone: string | null | undefined;
     externalCode?: string;
+    opportunityGrade?: OpportunityGrade | null;
     notes?: string;
     offeredAmount: Prisma.Decimal | null | undefined;
     closedAmount: Prisma.Decimal | null | undefined;
@@ -202,6 +252,14 @@ function computeLeadChanges(
   }
   pushChange(changes, "Vendedor responsável", existing.responsavel?.name, next.responsavelLabel);
   pushChange(changes, "Status", existing.salesStatus?.name, next.statusLabel);
+  if (next.opportunityGrade !== undefined) {
+    pushChange(
+      changes,
+      "Grau de oportunidade",
+      formatOpportunityGradeLabel(existing.opportunityGrade),
+      formatOpportunityGradeLabel(next.opportunityGrade),
+    );
+  }
   pushChange(changes, "Observações", existing.notes, next.notes ?? null);
 
   const oldOffered = formatDecimalLabel(existing.offeredAmount);
@@ -228,6 +286,9 @@ function pickDefaultSheetName(workbook: XLSX.WorkBook): string | null {
 
   const baseCrm = valid.find((s) => normalizeHeader(s.name) === "base_crm");
   if (baseCrm) return baseCrm.name;
+
+  const leadsSheet = valid.find((s) => normalizeHeader(s.name) === "leads");
+  if (leadsSheet) return leadsSheet.name;
 
   return valid.sort(
     (a, b) => b.matchedColumns - a.matchedColumns || b.dataRowCount - a.dataRowCount
@@ -278,11 +339,10 @@ function resolveSheet(
 }
 
 function findHeaderRowIndex(rows: unknown[][]): number {
-  for (let i = 0; i < rows.length; i++) {
-    const norms = rows[i].map((c) => (c == null ? "" : normalizeHeader(String(c))));
-    const hasId = norms.some((n) => n === "id");
-    const hasName = norms.some((n) => n.includes("nome") && n.includes("cliente"));
-    if (hasId && hasName) return i;
+  const limit = Math.min(rows.length, 25);
+  for (let i = 0; i < limit; i++) {
+    const headers = rows[i].map((c) => (c == null ? "" : String(c).trim()));
+    if (rowLooksLikeHeader(headers)) return i;
   }
   return -1;
 }
@@ -381,7 +441,7 @@ export async function importLeadsFromBuffer(
       errors: [
         {
           row: 0,
-          message: `A aba "${sheetUsed}" não possui cabeçalhos BASE_CRM (ID + Nome do cliente)`,
+          message: `A aba "${sheetUsed}" não possui cabeçalhos reconhecidos (modelo simples ou BASE_CRM)`,
         },
       ],
       created: [],
@@ -417,12 +477,13 @@ export async function importLeadsFromBuffer(
   }
 
   const headerIndex = buildHeaderIndex(Object.keys(rows[0]));
+  const headerIdx = findHeaderRowIndex(matrix);
   const userCache = new Map<string, string>();
   const phoneCache = new Map<string, string>();
   const lookupCache = new Map<string, string | null>();
 
   for (let i = 0; i < rows.length; i++) {
-    const rowNumber = i + 2;
+    const rowNumber = headerIdx + 2 + i;
     const raw = rows[i];
 
     const fields: Record<string, unknown> = {};
@@ -435,6 +496,12 @@ export async function importLeadsFromBuffer(
     if (!name) {
       report.skipped++;
       report.ignored.push({ row: rowNumber, message: "Nome do cliente ausente" });
+      continue;
+    }
+
+    const gradeResult = parseOpportunityGrade(fields.opportunityGrade);
+    if (gradeResult.error) {
+      report.errors.push({ row: rowNumber, name, message: gradeResult.error });
       continue;
     }
 
@@ -471,6 +538,7 @@ export async function importLeadsFromBuffer(
           responsavelId,
           firstContactId: responsavelId,
           salesStatusId: fechadoStatus ? fechadoStatus.id : salesStatusId,
+          ...(gradeResult.grade !== undefined ? { opportunityGrade: gradeResult.grade } : {}),
           notes: fields.notes ? String(fields.notes) : undefined,
           offeredAmount: parseDecimal(fields.offeredAmount as string | number | null),
           closedAmount: closed,
@@ -540,6 +608,7 @@ export async function importLeadsFromBuffer(
             name,
             phone,
             externalCode,
+            opportunityGrade: gradeResult.grade ?? null,
             notes: data.notes,
             offeredAmount: data.offeredAmount,
             closedAmount: data.closedAmount,
@@ -604,4 +673,24 @@ export async function importLeadsFromBuffer(
   report.skipped = report.ignored.length;
 
   return report;
+}
+
+const TEMPLATE_INSTRUCTION =
+  "Grau de oportunidade: informe Extremo, Alto, Médio ou Baixo.";
+const TEMPLATE_HEADERS = [
+  "Nome do cliente",
+  "Grau de oportunidade",
+  "Telefone",
+  "Observações",
+];
+
+export function buildLeadsImportTemplate(): Buffer {
+  const ws = XLSX.utils.aoa_to_sheet([
+    [TEMPLATE_INSTRUCTION, "", "", ""],
+    TEMPLATE_HEADERS,
+  ]);
+  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Leads");
+  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }

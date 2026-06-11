@@ -14,6 +14,7 @@ export const createLeadSchema = z.object({
   firstContactId: z.string().uuid().optional().nullable(),
   salesStatusId: z.string().uuid().optional(),
   salesStatusSlug: z.string().optional(),
+  opportunityGrade: z.enum(["BAIXO", "MEDIO", "ALTO", "EXTREMO"]).optional().nullable(),
   notes: z.string().optional(),
   offeredAmount: z.coerce.number().nonnegative().optional().nullable(),
   closedAmount: z.coerce.number().nonnegative().optional().nullable(),

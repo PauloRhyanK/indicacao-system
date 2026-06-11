@@ -171,6 +171,7 @@ export async function createLead(input: CreateLeadInput, createdById?: string) {
         firstContactId: data.firstContactId ?? undefined,
         createdById: createdById ?? undefined,
         salesStatusId,
+        opportunityGrade: data.opportunityGrade ?? undefined,
         notes: data.notes,
         offeredAmount: toDecimal(data.offeredAmount ?? undefined),
         closedAmount: toDecimal(data.closedAmount ?? undefined),
@@ -217,6 +218,7 @@ export async function updateLead(
         ...(data.coVendedorId !== undefined ? { coVendedorId: data.coVendedorId } : {}),
         ...(data.firstContactId !== undefined ? { firstContactId: data.firstContactId } : {}),
         ...(salesStatusId !== undefined ? { salesStatusId } : {}),
+        ...(data.opportunityGrade !== undefined ? { opportunityGrade: data.opportunityGrade } : {}),
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
         ...(data.offeredAmount !== undefined
           ? { offeredAmount: data.offeredAmount === null ? null : toDecimal(data.offeredAmount) }

@@ -8,7 +8,11 @@ import {
   postLead,
   removeLead,
 } from "../controllers/lead.controller.js";
-import { importLeads, previewImport } from "../controllers/import.controller.js";
+import {
+  downloadImportTemplate,
+  importLeads,
+  previewImport,
+} from "../controllers/import.controller.js";
 import { getPurchases, postPurchase } from "../controllers/purchase.controller.js";
 import { authenticate, loadPermissions, requirePermission } from "../middlewares/auth.js";
 
@@ -22,6 +26,11 @@ export async function leadRoutes(app: FastifyInstance) {
     getLeads,
   );
   app.post("/leads", { preHandler: [requirePermission("leads.create")] }, postLead);
+  app.get(
+    "/leads/import/template",
+    { preHandler: [requirePermission("leads.import")] },
+    downloadImportTemplate,
+  );
   app.post(
     "/leads/import/preview",
     { preHandler: [requirePermission("leads.import")] },

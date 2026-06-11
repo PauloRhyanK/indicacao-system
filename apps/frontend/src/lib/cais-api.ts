@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, getApiBaseUrl, getToken } from "@/lib/api/client";
 
 export interface LookupItem {
   id: string;
@@ -31,12 +31,29 @@ export interface LeadReferrer {
   name: string;
 }
 
+export type OpportunityGrade = "BAIXO" | "MEDIO" | "ALTO" | "EXTREMO";
+
+export const OPPORTUNITY_GRADE_LABELS: Record<OpportunityGrade, string> = {
+  BAIXO: "Baixo",
+  MEDIO: "Médio",
+  ALTO: "Alto",
+  EXTREMO: "Extremo",
+};
+
+export function formatOpportunityGrade(
+  grade: OpportunityGrade | null | undefined,
+): string {
+  if (!grade) return "—";
+  return OPPORTUNITY_GRADE_LABELS[grade];
+}
+
 export interface Lead {
   id: string;
   name: string;
   phone: string;
   external_code: string | null;
   salesStatus: LookupItem | null;
+  opportunity_grade: OpportunityGrade | null;
   notes: string | null;
   offered_amount: number | null;
   closed_amount: number | null;
@@ -299,6 +316,7 @@ interface ApiLead {
   name: string;
   phone?: string | null;
   salesStatus?: ApiLookup | null;
+  opportunityGrade?: OpportunityGrade | null;
   notes?: string | null;
   offeredAmount?: unknown | null;
   closedAmount?: unknown | null;
@@ -375,6 +393,7 @@ function mapLead(api: ApiLead): Lead {
     phone: api.phone ?? "",
     external_code: api.externalCode ?? null,
     salesStatus: mapLookup(api.salesStatus),
+    opportunity_grade: api.opportunityGrade ?? null,
     notes: api.notes ?? null,
     offered_amount: api.offeredAmount != null ? decimalToNumber(api.offeredAmount) : null,
     closed_amount: api.closedAmount != null ? decimalToNumber(api.closedAmount) : null,
@@ -743,6 +762,7 @@ export async function updateLead(
     name: string;
     phone: string;
     salesStatusSlug: string;
+    opportunityGrade: OpportunityGrade | null;
     notes: string;
     responsavelId: string | null;
     coVendedorId: string | null;
@@ -916,6 +936,33 @@ async function buildImportForm(
     form.append("mappings", JSON.stringify(mappings));
   }
   return form;
+}
+
+export async function downloadLeadsImportTemplate(): Promise<void> {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${getApiBaseUrl()}/leads/import/template`, { headers });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = `Erro HTTP ${res.status}`;
+    try {
+      const payload = JSON.parse(text) as { message?: string };
+      if (payload.message) message = payload.message;
+    } catch {
+      if (text) message = text;
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "modelo-leads.xlsx";
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function previewImportSheets(

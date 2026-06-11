@@ -10,6 +10,7 @@ import {
   formatBRL,
   formatDate,
   formatDateTime,
+  formatOpportunityGrade,
   isLeadClosed,
   type Lead,
   type LeadsPagination,
@@ -25,6 +26,7 @@ export interface LeadGridRow {
   created_by_name: string;
   status_name: string;
   status_slug: string | null;
+  opportunity_grade_label: string;
   offered_amount: number | null;
   closed_amount: number | null;
   assigned_name: string;
@@ -46,6 +48,7 @@ function toGridRow(lead: Lead, referrerLabel: Map<string, string>): LeadGridRow 
     created_by_name: lead.created_by?.name ?? "—",
     status_name: lead.salesStatus?.name ?? "Sem status",
     status_slug: lead.salesStatus?.slug ?? null,
+    opportunity_grade_label: formatOpportunityGrade(lead.opportunity_grade),
     offered_amount: lead.offered_amount,
     closed_amount: lead.closed_amount,
     assigned_name: lead.responsavel?.name ?? "—",
@@ -122,6 +125,11 @@ export function LeadsDataGrid({
             compact
           />
         ),
+      },
+      {
+        field: "opportunity_grade_label",
+        headerName: "Grau",
+        minWidth: 90,
       },
       {
         field: "offered_amount",

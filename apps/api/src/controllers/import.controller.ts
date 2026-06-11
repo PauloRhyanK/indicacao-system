@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import { badRequest } from "../utils/httpError.js";
 import type { ImportMappings } from "../services/domainResolver.service.js";
 import {
+  buildLeadsImportTemplate,
   importLeadsFromBuffer,
   previewWorkbookFromBuffer,
 } from "../services/leadImport.service.js";
@@ -44,6 +45,17 @@ async function parseUpload(
   }
 
   return { buffer, sheetName, mappings };
+}
+
+export async function downloadImportTemplate(_request: FastifyRequest, reply: FastifyReply) {
+  const buffer = buildLeadsImportTemplate();
+  return reply
+    .header(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    .header("Content-Disposition", 'attachment; filename="modelo-leads.xlsx"')
+    .send(buffer);
 }
 
 export async function previewImport(request: FastifyRequest, reply: FastifyReply) {

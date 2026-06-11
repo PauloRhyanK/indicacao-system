@@ -1,9 +1,10 @@
 import { useRef, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, AlertTriangle } from "lucide-react";
+import { Upload, AlertTriangle, Download } from "lucide-react";
 import { Button } from "./Button";
 import { inputClass } from "./SlideOver";
 import {
+  downloadLeadsImportTemplate,
   importLeadsFromExcel,
   previewImportSheets,
   fetchLookups,
@@ -129,6 +130,8 @@ export function ImportLeadsForm({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [mappingState, setMappingState] = useState<MappingState>({});
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateError, setTemplateError] = useState<string | null>(null);
 
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
@@ -219,8 +222,38 @@ export function ImportLeadsForm({
     );
   }
 
+  async function handleDownloadTemplate() {
+    setTemplateLoading(true);
+    setTemplateError(null);
+    try {
+      await downloadLeadsImportTemplate();
+    } catch (err) {
+      setTemplateError(err instanceof Error ? err.message : "Erro ao baixar modelo");
+    } finally {
+      setTemplateLoading(false);
+    }
+  }
+
   return (
     <div>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-[12px] text-slate-500">
+          Baixe o modelo com as colunas Nome, Grau, Telefone e Observações.
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={templateLoading}
+          onClick={() => void handleDownloadTemplate()}
+          className="shrink-0"
+        >
+          <Download className="h-4 w-4" />
+          {templateLoading ? "Baixando..." : "Baixar modelo"}
+        </Button>
+      </div>
+      {templateError && (
+        <p className="mb-3 text-[12px] text-red-600">{templateError}</p>
+      )}
       <input
         ref={inputRef}
         type="file"
@@ -257,7 +290,7 @@ export function ImportLeadsForm({
                 {sheet.isDefault ? " (sugerida)" : ""}
                 {sheet.hasValidHeaders
                   ? ` — ${sheet.dataRowCount} linhas, ${sheet.matchedColumns} colunas`
-                  : " — sem cabeçalho BASE_CRM"}
+                  : " — cabeçalho não reconhecido"}
               </option>
             ))}
           </select>

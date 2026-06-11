@@ -12,6 +12,13 @@ enum ReferrerType {
   LEAD
 }
 
+enum OpportunityGrade {
+  BAIXO
+  MEDIO
+  ALTO
+  EXTREMO
+}
+
 model User {
   id                  String    @id @default(uuid()) @db.Uuid
   name                String
@@ -121,7 +128,8 @@ model Lead {
   coVendedorId       String?   @map("co_vendedor_id") @db.Uuid
   createdById        String?   @map("created_by_id") @db.Uuid
   firstContactId     String?   @map("first_contact_id") @db.Uuid
-  salesStatusId      String?   @map("sales_status_id") @db.Uuid
+  salesStatusId      String?           @map("sales_status_id") @db.Uuid
+  opportunityGrade   OpportunityGrade? @map("opportunity_grade")
   notes              String?
   offeredAmount      Decimal?  @map("offered_amount") @db.Decimal(15, 2)
   closedAmount       Decimal?  @map("closed_amount") @db.Decimal(15, 2)
