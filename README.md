@@ -12,6 +12,7 @@ docker/
   docker-compose.dev.yml    # Postgres + pgAdmin (infra de dev)
   docker-compose.prod.yml   # Postgres + API + pgAdmin (subdomínio db.*)
 Doc/          # Documentação de produto e referências
+DOCUMENTACAO.md  # Mapa completo do sistema (módulos, API, RBAC, fluxos)
 ```
 
 ## Stack do backend
