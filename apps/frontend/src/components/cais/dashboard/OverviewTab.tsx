@@ -10,32 +10,23 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { getRouteApi } from "@tanstack/react-router";
 import { KPICard } from "@/components/cais/KPICard";
-import { Badge } from "@/components/cais/Badge";
 import { SectionHeader } from "@/components/cais/Feedback";
 import {
+  RecentSalesPanel,
+  SalesRankingPanel,
+} from "@/components/cais/dashboard/SalesPanels";
+import {
   fetchAllLeads,
-  fetchSales,
-  fetchProfiles,
-  fetchReferrals,
   fetchMetaPeriod,
   fetchDailyGoalToday,
   fetchLookups,
   formatBRL,
   isLeadClosed,
 } from "@/lib/cais-api";
-import { cn } from "@/lib/utils";
-
-const authenticatedRoute = getRouteApi("/_authenticated");
 
 export function OverviewTab() {
-  const { user } = authenticatedRoute.useRouteContext();
-
   const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads });
-  const sales = useQuery({ queryKey: ["sales"], queryFn: fetchSales });
-  const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
-  const referrals = useQuery({ queryKey: ["referrals"], queryFn: fetchReferrals });
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
   const dailyGoal = useQuery({ queryKey: ["daily-goal-today"], queryFn: fetchDailyGoalToday });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
@@ -73,34 +64,18 @@ export function OverviewTab() {
     }));
   }, [leads.data, lookups.data]);
 
-  const leaderboard = useMemo(() => {
-    const profs = profiles.data ?? [];
-    const refs = referrals.data ?? [];
-    const lds = leads.data ?? [];
-    const sls = sales.data ?? [];
-    const leadById = new Map(lds.map((l) => [l.id, l]));
-    const salesByLead = new Map<string, number>();
-    sls.forEach((s) =>
-      salesByLead.set(s.lead_id, (salesByLead.get(s.lead_id) ?? 0) + Number(s.sale_value)),
-    );
-    return profs
-      .map((p) => {
-        const mine = refs.filter(
-          (r) => r.referrer_type === "user" && r.referrer_user_id === p.id,
-        );
-        const indicated = mine.length;
-        const conv = mine.filter((r) => {
-          const lead = leadById.get(r.lead_id ?? "");
-          return lead && isLeadClosed(lead);
-        }).length;
-        const vol = mine.reduce(
-          (sum, r) => sum + (salesByLead.get(r.lead_id ?? "") ?? 0),
-          0,
-        );
-        return { id: p.id, name: p.name, indicated, conv, vol };
-      })
-      .sort((a, b) => b.conv - a.conv || b.vol - a.vol);
-  }, [profiles.data, referrals.data, leads.data, sales.data]);
+  const salesRanking = useMemo(
+    () =>
+      (dailyGoal.data?.salesRanking ?? []).map((r) => ({
+        position: r.position,
+        name: r.name,
+        total: r.total,
+        count: r.count,
+      })),
+    [dailyGoal.data?.salesRanking],
+  );
+
+  const recentSales = dailyGoal.data?.recentSales ?? [];
 
   return (
     <>
@@ -202,68 +177,9 @@ export function OverviewTab() {
         </div>
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-branco p-5">
-        <SectionHeader>Top Indicadores do Mês</SectionHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-slate-100">
-                {["Rank", "Nome", "Leads Indicados", "Convertidos", "Volume Gerado"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-3 py-2.5 text-left text-[12px] font-semibold uppercase tracking-[0.3px] text-azul-profundo"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((row, i) => {
-                const isMe = row.id === user.id;
-                return (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      "transition-colors hover:bg-slate-50",
-                      isMe && "bg-ouro/10 ring-1 ring-inset ring-ouro/40",
-                    )}
-                  >
-                    <td className="border-b border-slate-200 px-3 py-2.5 text-[13px]">
-                      {i === 0 ? (
-                        <Badge variant="gold">🏅 #1</Badge>
-                      ) : (
-                        <Badge variant={isMe ? "gold" : "gray"}>#{i + 1}</Badge>
-                      )}
-                    </td>
-                    <td
-                      className={cn(
-                        "border-b border-slate-200 px-3 py-2.5 text-[13px] font-medium",
-                        isMe ? "text-azul-profundo" : "text-azul-profundo",
-                      )}
-                    >
-                      {row.name}
-                      {isMe && (
-                        <span className="ml-2 text-[11px] font-normal text-ouro-escuro">(você)</span>
-                      )}
-                    </td>
-                    <td className="border-b border-slate-200 px-3 py-2.5 text-[13px] tabular-nums">
-                      {row.indicated}
-                    </td>
-                    <td className="border-b border-slate-200 px-3 py-2.5 text-[13px] tabular-nums">
-                      {row.conv}
-                    </td>
-                    <td className="border-b border-slate-200 px-3 py-2.5 text-[13px] tabular-nums">
-                      {formatBRL(row.vol)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <SalesRankingPanel title="Ranking Geral" entries={salesRanking} />
+        <RecentSalesPanel sales={recentSales} />
       </div>
     </>
   );
