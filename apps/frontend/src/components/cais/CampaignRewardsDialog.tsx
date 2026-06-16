@@ -9,6 +9,7 @@ import {
   CLIENT_CHOICE_LABELS,
   fetchPurchaseCampaignRewards,
   formatBRL,
+  generatePurchaseCampaignRewards,
   REWARD_TYPE_LABELS,
   updateCampaignReward,
   type CampaignReward,
@@ -187,6 +188,14 @@ export function CampaignRewardsDialog({
     },
   });
 
+  const generateMutation = useMutation({
+    mutationFn: () => generatePurchaseCampaignRewards(purchaseId!),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
+      void detail.refetch();
+    },
+  });
+
   if (!open || !purchaseId) return null;
 
   const summary: PurchaseRewardsSummary | undefined = detail.data;
@@ -236,10 +245,22 @@ export function CampaignRewardsDialog({
           ) : detail.isError ? (
             <p className="text-[13px] text-status-red">Não foi possível carregar as recompensas.</p>
           ) : !summary?.rewardsGenerated ? (
-            <p className="text-[13px] text-slate-500">
-              Recompensas ainda não geradas para esta venda. Use o backfill na página ou registre uma
-              nova venda.
-            </p>
+            <div className="space-y-3">
+              <p className="text-[13px] text-slate-500">
+                Recompensas ainda não geradas para esta venda (comum em vendas importadas antes da
+                campanha).
+              </p>
+              {canManage && (
+                <Button
+                  type="button"
+                  variant="gold"
+                  disabled={generateMutation.isPending}
+                  onClick={() => generateMutation.mutate()}
+                >
+                  {generateMutation.isPending ? "Gerando..." : "Gerar recompensas"}
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="space-y-5">
               {summary.staleCount > 0 && (

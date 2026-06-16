@@ -16,6 +16,7 @@ import {
   type UserImportMappings,
 } from "./userResolver.service.js";
 import type { ImportReport, SheetInfo } from "./leadImport.service.js";
+import { generateRewardsForPurchase } from "./campaignReward.service.js";
 
 export type ConsortiumSection = "imobiliario" | "veiculo";
 
@@ -294,6 +295,7 @@ export async function importConsorcioFromBuffer(
 
   const userCache = new Map<string, string | null>();
   const processedKeys = new Set<string>();
+  const purchaseIdsForRewards: string[] = [];
   const resolveCtx: ResolveUserContext = {
     createdUsers: new Map(),
     aliasAccumulator: new Map(),
@@ -389,6 +391,8 @@ export async function importConsorcioFromBuffer(
             select: { id: true },
           });
 
+          purchaseIdsForRewards.push(purchase.id);
+
           await incrementCurrentGoal(amount, tx);
 
           report.imported += 1;
@@ -424,6 +428,8 @@ export async function importConsorcioFromBuffer(
           select: { id: true },
         });
 
+        purchaseIdsForRewards.push(purchase.id);
+
         await incrementCurrentGoal(amount, tx);
 
         report.imported += 1;
@@ -450,6 +456,14 @@ export async function importConsorcioFromBuffer(
   const createdUsers = buildCreatedUsersReport(resolveCtx);
   if (createdUsers.length > 0) {
     report.createdUsers = createdUsers;
+  }
+
+  for (const purchaseId of purchaseIdsForRewards) {
+    try {
+      await generateRewardsForPurchase(purchaseId);
+    } catch {
+      // recompensas podem ser geradas depois via backfill
+    }
   }
 
   return report;

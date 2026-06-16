@@ -12,6 +12,7 @@ import {
   type UnknownValues,
 } from "./domainResolver.service.js";
 import { activeLeadWhere } from "../utils/softDelete.js";
+import { generateRewardsForPurchase } from "./campaignReward.service.js";
 
 export interface ImportRowDetail {
   row: number;
@@ -481,6 +482,7 @@ export async function importLeadsFromBuffer(
   const userCache = new Map<string, string>();
   const phoneCache = new Map<string, string>();
   const lookupCache = new Map<string, string | null>();
+  const purchaseIdsForRewards: string[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const rowNumber = headerIdx + 2 + i;
@@ -644,9 +646,10 @@ export async function importLeadsFromBuffer(
 
         if (closed && closed.greaterThan(0)) {
           const purchaseDate = parseDate(fields.updatedAt as string | number | null) ?? new Date();
-          await tx.purchase.create({
+          const purchase = await tx.purchase.create({
             data: { leadId, responsavelId, amount: closed, purchaseDate },
           });
+          purchaseIdsForRewards.push(purchase.id);
 
           const now = new Date();
           const goal = await tx.goal.findFirst({
@@ -671,6 +674,14 @@ export async function importLeadsFromBuffer(
   report.imported = report.created.length;
   report.updated = report.updates.length;
   report.skipped = report.ignored.length;
+
+  for (const purchaseId of purchaseIdsForRewards) {
+    try {
+      await generateRewardsForPurchase(purchaseId);
+    } catch {
+      // recompensas podem ser geradas depois via backfill
+    }
+  }
 
   return report;
 }

@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Gift, Network } from "lucide-react";
+import { Network } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Badge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
@@ -24,7 +24,6 @@ export const Route = createFileRoute("/_authenticated/indicacoes")({
 });
 
 function IndicacoesPage() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const { can } = usePermissions();
   const canManageRewards = can("rewards.manage");
@@ -41,7 +40,7 @@ function IndicacoesPage() {
     queryFn: () =>
       fetchCampaignRewards({
         limit: 100,
-        includeWithoutRewards: false,
+        includeWithoutRewards: true,
       }),
   });
 
@@ -63,10 +62,6 @@ function IndicacoesPage() {
 
   const items = list.data?.items ?? [];
   const backfillRemaining = list.data?.backfillRemaining ?? 0;
-
-  function goToLead(leadId: string) {
-    void navigate({ to: "/leads/$id", params: { id: leadId } });
-  }
 
   return (
     <AppLayout>
@@ -98,12 +93,8 @@ function IndicacoesPage() {
         <PageLoader />
       ) : items.length === 0 ? (
         <EmptyState
-          title="Nenhuma recompensa"
-          message={
-            backfillRemaining > 0
-              ? "Gere as recompensas das vendas existentes para começar o controle."
-              : "As recompensas aparecerão aqui quando houver vendas registradas."
-          }
+          title="Nenhuma venda"
+          message="As recompensas aparecerão aqui quando houver vendas registradas."
         />
       ) : (
         <div className="overflow-x-auto rounded-md border border-slate-200 bg-branco">
@@ -114,16 +105,15 @@ function IndicacoesPage() {
                 <Th>Lead</Th>
                 <Th>Valor</Th>
                 <Th>Data</Th>
-                <Th>Indicador</Th>
+                <Th>Indicado por</Th>
                 <Th>Recompensas</Th>
-                <Th className="w-28" />
               </tr>
             </thead>
             <tbody>
               {items.map((row) => (
                 <tr
                   key={row.purchaseId}
-                  onClick={() => goToLead(row.leadId)}
+                  onClick={() => setRewardsPurchaseId(row.purchaseId)}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
                 >
                   <td className="border-b border-slate-200 px-2 py-2.5">
@@ -160,26 +150,19 @@ function IndicacoesPage() {
                   </td>
                   <td className="border-b border-slate-200 px-3 py-2.5">
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant={row.pendingCount === 0 ? "green" : "amber"}>
-                        {row.paidCount}/{row.totalRewards} pagos
-                      </Badge>
-                      {row.staleCount > 0 && (
-                        <Badge variant="amber">Revisar</Badge>
+                      {!row.rewardsGenerated ? (
+                        <Badge variant="amber">Não geradas</Badge>
+                      ) : (
+                        <>
+                          <Badge variant={row.pendingCount === 0 ? "green" : "amber"}>
+                            {row.paidCount}/{row.totalRewards} pagos
+                          </Badge>
+                          {row.staleCount > 0 && (
+                            <Badge variant="amber">Revisar</Badge>
+                          )}
+                        </>
                       )}
                     </div>
-                  </td>
-                  <td className="border-b border-slate-200 px-2 py-2.5">
-                    <button
-                      type="button"
-                      title="Gerenciar recompensas"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-azul-medio hover:bg-ouro/15 hover:text-azul-profundo"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRewardsPurchaseId(row.purchaseId);
-                      }}
-                    >
-                      <Gift className="h-4 w-4" />
-                    </button>
                   </td>
                 </tr>
               ))}

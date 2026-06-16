@@ -1037,6 +1037,16 @@ export async function backfillCampaignRewards(
   });
 }
 
+export async function generatePurchaseCampaignRewards(
+  purchaseId: string,
+): Promise<PurchaseRewardsSummary> {
+  const res = await apiFetch<{ data: PurchaseRewardsSummary }>(
+    `/purchases/${purchaseId}/campaign-rewards/backfill`,
+    { method: "POST" },
+  );
+  return mapPurchaseRewardsSummary(res.data);
+}
+
 export interface ImportRowDetail {
   row: number;
   name: string;
