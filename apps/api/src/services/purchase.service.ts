@@ -6,6 +6,11 @@ import { findBySlug } from "./lookup.service.js";
 import type { DeletePurchaseInput, UpdatePurchaseInput } from "../schemas/purchase.schema.js";
 import { getBonusChain } from "./bonusChain.service.js";
 import {
+  cancelRewardsOnPurchaseDelete,
+  generateRewardsForPurchase,
+  syncRewardsOnPurchaseUpdate,
+} from "./campaignReward.service.js";
+import {
   findConsortiumTypeById,
   findConsortiumTypeBySlug,
 } from "./consortiumType.service.js";
@@ -83,6 +88,7 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
   });
 
   const bonus = await getBonusChain(leadId);
+  await generateRewardsForPurchase(purchase.id);
 
   return {
     purchase,
@@ -161,6 +167,17 @@ export async function updatePurchase(purchaseId: string, input: UpdatePurchaseIn
       await incrementCurrentGoalAtDate(nextAmount, nextDate, tx);
     }
 
+    const updated = await tx.purchase.update({
+      where: { id: purchaseId },
+      data: {
+        ...(input.purchaseDate !== undefined ? { purchaseDate: nextDate } : {}),
+        ...(input.boletoPaid !== undefined ? { boletoPaid: nextBoletoPaid } : {}),
+        ...(amountChanged ? { amount: nextAmount } : {}),
+        ...(consortiumChanged ? { consortiumTypeId: nextConsortiumTypeId } : {}),
+      },
+      include: purchaseInclude,
+    });
+
     if (amountChanged) {
       const lead = await tx.lead.findFirst({
         where: { id: purchase.leadId, ...activeLeadWhere },
@@ -179,16 +196,18 @@ export async function updatePurchase(purchaseId: string, input: UpdatePurchaseIn
       }
     }
 
-    return tx.purchase.update({
-      where: { id: purchaseId },
-      data: {
-        ...(input.purchaseDate !== undefined ? { purchaseDate: nextDate } : {}),
-        ...(input.boletoPaid !== undefined ? { boletoPaid: nextBoletoPaid } : {}),
-        ...(amountChanged ? { amount: nextAmount } : {}),
-        ...(consortiumChanged ? { consortiumTypeId: nextConsortiumTypeId } : {}),
-      },
-      include: purchaseInclude,
-    });
+    return updated;
+  }).then(async (updated) => {
+    let stalePaidCount = 0;
+    if (amountChanged) {
+      const sync = await syncRewardsOnPurchaseUpdate(
+        purchaseId,
+        purchase.amount,
+        nextAmount,
+      );
+      stalePaidCount = sync.stalePaidCount;
+    }
+    return { purchase: updated, stalePaidCount };
   });
 }
 
@@ -251,5 +270,6 @@ export async function deletePurchase(purchaseId: string, input: DeletePurchaseIn
     });
 
     await decrementGoalAtDate(purchase.amount, purchase.createdAt, tx);
+    await cancelRewardsOnPurchaseDelete(purchaseId);
   });
 }

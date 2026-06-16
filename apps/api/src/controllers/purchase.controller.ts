@@ -33,8 +33,8 @@ export async function getAllPurchases(_request: FastifyRequest, reply: FastifyRe
 export async function patchPurchase(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const input = updatePurchaseSchema.parse(request.body);
-  const purchase = await updatePurchase(id, input);
-  return reply.send({ data: purchase });
+  const result = await updatePurchase(id, input);
+  return reply.send({ data: result.purchase, stalePaidRewards: result.stalePaidCount });
 }
 
 export async function removePurchase(request: FastifyRequest, reply: FastifyReply) {

@@ -8,6 +8,7 @@ import { referralRoutes } from "./referral.routes.js";
 import { purchaseRoutes } from "./purchase.routes.js";
 import { settingsRoutes } from "./settings.routes.js";
 import { dashboardRoutes } from "./dashboard.routes.js";
+import { campaignRewardRoutes } from "./campaignReward.routes.js";
 import { roleRoutes } from "./role.routes.js";
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -21,4 +22,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(goalRoutes);
   await app.register(referralRoutes);
   await app.register(purchaseRoutes);
+  await app.register(campaignRewardRoutes);
 }
