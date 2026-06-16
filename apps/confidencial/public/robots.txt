@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# Ambiente confidencial — não indexar
+# https://confidencial.caisinvestimentos.com.br

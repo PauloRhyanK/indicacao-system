@@ -5,7 +5,8 @@ export function renderErrorPage(): string {
     <meta charset="utf-8" />
     <title>CAIS Confidencial — Erro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
     <style>
       body { font: 15px/1.5 system-ui, sans-serif; background: #fafafa; color: #111; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
       .card { max-width: 28rem; width: 100%; text-align: center; padding: 2rem; }

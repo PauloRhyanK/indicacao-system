@@ -39,3 +39,5 @@ docker/data/
 # Uploads temporários
 uploads/
 tmp/
+
+.vercel

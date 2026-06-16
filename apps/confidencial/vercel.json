@@ -4,5 +4,16 @@
     "ENABLE_EXPERIMENTAL_COREPACK": "1"
   },
   "installCommand": "corepack enable && corepack prepare pnpm@9.12.0 --activate && pnpm install --frozen-lockfile",
-  "buildCommand": "corepack pnpm build"
+  "buildCommand": "corepack pnpm build",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive, nosnippet, noimageindex, notranslate"
+        }
+      ]
+    }
+  ]
 }
