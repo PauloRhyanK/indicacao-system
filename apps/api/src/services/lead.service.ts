@@ -230,6 +230,13 @@ export async function updateLead(
       include: leadInclude,
     });
 
+    if (data.responsavelId !== undefined) {
+      await tx.purchase.updateMany({
+        where: { leadId: id, deletedAt: null },
+        data: { responsavelId: data.responsavelId },
+      });
+    }
+
     if (referrer === null) {
       await tx.referral.deleteMany({ where: { referredLeadId: id } });
     } else if (referrer) {

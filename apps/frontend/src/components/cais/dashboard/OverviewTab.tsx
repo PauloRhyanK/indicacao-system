@@ -28,7 +28,11 @@ import {
 export function OverviewTab() {
   const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads });
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
-  const dailyGoal = useQuery({ queryKey: ["daily-goal-today"], queryFn: fetchDailyGoalToday });
+  const dailyGoal = useQuery({
+    queryKey: ["daily-goal-today"],
+    queryFn: fetchDailyGoalToday,
+    refetchInterval: 30_000,
+  });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   const [progressW, setProgressW] = useState(0);

@@ -249,6 +249,7 @@ export interface ApiPurchase {
   boletoPaid?: boolean;
   createdAt: string;
   consortiumType?: ApiLookup | null;
+  responsavel?: ApiAssignedUser | null;
   lead?: {
     id: string;
     name: string;
@@ -446,7 +447,7 @@ function mapSale(api: ApiPurchase): Sale {
     sold_at: api.purchaseDate,
     boleto_paid: api.boletoPaid ?? false,
     commercial: {
-      responsavel: mapUserRef(lead?.responsavel),
+      responsavel: mapUserRef(api.responsavel) ?? mapUserRef(lead?.responsavel),
       co_vendedor: mapUserRef(lead?.coVendedor),
       external_code: lead?.externalCode ?? null,
     },

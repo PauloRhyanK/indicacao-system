@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { notFound } from "../utils/httpError.js";
-import { dayBoundsBusiness, resolveDailyTarget } from "./dailyGoal.service.js";
+import { dayBoundsBusiness, periodBoundsBusiness, resolveDailyTarget } from "./dailyGoal.service.js";
 import { getCurrentGoal } from "./goal.service.js";
 import { activeLeadWhere, activeUserWhere } from "../utils/softDelete.js";
 
@@ -25,8 +25,8 @@ async function personalSalesInRange(userId: string, start: Date, end: Date) {
   const agg = await prisma.purchase.aggregate({
     where: {
       ...activePurchaseLead,
+      responsavelId: userId,
       purchaseDate: { gte: start, lt: end },
-      lead: { deletedAt: null, responsavelId: userId },
     },
     _sum: { amount: true },
   });
@@ -47,6 +47,7 @@ async function computeStreak(userId: string): Promise<number> {
 }
 
 async function computeRanking(userId: string, periodStart: Date, periodEnd: Date) {
+  const { start, end } = periodBoundsBusiness(periodStart, periodEnd);
   const users = await prisma.user.findMany({
     where: activeUserWhere,
     select: { id: true },
@@ -57,8 +58,8 @@ async function computeRanking(userId: string, periodStart: Date, periodEnd: Date
       vol: await prisma.purchase.aggregate({
         where: {
           ...activePurchaseLead,
-          purchaseDate: { gte: periodStart, lt: periodEnd },
-          lead: { deletedAt: null, responsavelId: u.id },
+          responsavelId: u.id,
+          purchaseDate: { gte: start, lt: end },
         },
         _sum: { amount: true },
       }),
@@ -139,8 +140,8 @@ export async function getPersonalDashboard(userId: string) {
     prisma.purchase.findMany({
       where: {
         ...activePurchaseLead,
+        responsavelId: userId,
         purchaseDate: { gte: todayStart, lt: todayEnd },
-        lead: { deletedAt: null, responsavelId: userId },
       },
       orderBy: { purchaseDate: "desc" },
       include: {
@@ -151,7 +152,7 @@ export async function getPersonalDashboard(userId: string) {
     prisma.purchase.findMany({
       where: {
         ...activePurchaseLead,
-        lead: { deletedAt: null, responsavelId: userId },
+        responsavelId: userId,
       },
       orderBy: { purchaseDate: "desc" },
       take: 20,

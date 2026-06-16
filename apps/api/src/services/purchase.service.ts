@@ -14,6 +14,7 @@ import { activeLeadWhere, activePurchaseWhere } from "../utils/softDelete.js";
 
 const purchaseInclude = {
   consortiumType: true,
+  responsavel: { select: { id: true, name: true } },
   lead: {
     select: {
       id: true,
@@ -43,7 +44,7 @@ async function resolveConsortiumTypeId(input: CreatePurchaseInput): Promise<stri
 export async function registerPurchase(leadId: string, input: CreatePurchaseInput) {
   const lead = await prisma.lead.findFirst({
     where: { id: leadId, ...activeLeadWhere },
-    select: { id: true, closedAmount: true },
+    select: { id: true, closedAmount: true, responsavelId: true },
   });
   if (!lead) throw notFound("Lead não encontrado");
 
@@ -55,6 +56,7 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
     const created = await tx.purchase.create({
       data: {
         leadId,
+        responsavelId: lead.responsavelId,
         amount,
         purchaseDate: input.purchaseDate,
         consortiumTypeId,

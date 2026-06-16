@@ -23,6 +23,8 @@ export function AssignResponsavelDialog({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["lead", leadId] });
+      qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
+      qc.invalidateQueries({ queryKey: ["personal-dashboard"] });
       onClose();
     },
   });

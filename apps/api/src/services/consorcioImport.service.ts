@@ -381,6 +381,7 @@ export async function importConsorcioFromBuffer(
           const purchase = await tx.purchase.create({
             data: {
               leadId: lead.id,
+              responsavelId,
               amount,
               purchaseDate: options.purchaseDate,
               consortiumTypeId,
@@ -415,6 +416,7 @@ export async function importConsorcioFromBuffer(
         const purchase = await tx.purchase.create({
           data: {
             leadId: lead.id,
+            responsavelId,
             amount,
             purchaseDate: options.purchaseDate,
             consortiumTypeId,

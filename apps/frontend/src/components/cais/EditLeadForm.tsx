@@ -132,6 +132,8 @@ export function EditLeadForm({
       qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["leads-all"] });
       qc.invalidateQueries({ queryKey: ["referrals"] });
+      qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
+      qc.invalidateQueries({ queryKey: ["personal-dashboard"] });
       onClose();
     },
   });

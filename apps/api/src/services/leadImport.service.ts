@@ -645,7 +645,7 @@ export async function importLeadsFromBuffer(
         if (closed && closed.greaterThan(0)) {
           const purchaseDate = parseDate(fields.updatedAt as string | number | null) ?? new Date();
           await tx.purchase.create({
-            data: { leadId, amount: closed, purchaseDate },
+            data: { leadId, responsavelId, amount: closed, purchaseDate },
           });
 
           const now = new Date();

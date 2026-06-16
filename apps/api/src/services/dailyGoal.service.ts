@@ -4,6 +4,7 @@ import { badRequest, notFound } from "../utils/httpError.js";
 import { getCurrentGoal } from "./goal.service.js";
 import type { UpsertDailyDefaultsInput } from "../schemas/dailyGoal.schema.js";
 import { DAILY_PRESET_SLUGS } from "../schemas/dailyGoal.schema.js";
+import { activeUserWhere } from "../utils/softDelete.js";
 
 export const DAILY_PRESETS = {
   normal: { label: "Dia normal", multiplier: 1 },
@@ -40,6 +41,13 @@ export function dayBoundsBusiness(date: Date) {
   const { y, m, d } = calendarPartsInTz(date);
   const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
   const end = new Date(Date.UTC(y, m - 1, d + 1, 3, 0, 0, 0));
+  return { start, end };
+}
+
+/** Início do primeiro dia e fim exclusivo do último dia do período (fuso SP). */
+export function periodBoundsBusiness(startDate: Date, endDate: Date) {
+  const { start } = dayBoundsBusiness(startDate);
+  const { end } = dayBoundsBusiness(endDate);
   return { start, end };
 }
 
@@ -190,29 +198,29 @@ export async function resolveDailyTarget(date: Date) {
 }
 
 async function getPeriodSalesRanking(start: Date, end: Date) {
+  const { start: periodStart, end: periodEnd } = periodBoundsBusiness(start, end);
+
   const purchases = await prisma.purchase.findMany({
     where: {
       deletedAt: null,
-      lead: { deletedAt: null },
-      purchaseDate: { gte: start, lte: end },
+      responsavelId: { not: null },
+      purchaseDate: { gte: periodStart, lt: periodEnd },
+      responsavel: activeUserWhere,
     },
     select: {
       amount: true,
-      lead: {
-        select: {
-          responsavel: { select: { id: true, name: true } },
-        },
-      },
+      responsavelId: true,
+      responsavel: { select: { id: true, name: true } },
     },
   });
 
   const totals = new Map<string, { userId: string; name: string; total: number; count: number }>();
 
   for (const p of purchases) {
-    const seller = p.lead.responsavel;
-    if (!seller) continue;
+    const seller = p.responsavel;
+    if (!seller || !p.responsavelId) continue;
 
-    const entry = totals.get(seller.id) ?? {
+    const entry = totals.get(p.responsavelId) ?? {
       userId: seller.id,
       name: seller.name,
       total: 0,
@@ -220,7 +228,7 @@ async function getPeriodSalesRanking(start: Date, end: Date) {
     };
     entry.total += decimalToNumber(p.amount);
     entry.count += 1;
-    totals.set(seller.id, entry);
+    totals.set(p.responsavelId, entry);
   }
 
   return [...totals.values()]
@@ -248,6 +256,7 @@ export async function getDailyTodaySummary() {
       orderBy: { purchaseDate: "desc" },
       take: 10,
       include: {
+        responsavel: { select: { name: true } },
         lead: {
           select: {
             name: true,
@@ -288,7 +297,7 @@ export async function getDailyTodaySummary() {
     recentSales: recentPurchases.map((p) => ({
       id: p.id,
       leadName: p.lead.name,
-      sellerName: p.lead.responsavel?.name ?? "Equipe CAIS",
+      sellerName: p.responsavel?.name ?? p.lead.responsavel?.name ?? "Equipe CAIS",
       saleValue: decimalToNumber(p.amount),
       soldAt: p.purchaseDate.toISOString(),
     })),
