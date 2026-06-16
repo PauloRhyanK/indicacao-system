@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Network } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Network, X } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Badge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
@@ -9,14 +9,22 @@ import { CampaignRewardsDialog } from "@/components/cais/CampaignRewardsDialog";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
 import { PendingRewardsPanel } from "@/components/cais/PendingRewardsPanel";
 import { ReferralChainDialog } from "@/components/cais/ReferralChainDialog";
+import { RewardsFiltersBar } from "@/components/cais/RewardsFiltersBar";
 import {
   backfillCampaignRewards,
   fetchBonusChain,
   fetchCampaignRewards,
+  fetchMetaPeriod,
   formatBRL,
   formatDate,
 } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
+import {
+  defaultRewardsFilters,
+  filterRewardItems,
+  useRewardsFilterSummary,
+  type RewardsFiltersState,
+} from "@/lib/useRewardsFilters";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/indicacoes")({
@@ -37,6 +45,7 @@ function IndicacoesPage() {
     name: string;
     phone: string;
   } | null>(null);
+  const [filters, setFilters] = useState<RewardsFiltersState>(() => defaultRewardsFilters());
 
   const list = useQuery({
     queryKey: ["campaign-rewards-list"],
@@ -57,6 +66,8 @@ function IndicacoesPage() {
       }),
     enabled: canManageRewards,
   });
+
+  const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
 
   const bonusChain = useQuery({
     queryKey: ["bonus-chain", chainLead?.id],
@@ -94,6 +105,23 @@ function IndicacoesPage() {
   const items = list.data?.items ?? [];
   const backfillRemaining = list.data?.backfillRemaining ?? 0;
   const pendingCount = pendingSummary.data?.pagination.total ?? 0;
+
+  const filteredItems = useMemo(
+    () => filterRewardItems(items, filters, meta.data),
+    [items, filters, meta.data],
+  );
+
+  const summary = useRewardsFilterSummary(items, filteredItems);
+
+  const hasActiveFilters =
+    filters.search.trim() !== "" ||
+    filters.payment !== "all" ||
+    filters.referral !== "all" ||
+    filters.period !== "period";
+
+  const patchFilters = (patch: Partial<RewardsFiltersState>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+  };
 
   function exitRewardQueue() {
     setRewardQueue(null);
@@ -156,6 +184,23 @@ function IndicacoesPage() {
         </div>
       )}
 
+      <div className="mb-4 rounded-md border border-slate-200 bg-branco p-4">
+        <RewardsFiltersBar filters={filters} onChange={patchFilters} />
+      </div>
+
+      {hasActiveFilters && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-[12px] text-slate-500">Filtros ativos</span>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-[12px] text-slate-500 hover:text-azul-profundo"
+            onClick={() => setFilters(defaultRewardsFilters())}
+          >
+            <X className="h-3 w-3" /> Limpar filtros
+          </button>
+        </div>
+      )}
+
       {list.isLoading ? (
         <PageLoader />
       ) : items.length === 0 ? (
@@ -163,8 +208,20 @@ function IndicacoesPage() {
           title="Nenhuma venda"
           message="As recompensas aparecerão aqui quando houver vendas registradas."
         />
+      ) : filteredItems.length === 0 ? (
+        <EmptyState
+          title="Nenhum resultado"
+          message="Ajuste os filtros ou a busca para encontrar vendas com recompensas."
+        />
       ) : (
-        <div className="overflow-x-auto rounded-md border border-slate-200 bg-branco">
+        <div className="overflow-hidden rounded-md border border-slate-200 bg-branco">
+          <p className="border-b border-slate-200 px-4 py-2.5 text-[12px] text-slate-500">
+            Mostrando {summary.count} de {summary.total} vendas — {formatBRL(summary.volume)}
+            {summary.pending > 0
+              ? ` · ${summary.pending} com recompensas pendentes`
+              : ""}
+          </p>
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-slate-100">
@@ -177,7 +234,7 @@ function IndicacoesPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((row) => (
+              {filteredItems.map((row) => (
                 <tr
                   key={row.purchaseId}
                   onClick={() => openPurchaseModal(row.purchaseId)}
@@ -238,6 +295,7 @@ function IndicacoesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
