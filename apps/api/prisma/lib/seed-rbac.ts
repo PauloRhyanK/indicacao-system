@@ -28,6 +28,16 @@ const PERMISSIONS_CATALOG = [
   { key: "users.manage", label: "Gerenciar usuários", groupName: "Administração" },
   { key: "roles.manage", label: "Gerenciar papéis", groupName: "Administração" },
   { key: "settings.manage", label: "Gerenciar domínios do sistema", groupName: "Administração" },
+  {
+    key: "rj.view",
+    label: "Ver condomínio de credores (RJ)",
+    groupName: "Recuperacao Judicial",
+  },
+  {
+    key: "rj.manage",
+    label: "Gerenciar condomínio de credores (RJ)",
+    groupName: "Recuperacao Judicial",
+  },
 ] as const;
 
 const COLABORADOR_PERMISSION_KEYS = [

@@ -272,3 +272,33 @@ model MetaDailyOverride {
 
   @@map("meta_daily_overrides")
 }
+
+model RjCredor {
+  id        String    @id @default(uuid()) @db.Uuid
+  nome      String
+  sujeito   Boolean   @default(true)
+  classe    String?
+  motivo    String?
+  valor     Decimal   @default(0) @db.Decimal(15, 2)
+  status    String    @default("juridico")
+  contato   String    @default("")
+  passo     String    @default("")
+  retorno   DateTime? @db.Date
+  obs       String    @default("")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([deletedAt])
+  @@index([status])
+  @@index([sujeito])
+  @@map("rj_credores")
+}
+
+model RjConfig {
+  id        String   @id @default("singleton")
+  passivo   Decimal  @default(0) @db.Decimal(15, 2)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("rj_config")
+}

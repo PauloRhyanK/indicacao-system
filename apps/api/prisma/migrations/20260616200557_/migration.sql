@@ -1,0 +1,23 @@
+-- AlterTable
+ALTER TABLE "consortium_types" ALTER COLUMN "id" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "goals" ALTER COLUMN "id" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "lead_statuses" ALTER COLUMN "id" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "leads" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "deleted_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "purchases" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "deleted_at" SET DATA TYPE TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "referrals" ALTER COLUMN "id" DROP DEFAULT;
+
+-- AlterTable
+ALTER TABLE "users" ALTER COLUMN "id" DROP DEFAULT,
+ALTER COLUMN "deleted_at" SET DATA TYPE TIMESTAMP(3);

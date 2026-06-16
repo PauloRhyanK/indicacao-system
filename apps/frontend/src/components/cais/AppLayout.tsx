@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   ShoppingCart,
+  Scale,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
 import { usePermissions } from "@/lib/use-permissions";
@@ -20,6 +21,7 @@ const navItems = [
   { to: "/leads", label: "Leads", icon: Users, permission: ["leads.view_all", "leads.view_own"] as const },
   { to: "/vendas", label: "Registrar Venda", icon: ShoppingCart, permission: ["sales.create"] as const },
   { to: "/indicacoes", label: "Indicações", icon: Network, permission: ["leads.view_all", "leads.view_own"] as const },
+  { to: "/rj/credores", label: "Credores MG2", icon: Scale, permission: ["rj.view"] as const },
   { to: "/configuracoes", label: "Configurações", icon: Settings, permission: null },
 ] as const;
 

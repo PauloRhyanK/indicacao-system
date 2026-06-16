@@ -1358,3 +1358,172 @@ export async function requireUserPasswordSetup(
   );
   return res.data;
 }
+
+// ——— Recuperação Judicial (credores MG2) ———
+
+export type RjStatus =
+  | "confirmado"
+  | "juridico"
+  | "negociacao"
+  | "semcontato"
+  | "recusou";
+
+export type RjClasse = "I" | "II" | "III" | "IV";
+
+export type RjMotivo =
+  | "fiduciaria"
+  | "leasing"
+  | "reserva"
+  | "acc"
+  | "extra"
+  | "outro";
+
+export interface RjCredor {
+  id: string;
+  nome: string;
+  sujeito: boolean;
+  classe: RjClasse | null;
+  motivo: RjMotivo | null;
+  valor: number;
+  status: RjStatus;
+  contato: string;
+  passo: string;
+  retorno: string | null;
+  obs: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RjKpis {
+  count: number;
+  votam: number;
+  foraCount: number;
+  confCount: number;
+  confPct: number | null;
+  votoTotal: number;
+  votoConf: number;
+  votoConfCount: number;
+  foraTotal: number;
+}
+
+export interface RjClassAgg {
+  valor: number;
+  count: number;
+}
+
+export interface RjClasses {
+  I: RjClassAgg;
+  II: RjClassAgg;
+  III: RjClassAgg;
+  IV: RjClassAgg;
+  fora: RjClassAgg;
+}
+
+export interface RjConfig {
+  passivo: number;
+  updated_at: string;
+}
+
+export interface RjRepresentatividade {
+  confPct: number | null;
+  pendPct: number | null;
+}
+
+export interface RjCredoresResponse {
+  credores: RjCredor[];
+  kpis: RjKpis;
+  classes: RjClasses;
+  config: RjConfig;
+  representatividade: RjRepresentatividade;
+}
+
+export interface RjCredorInput {
+  nome: string;
+  sujeito: boolean;
+  classe?: RjClasse | null;
+  motivo?: RjMotivo | null;
+  valor?: number;
+  status?: RjStatus;
+  contato?: string;
+  passo?: string;
+  retorno?: string | null;
+  obs?: string;
+}
+
+export async function fetchRjCredores(): Promise<RjCredoresResponse> {
+  const res = await apiFetch<{ data: RjCredoresResponse }>("/rj/credores");
+  return res.data;
+}
+
+export async function createRjCredor(input: RjCredorInput): Promise<RjCredor> {
+  const res = await apiFetch<{ data: RjCredor }>("/rj/credores", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function updateRjCredor(
+  id: string,
+  input: Partial<RjCredorInput>,
+): Promise<RjCredor> {
+  const res = await apiFetch<{ data: RjCredor }>(`/rj/credores/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function updateRjCredorStatus(
+  id: string,
+  status: RjStatus,
+): Promise<RjCredor> {
+  const res = await apiFetch<{ data: RjCredor }>(`/rj/credores/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+  return res.data;
+}
+
+export async function deleteRjCredor(id: string): Promise<void> {
+  await apiFetch(`/rj/credores/${id}`, { method: "DELETE" });
+}
+
+export async function getRjConfig(): Promise<RjConfig> {
+  const res = await apiFetch<{ data: RjConfig }>("/rj/config");
+  return res.data;
+}
+
+export async function updateRjConfig(passivo: number): Promise<RjConfig> {
+  const res = await apiFetch<{ data: RjConfig }>("/rj/config", {
+    method: "PUT",
+    body: JSON.stringify({ passivo }),
+  });
+  return res.data;
+}
+
+export async function downloadRjCredoresCsv(): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${getApiBaseUrl()}/rj/credores/export/csv`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = `Erro HTTP ${res.status}`;
+    try {
+      const payload = JSON.parse(text) as { message?: string };
+      if (payload.message) message = payload.message;
+    } catch {
+      if (text) message = text;
+    }
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "condominio_credores_mg2.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+

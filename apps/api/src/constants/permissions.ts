@@ -35,6 +35,16 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
   { key: "users.manage", label: "Gerenciar usuários", groupName: "Administração" },
   { key: "roles.manage", label: "Gerenciar papéis", groupName: "Administração" },
   { key: "settings.manage", label: "Gerenciar domínios do sistema", groupName: "Administração" },
+  {
+    key: "rj.view",
+    label: "Ver condomínio de credores (RJ)",
+    groupName: "Recuperacao Judicial",
+  },
+  {
+    key: "rj.manage",
+    label: "Gerenciar condomínio de credores (RJ)",
+    groupName: "Recuperacao Judicial",
+  },
 ];
 
 export const ALL_PERMISSION_KEYS = PERMISSIONS_CATALOG.map((p) => p.key);
