@@ -114,7 +114,6 @@ export interface Sale {
   consortium_type_id: string | null;
   sold_at: string;
   boleto_paid: boolean;
-  can_reverse_today: boolean;
   commercial: SaleCommercialRoles;
 }
 
@@ -488,8 +487,6 @@ function mapSale(api: ApiPurchase): Sale {
     consortium_type_id: api.consortiumType?.id ?? null,
     sold_at: api.purchaseDate,
     boleto_paid: api.boletoPaid ?? false,
-    // Alinhado ao backend (deletePurchase usa createdAt na meta do dia).
-    can_reverse_today: isSaleTodayInBusinessTz(api.createdAt),
     commercial: {
       responsavel: mapUserRef(api.responsavel) ?? mapUserRef(lead?.responsavel),
       co_vendedor: mapUserRef(lead?.coVendedor),
@@ -620,11 +617,20 @@ export async function fetchSales(): Promise<Sale[]> {
 
 export async function updateSale(
   id: string,
-  patch: { sale_date?: string; boleto_paid?: boolean },
+  patch: {
+    sale_date?: string;
+    boleto_paid?: boolean;
+    sale_value?: number;
+    consortium_type_id?: string | null;
+  },
 ): Promise<Sale> {
   const body: Record<string, unknown> = {};
   if (patch.sale_date) body.purchaseDate = toPurchaseDateIso(patch.sale_date);
   if (patch.boleto_paid !== undefined) body.boletoPaid = patch.boleto_paid;
+  if (patch.sale_value !== undefined) body.amount = patch.sale_value;
+  if (patch.consortium_type_id !== undefined) {
+    body.consortiumTypeId = patch.consortium_type_id;
+  }
 
   const res = await apiFetch<{ data: ApiPurchase }>(`/purchases/${id}`, {
     method: "PATCH",
@@ -854,6 +860,7 @@ export async function registerSale(input: {
   sale_date?: string;
   consortium_type_id?: string;
   co_vendedor_id?: string | null;
+  boleto_paid?: boolean;
 }): Promise<RegisterSaleResult> {
   const purchaseDate = input.sale_date
     ? toPurchaseDateIso(input.sale_date)
@@ -868,6 +875,7 @@ export async function registerSale(input: {
         purchaseDate,
         consortiumTypeId: input.consortium_type_id,
         coVendedorId: input.co_vendedor_id,
+        boletoPaid: input.boleto_paid ?? false,
       }),
     },
   );

@@ -5,6 +5,8 @@ import { EditLeadFields, type EditLeadFieldsHandle } from "./EditLeadFields";
 import { SlideOver } from "./SlideOver";
 import type { Lead } from "@/lib/cais-api";
 
+const FORM_ID = "edit-lead-form";
+
 export function EditLeadForm({
   open,
   onClose,
@@ -22,23 +24,29 @@ export function EditLeadForm({
   });
 
   return (
-    <SlideOver open={open} onClose={onClose} title="Editar Lead">
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          mutation.mutate();
-        }}
-      >
-        <EditLeadFields ref={fieldsRef} lead={lead} enabled={open} />
-
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title="Editar Lead"
+      footer={
         <div className="flex gap-2">
-          <Button type="submit" variant="gold" disabled={mutation.isPending}>
+          <Button type="submit" form={FORM_ID} variant="gold" disabled={mutation.isPending}>
             {mutation.isPending ? "Salvando..." : "Salvar alterações"}
           </Button>
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
         </div>
+      }
+    >
+      <form
+        id={FORM_ID}
+        onSubmit={(e) => {
+          e.preventDefault();
+          mutation.mutate();
+        }}
+      >
+        <EditLeadFields ref={fieldsRef} lead={lead} enabled={open} />
       </form>
     </SlideOver>
   );

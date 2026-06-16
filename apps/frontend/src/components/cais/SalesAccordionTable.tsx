@@ -131,20 +131,12 @@ function SaleRowTrigger({
 
             <button
               type="button"
-              title={
-                !canDelete
-                  ? "Sem permissão para cancelar vendas"
-                  : sale.can_reverse_today
-                    ? "Desfazer venda"
-                    : "Só é possível desfazer vendas registradas hoje"
-              }
+              title={canDelete ? "Desfazer venda" : "Sem permissão para cancelar vendas"}
               aria-label="Desfazer venda"
-              disabled={!canDelete || !sale.can_reverse_today}
+              disabled={!canDelete}
               className={cn(
                 actionBtnClass,
-                canDelete &&
-                  sale.can_reverse_today &&
-                  "hover:bg-red-50 hover:text-red-600",
+                canDelete && "hover:bg-red-50 hover:text-red-600",
               )}
               onClick={() => onCancel(sale)}
             >
@@ -338,7 +330,7 @@ export function SalesAccordionTable({
                   <SaleExpandedPanel
                     sale={sale}
                     enabled={isExpanded}
-                    canDelete={canDelete && sale.can_reverse_today}
+                    canDelete={canDelete}
                     onCancel={() => setReverseTarget(sale)}
                   />
                 </AccordionContent>

@@ -7,10 +7,12 @@ import { Field, inputClass, SlideOver } from "./SlideOver";
 import {
   businessDateKey,
   fetchLead,
-  formatBRL,
+  fetchLookups,
   updateSale,
   type Sale,
 } from "@/lib/cais-api";
+
+const FORM_ID = "sale-edit-form";
 
 function toDateInputValue(iso: string): string {
   return businessDateKey(iso);
@@ -45,31 +47,65 @@ export function SaleEditDrawer({
     queryFn: () => fetchLead(sale!.lead_id),
     enabled: open && !!sale?.lead_id,
   });
+  const lookups = useQuery({
+    queryKey: ["lookups"],
+    queryFn: fetchLookups,
+    enabled: open,
+  });
 
   const [saleDate, setSaleDate] = useState("");
+  const [saleValue, setSaleValue] = useState("");
+  const [consortiumTypeId, setConsortiumTypeId] = useState("");
   const [boletoPaid, setBoletoPaid] = useState(false);
 
   useEffect(() => {
     if (!sale || !open) return;
     setSaleDate(toDateInputValue(sale.sold_at));
+    setSaleValue(String(sale.sale_value));
+    setConsortiumTypeId(sale.consortium_type_id ?? "");
     setBoletoPaid(sale.boleto_paid);
   }, [sale, open]);
 
-  const saleDirty =
-    !!sale &&
-    canEditSale &&
-    (saleDate !== toDateInputValue(sale.sold_at) || boletoPaid !== sale.boleto_paid);
+  const saleDirty = (() => {
+    if (!sale || !canEditSale) return false;
+    const value = Number(saleValue);
+    const valueChanged = Number.isFinite(value) && value > 0 && value !== sale.sale_value;
+    const consortiumChanged = consortiumTypeId !== (sale.consortium_type_id ?? "");
+    return (
+      saleDate !== toDateInputValue(sale.sold_at) ||
+      boletoPaid !== sale.boleto_paid ||
+      valueChanged ||
+      consortiumChanged
+    );
+  })();
 
   const saleMutation = useMutation({
     mutationFn: () => {
       if (!sale) throw new Error("Venda não selecionada");
-      const patch: { sale_date?: string; boleto_paid?: boolean } = {};
+      const patch: {
+        sale_date?: string;
+        boleto_paid?: boolean;
+        sale_value?: number;
+        consortium_type_id?: string | null;
+      } = {};
       if (saleDate !== toDateInputValue(sale.sold_at)) patch.sale_date = saleDate;
       if (boletoPaid !== sale.boleto_paid) patch.boleto_paid = boletoPaid;
+
+      const value = Number(saleValue);
+      if (Number.isFinite(value) && value > 0 && value !== sale.sale_value) {
+        patch.sale_value = value;
+      }
+
+      const consortiumChanged = consortiumTypeId !== (sale.consortium_type_id ?? "");
+      if (consortiumChanged) {
+        patch.consortium_type_id = consortiumTypeId || null;
+      }
+
       return updateSale(sale.id, patch);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["meta"] });
       qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
       qc.invalidateQueries({ queryKey: ["personal-dashboard"] });
@@ -99,12 +135,29 @@ export function SaleEditDrawer({
 
   const isPending = saleMutation.isPending;
 
+  const footer = (
+    <div className="flex gap-2">
+      <Button
+        type="submit"
+        form={FORM_ID}
+        variant="gold"
+        disabled={isPending || (!canEditSale && !canEditLead)}
+      >
+        {isPending ? "Salvando..." : "Salvar alterações"}
+      </Button>
+      <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+        Cancelar
+      </Button>
+    </div>
+  );
+
   return (
     <SlideOver
       open={open}
       onClose={onClose}
       title={sale ? sale.lead_name : "Editar venda"}
       maxWidthClass="max-w-lg"
+      footer={sale && !lead.isLoading && lead.data ? footer : undefined}
     >
       {!sale ? null : lead.isLoading ? (
         <div className="flex justify-center py-12">
@@ -113,33 +166,46 @@ export function SaleEditDrawer({
       ) : lead.isError || !lead.data ? (
         <p className="text-[13px] text-status-red">Não foi possível carregar o lead.</p>
       ) : (
-        <form onSubmit={handleSubmit}>
+        <form id={FORM_ID} onSubmit={handleSubmit}>
           <SectionTitle>Venda</SectionTitle>
 
-          <div className="mb-4 grid grid-cols-2 gap-3 text-[13px]">
-            <div>
-              <span className="block text-[11px] uppercase tracking-wide text-slate-500">
-                Valor
-              </span>
-              <span className="font-semibold text-azul-profundo">
-                {formatBRL(sale.sale_value)}
-              </span>
-            </div>
-            <div>
-              <span className="block text-[11px] uppercase tracking-wide text-slate-500">
-                Vendedor
-              </span>
-              <span className="text-slate-700">
-                {sale.commercial.responsavel?.name ?? "—"}
-              </span>
-            </div>
-            <div className="col-span-2">
-              <span className="block text-[11px] uppercase tracking-wide text-slate-500">
-                Consórcio
-              </span>
-              <span className="text-slate-700">{sale.consortium_type ?? "—"}</span>
-            </div>
+          <div className="mb-4 text-[13px]">
+            <span className="block text-[11px] uppercase tracking-wide text-slate-500">
+              Vendedor
+            </span>
+            <span className="text-slate-700">
+              {sale.commercial.responsavel?.name ?? "—"}
+            </span>
           </div>
+
+          <Field label="Valor fechado (R$)">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              required
+              disabled={!canEditSale || isPending}
+              className={inputClass}
+              value={saleValue}
+              onChange={(e) => setSaleValue(e.target.value)}
+            />
+          </Field>
+
+          <Field label="Tipo de consórcio">
+            <select
+              disabled={!canEditSale || isPending}
+              className={inputClass}
+              value={consortiumTypeId}
+              onChange={(e) => setConsortiumTypeId(e.target.value)}
+            >
+              <option value="">Não informado</option>
+              {(lookups.data?.consortiumTypes ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <Field label="Data da venda">
             <input
@@ -178,19 +244,6 @@ export function SaleEditDrawer({
               enabled={open}
               readOnly={!canEditLead}
             />
-          </div>
-
-          <div className="sticky bottom-0 -mx-6 mt-6 flex gap-2 border-t border-slate-200 bg-branco px-6 py-4">
-            <Button
-              type="submit"
-              variant="gold"
-              disabled={isPending || (!canEditSale && !canEditLead)}
-            >
-              {isPending ? "Salvando..." : "Salvar alterações"}
-            </Button>
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
-              Cancelar
-            </Button>
           </div>
         </form>
       )}

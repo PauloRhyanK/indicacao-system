@@ -5,12 +5,14 @@ export function SlideOver({
   onClose,
   title,
   children,
+  footer,
   maxWidthClass = "max-w-md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   maxWidthClass?: string;
 }) {
   useEffect(() => {
@@ -31,7 +33,7 @@ export function SlideOver({
       <div
         className={`absolute right-0 top-0 flex h-full w-full ${maxWidthClass} flex-col border-l border-slate-200 bg-branco shadow-xl`}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-[16px] font-semibold text-azul-profundo">{title}</h2>
           <button
             onClick={onClose}
@@ -41,7 +43,12 @@ export function SlideOver({
             ✕
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {footer ? (
+          <div className="shrink-0 border-t border-slate-200 bg-branco px-6 py-4">
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -49,7 +49,7 @@ export function SaleExpandedPanel({
         ) : null}
         {canDelete && onCancel ? (
           <Button variant="ghost" className="text-red-600 hover:bg-red-50" onClick={onCancel}>
-            Desfazer venda (registrada hoje)
+            Desfazer venda
           </Button>
         ) : null}
       </div>

@@ -7,6 +7,7 @@ export const createPurchaseSchema = z
     consortiumTypeId: z.string().uuid().optional(),
     consortiumTypeSlug: z.string().min(1).optional(),
     coVendedorId: z.string().uuid().optional().nullable(),
+    boletoPaid: z.boolean().optional(),
   })
   .refine((data) => !(data.consortiumTypeId && data.consortiumTypeSlug), {
     message: "Informe consortiumTypeId ou consortiumTypeSlug, não ambos",
@@ -18,10 +19,17 @@ export const updatePurchaseSchema = z
   .object({
     purchaseDate: z.coerce.date().optional(),
     boletoPaid: z.boolean().optional(),
+    amount: z.coerce.number().positive("Valor deve ser maior que zero").optional(),
+    consortiumTypeId: z.string().uuid().nullable().optional(),
   })
-  .refine((data) => data.purchaseDate !== undefined || data.boletoPaid !== undefined, {
-    message: "Informe ao menos um campo para atualizar",
-  });
+  .refine(
+    (data) =>
+      data.purchaseDate !== undefined ||
+      data.boletoPaid !== undefined ||
+      data.amount !== undefined ||
+      data.consortiumTypeId !== undefined,
+    { message: "Informe ao menos um campo para atualizar" },
+  );
 
 export type UpdatePurchaseInput = z.infer<typeof updatePurchaseSchema>;
 

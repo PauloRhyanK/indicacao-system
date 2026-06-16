@@ -60,6 +60,7 @@ export function SaleRegistrationForm({
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [consortiumTypeId, setConsortiumTypeId] = useState("");
   const [coVendedorId, setCoVendedorId] = useState(initialLead?.co_vendedor?.id ?? "");
+  const [boletoPaid, setBoletoPaid] = useState(false);
 
   const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
@@ -96,6 +97,7 @@ export function SaleRegistrationForm({
         sale_date: saleDate,
         consortium_type_id: consortiumTypeId || undefined,
         co_vendedor_id: coVendedorId || null,
+        boleto_paid: boletoPaid,
       }),
     onSuccess: (data) => {
       fireCelebration();
@@ -122,6 +124,7 @@ export function SaleRegistrationForm({
 
       setValue("");
       setSaleDate(new Date().toISOString().slice(0, 10));
+      setBoletoPaid(false);
       if (selectable) {
         setSelectedLeadId("");
         setPickedLead(null);
@@ -228,6 +231,17 @@ export function SaleRegistrationForm({
           </select>
         </div>
       </div>
+
+      <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-slate-700">
+        <input
+          type="checkbox"
+          checked={boletoPaid}
+          onChange={(e) => setBoletoPaid(e.target.checked)}
+          disabled={mutation.isPending}
+          className="h-4 w-4 rounded border-slate-300 text-azul-profundo focus:ring-ouro/30"
+        />
+        Boleto já pago
+      </label>
 
       <p className="text-[11px] text-slate-500">
         O lead será marcado como <strong>Fechado</strong> e a meta do período será incrementada.

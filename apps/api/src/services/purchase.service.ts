@@ -62,6 +62,7 @@ export async function registerPurchase(leadId: string, input: CreatePurchaseInpu
         amount,
         purchaseDate: input.purchaseDate,
         consortiumTypeId,
+        boletoPaid: input.boletoPaid ?? false,
       },
       include: purchaseInclude,
     });
@@ -112,23 +113,70 @@ export async function listAllPurchases() {
   });
 }
 
+async function resolveConsortiumTypeIdForUpdate(
+  consortiumTypeId: string | null,
+): Promise<string | null> {
+  if (consortiumTypeId === null) return null;
+  const type = await findConsortiumTypeById(consortiumTypeId);
+  if (!type) throw badRequest("Tipo de consórcio não encontrado");
+  return type.id;
+}
+
 export async function updatePurchase(purchaseId: string, input: UpdatePurchaseInput) {
   const purchase = await prisma.purchase.findFirst({
     where: { id: purchaseId, deletedAt: null },
-    select: { id: true, amount: true, purchaseDate: true, boletoPaid: true },
+    select: {
+      id: true,
+      leadId: true,
+      amount: true,
+      purchaseDate: true,
+      boletoPaid: true,
+      consortiumTypeId: true,
+    },
   });
   if (!purchase) throw notFound("Venda não encontrada");
 
   const nextDate = input.purchaseDate ?? purchase.purchaseDate;
   const nextBoletoPaid = input.boletoPaid ?? purchase.boletoPaid;
+  const nextAmount =
+    input.amount !== undefined ? new Prisma.Decimal(input.amount) : purchase.amount;
+
   const dateChanged =
     input.purchaseDate !== undefined &&
     purchase.purchaseDate.getTime() !== input.purchaseDate.getTime();
+  const amountChanged =
+    input.amount !== undefined && !nextAmount.equals(purchase.amount);
+  const consortiumChanged = input.consortiumTypeId !== undefined;
+
+  let nextConsortiumTypeId: string | null | undefined;
+  if (input.consortiumTypeId === null) {
+    nextConsortiumTypeId = null;
+  } else if (input.consortiumTypeId !== undefined) {
+    nextConsortiumTypeId = await resolveConsortiumTypeIdForUpdate(input.consortiumTypeId);
+  }
 
   return prisma.$transaction(async (tx) => {
-    if (dateChanged) {
+    if (dateChanged || amountChanged) {
       await decrementGoalAtDate(purchase.amount, purchase.purchaseDate, tx);
-      await incrementCurrentGoalAtDate(purchase.amount, input.purchaseDate!, tx);
+      await incrementCurrentGoalAtDate(nextAmount, nextDate, tx);
+    }
+
+    if (amountChanged) {
+      const lead = await tx.lead.findFirst({
+        where: { id: purchase.leadId, ...activeLeadWhere },
+        select: { closedAmount: true },
+      });
+      if (lead) {
+        const delta = nextAmount.minus(purchase.amount);
+        const currentClosed = lead.closedAmount ?? new Prisma.Decimal(0);
+        const nextClosed = currentClosed.plus(delta);
+        await tx.lead.update({
+          where: { id: purchase.leadId },
+          data: {
+            closedAmount: nextClosed.lessThan(0) ? new Prisma.Decimal(0) : nextClosed,
+          },
+        });
+      }
     }
 
     return tx.purchase.update({
@@ -136,6 +184,8 @@ export async function updatePurchase(purchaseId: string, input: UpdatePurchaseIn
       data: {
         ...(input.purchaseDate !== undefined ? { purchaseDate: nextDate } : {}),
         ...(input.boletoPaid !== undefined ? { boletoPaid: nextBoletoPaid } : {}),
+        ...(amountChanged ? { amount: nextAmount } : {}),
+        ...(consortiumChanged ? { consortiumTypeId: nextConsortiumTypeId } : {}),
       },
       include: purchaseInclude,
     });
