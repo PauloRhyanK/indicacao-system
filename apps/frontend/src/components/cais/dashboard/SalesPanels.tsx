@@ -1,11 +1,14 @@
 import { formatBRL } from "@/lib/cais-api";
 import { cn } from "@/lib/utils";
+import { RankingAmountBar } from "@/components/cais/dashboard/GoalProgressBar";
 
 export interface SalesRankingEntry {
   position: number;
   name: string;
   total: number;
+  pendingTotal?: number;
   count: number;
+  pendingCount?: number;
 }
 
 export interface RecentSaleEntry {
@@ -14,6 +17,7 @@ export interface RecentSaleEntry {
   sellerName: string;
   saleValue: number;
   soldAt: string;
+  boletoPaid?: boolean;
 }
 
 function initials(name: string) {
@@ -42,7 +46,10 @@ export function SalesRankingPanel({
   entries: SalesRankingEntry[];
   className?: string;
 }) {
-  const maxTotal = entries[0]?.total ?? 1;
+  const maxTotal = Math.max(
+    1,
+    ...entries.map((e) => e.total + (e.pendingTotal ?? 0)),
+  );
 
   return (
     <div
@@ -63,7 +70,7 @@ export function SalesRankingPanel({
           </p>
         ) : (
           entries.map((entry) => {
-            const barPct = Math.max(8, Math.round((entry.total / maxTotal) * 100));
+            const pendingTotal = entry.pendingTotal ?? 0;
             const highlighted = entry.position <= 3;
             return (
               <div
@@ -84,22 +91,32 @@ export function SalesRankingPanel({
                       {entry.name}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {entry.count} venda{entry.count !== 1 ? "s" : ""}
+                      {entry.count} paga{entry.count !== 1 ? "s" : ""}
+                      {pendingTotal > 0 && (
+                        <span className="text-slate-400">
+                          {" "}
+                          · {(entry.pendingCount ?? 0)} pendente{(entry.pendingCount ?? 0) !== 1 ? "s" : ""}
+                        </span>
+                      )}
                     </p>
                   </div>
-                  <p className="shrink-0 text-[15px] font-bold tabular-nums text-azul-profundo">
-                    {formatBRL(entry.total)}
-                  </p>
-                </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-[width] duration-500",
-                      entry.position === 1 ? "bg-ouro" : "bg-azul-medio",
+                  <div className="shrink-0 text-right">
+                    <p className="text-[15px] font-bold tabular-nums text-azul-profundo">
+                      {formatBRL(entry.total)}
+                    </p>
+                    {pendingTotal > 0 && (
+                      <p className="text-[11px] tabular-nums text-slate-400">
+                        +{formatBRL(pendingTotal)} pend.
+                      </p>
                     )}
-                    style={{ width: `${barPct}%` }}
-                  />
+                  </div>
                 </div>
+                <RankingAmountBar
+                  paid={entry.total}
+                  pending={pendingTotal}
+                  maxTotal={maxTotal}
+                  paidColorClassName={entry.position === 1 ? "bg-ouro" : "bg-azul-medio"}
+                />
               </div>
             );
           })
@@ -135,30 +152,54 @@ export function RecentSalesPanel({
             Nenhuma venda registrada ainda
           </p>
         ) : (
-          sales.map((sale) => (
+          sales.map((sale) => {
+            const paid = sale.boletoPaid !== false;
+            return (
             <div
               key={sale.id}
-              className="flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-slate-50"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-slate-50",
+                !paid && "opacity-70",
+              )}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-semibold text-azul-medio">
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-[12px] font-semibold",
+                  paid
+                    ? "border-slate-200 bg-slate-50 text-azul-medio"
+                    : "border-slate-200/80 bg-slate-100 text-slate-400",
+                )}
+              >
                 {initials(sale.leadName)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-medium text-azul-profundo">
+                <p
+                  className={cn(
+                    "truncate text-[14px] font-medium",
+                    paid ? "text-azul-profundo" : "text-slate-500",
+                  )}
+                >
                   {sale.leadName}
                 </p>
                 <p className="text-[12px] text-slate-500">
-                  por <span className="text-azul-medio">{sale.sellerName}</span>
+                  por <span className={paid ? "text-azul-medio" : "text-slate-400"}>{sale.sellerName}</span>
+                  {!paid && <span className="text-slate-400"> · boleto pendente</span>}
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-[15px] font-semibold tabular-nums text-azul-profundo">
+                <p
+                  className={cn(
+                    "text-[15px] font-semibold tabular-nums",
+                    paid ? "text-azul-profundo" : "text-slate-400",
+                  )}
+                >
                   {formatBRL(sale.saleValue)}
                 </p>
                 <p className="text-[11px] text-slate-500">{relTime(sale.soldAt)}</p>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

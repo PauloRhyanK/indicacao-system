@@ -3,16 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { fetchDailyGoalToday } from "@/lib/cais-api";
-import {
-  getSaleSoundPreset,
-  isSaleSoundUnlocked,
-  playSaleSound,
-  previewSaleSound,
-  SALE_SOUND_PRESETS,
-  setSaleSoundPreset,
-  unlockSaleSound,
-  type SaleSoundPreset,
-} from "@/lib/sale-sound";
+import { playSaleSound, unlockSaleSound } from "@/lib/sale-sound";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +14,7 @@ interface Sale {
   value: number;
   soldAt: Date;
   isNew?: boolean;
+  boletoPaid?: boolean;
 }
 
 const TV_THEME = {
@@ -99,32 +91,54 @@ function Clock() {
 }
 
 interface ProgressBarProps {
-  value: number;
+  paid: number;
+  pending?: number;
   total: number;
   animated?: boolean;
 }
 
-function ProgressBar({ value, total, animated }: ProgressBarProps) {
-  const p = pct(value, total);
-  const color = p >= 100 ? "#22c55e" : p >= 75 ? "#d9bd7e" : p >= 40 ? "#d9bd7e" : "#d9bd7e";
+function segmentPct(amount: number, total: number) {
+  if (total <= 0 || amount <= 0) return 0;
+  return Math.min(100, (amount / total) * 100);
+}
+
+function ProgressBar({ paid, pending = 0, total, animated }: ProgressBarProps) {
+  const p = pct(paid, total);
+  const paidW = segmentPct(paid, total);
+  const pendingW = segmentPct(pending, total);
+  const color = p >= 100 ? "#22c55e" : "#d9bd7e";
+  const pendingColor = "rgba(255,255,255,0.28)";
 
   return (
     <div style={{ position: "relative", height: 10, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
-      <div
-        style={{
-          position: "absolute", left: 0, top: 0, bottom: 0,
-          width: `${p}%`,
-          background: color,
-          borderRadius: 999,
-          transition: animated ? "width 1.2s cubic-bezier(0.22,1,0.36,1)" : "none",
-          boxShadow: `0 0 12px ${color}55`,
-        }}
-      />
-      {/* Shimmer */}
+      <div style={{ display: "flex", height: "100%" }}>
+        {paidW > 0 && (
+          <div
+            style={{
+              width: `${paidW}%`,
+              background: color,
+              borderRadius: pendingW > 0 ? "999px 0 0 999px" : 999,
+              transition: animated ? "width 1.2s cubic-bezier(0.22,1,0.36,1)" : "none",
+              boxShadow: `0 0 12px ${color}55`,
+            }}
+          />
+        )}
+        {pendingW > 0 && (
+          <div
+            style={{
+              width: `${pendingW}%`,
+              background: pendingColor,
+              borderRadius: paidW > 0 ? "0 999px 999px 0" : 999,
+              transition: animated ? "width 1.2s cubic-bezier(0.22,1,0.36,1)" : "none",
+            }}
+          />
+        )}
+      </div>
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
         background: "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.12) 50%,transparent 100%)",
         animation: "shimmer 2.5s linear infinite",
+        pointerEvents: "none",
       }} />
     </div>
   );
@@ -134,12 +148,13 @@ interface MetaCardProps {
   label: string;
   sublabel: string;
   value: number;
+  pendingValue?: number;
   total: number;
   icon: string;
   accent?: boolean;
 }
 
-function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps) {
+function MetaCard({ label, sublabel, value, pendingValue = 0, total, icon, accent }: MetaCardProps) {
   const hasTarget = total > 0;
   const p = hasTarget ? pct(value, total) : 0;
   const [mounted, setMounted] = useState(false);
@@ -182,7 +197,7 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
 
       {hasTarget ? (
         <>
-          <ProgressBar value={value} total={total} animated={mounted} />
+          <ProgressBar paid={value} pending={pendingValue} total={total} animated={mounted} />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
             <div style={{
               fontSize: 13, color: p >= 100 ? "#22c55e" : "#d9bd7e", fontWeight: 500,
@@ -194,6 +209,11 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
                 boxShadow: `0 0 8px ${p >= 100 ? "#22c55e" : "#d9bd7e"}`,
               }} />
               {p}% atingido
+              {pendingValue > 0 && (
+                <span style={{ color: TV_THEME.textSoft, fontWeight: 400 }}>
+                  · +{fmt(pendingValue)} pend.
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 13, color: TV_THEME.accentWarm }}>
               faltam {fmt(Math.max(0, total - value))}
@@ -201,8 +221,17 @@ function MetaCard({ label, sublabel, value, total, icon, accent }: MetaCardProps
           </div>
         </>
       ) : (
-        <div style={{ marginTop: 4, fontSize: 13, color: value > 0 ? TV_THEME.accent : TV_THEME.textSoft, fontWeight: 500 }}>
-          {value > 0 ? "vendido hoje · sem meta definida" : "sem meta definida · nenhuma venda hoje"}
+        <div style={{ marginTop: 4, fontSize: 13, color: value > 0 || pendingValue > 0 ? TV_THEME.accent : TV_THEME.textSoft, fontWeight: 500 }}>
+          {value > 0 || pendingValue > 0 ? (
+            <>
+              {value > 0 ? `${fmt(value)} confirmado` : null}
+              {value > 0 && pendingValue > 0 ? " · " : null}
+              {pendingValue > 0 ? `+${fmt(pendingValue)} pendente` : null}
+              {" · sem meta definida"}
+            </>
+          ) : (
+            "sem meta definida · nenhuma venda hoje"
+          )}
         </div>
       )}
     </div>
@@ -218,11 +247,13 @@ interface RankingEntry {
   position: number;
   name: string;
   total: number;
+  pendingTotal: number;
   count: number;
+  pendingCount: number;
 }
 
 function SalesRanking({ entries }: { entries: RankingEntry[] }) {
-  const maxTotal = entries[0]?.total ?? 1;
+  const maxTotal = Math.max(1, ...entries.map((e) => e.total + e.pendingTotal));
 
   return (
     <div style={{
@@ -246,7 +277,10 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
           </div>
         ) : (
           entries.map((entry) => {
-            const barPct = Math.max(8, Math.round((entry.total / maxTotal) * 100));
+            const paidPct = Math.max(entry.total > 0 ? 4 : 0, Math.round((entry.total / maxTotal) * 100));
+            const pendingPct = entry.pendingTotal > 0
+              ? Math.max(4, Math.round((entry.pendingTotal / maxTotal) * 100))
+              : 0;
             return (
               <div
                 key={`${entry.position}-${entry.name}`}
@@ -273,19 +307,42 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
                       {entry.name}
                     </div>
                     <div style={{ fontSize: 11, color: TV_THEME.textSoft }}>
-                      {entry.count} venda{entry.count !== 1 ? "s" : ""}
+                      {entry.count} paga{entry.count !== 1 ? "s" : ""}
+                      {entry.pendingCount > 0 && (
+                        <span style={{ color: "rgba(255,255,255,0.35)" }}>
+                          {" "}· {entry.pendingCount} pendente{entry.pendingCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: TV_THEME.accent, whiteSpace: "nowrap" }}>
-                    {fmt(entry.total)}
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: TV_THEME.accent }}>
+                      {fmt(entry.total)}
+                    </div>
+                    {entry.pendingTotal > 0 && (
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>
+                        +{fmt(entry.pendingTotal)} pend.
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div style={{ height: 6, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%", width: `${barPct}%`,
-                    background: entry.position === 1 ? TV_THEME.accent : TV_THEME.accentMint,
-                    borderRadius: 999,
-                  }} />
+                  <div style={{ display: "flex", height: "100%" }}>
+                    {paidPct > 0 && (
+                      <div style={{
+                        height: "100%", width: `${paidPct}%`,
+                        background: entry.position === 1 ? TV_THEME.accent : TV_THEME.accentMint,
+                        borderRadius: pendingPct > 0 ? "999px 0 0 999px" : 999,
+                      }} />
+                    )}
+                    {pendingPct > 0 && (
+                      <div style={{
+                        height: "100%", width: `${pendingPct}%`,
+                        background: "rgba(255,255,255,0.28)",
+                        borderRadius: paidPct > 0 ? "0 999px 999px 0" : 999,
+                      }} />
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -297,6 +354,7 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
 }
 
 function SaleRow({ sale, isNew }: SaleRowProps) {
+  const paid = sale.boletoPaid !== false;
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 16, padding: "14px 20px",
@@ -305,22 +363,23 @@ function SaleRow({ sale, isNew }: SaleRowProps) {
       border: isNew ? "1px solid rgba(217,189,126,0.2)" : "1px solid transparent",
       animation: isNew ? "slideIn 0.5s cubic-bezier(0.22,1,0.36,1)" : "none",
       transition: "all 0.3s ease",
+      opacity: paid ? 1 : 0.62,
     }}>
       {/* Avatar */}
       <div style={{
         width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-        background: isNew ? "rgba(217,189,126,0.15)" : "rgba(255,255,255,0.06)",
-        border: `1.5px solid ${isNew ? "rgba(217,189,126,0.4)" : "rgba(255,255,255,0.1)"}`,
+        background: isNew ? "rgba(217,189,126,0.15)" : paid ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+        border: `1.5px solid ${isNew ? "rgba(217,189,126,0.4)" : paid ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)"}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: 14, fontWeight: 600,
-        color: isNew ? "#d9bd7e" : TV_THEME.accentWarm,
+        color: isNew ? "#d9bd7e" : paid ? TV_THEME.accentWarm : TV_THEME.textSoft,
       }}>
         {initials(sale.clientName)}
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: TV_THEME.text, marginBottom: 2 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: paid ? TV_THEME.text : TV_THEME.textSoft, marginBottom: 2 }}>
           {sale.clientName}
           {isNew && (
             <span style={{
@@ -332,15 +391,23 @@ function SaleRow({ sale, isNew }: SaleRowProps) {
               nova venda
             </span>
           )}
+          {!paid && (
+            <span style={{
+              marginLeft: 8, fontSize: 10, color: "rgba(255,255,255,0.35)",
+              letterSpacing: "0.04em", fontWeight: 500,
+            }}>
+              pendente
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 12, color: TV_THEME.textSoft }}>
-          por <span style={{ color: TV_THEME.accentWarm }}>{sale.sellerName}</span>
+          por <span style={{ color: paid ? TV_THEME.accentWarm : "rgba(255,255,255,0.35)" }}>{sale.sellerName}</span>
         </div>
       </div>
 
       {/* Value */}
       <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: isNew ? TV_THEME.accent : TV_THEME.text, letterSpacing: "-0.01em" }}>
+        <div style={{ fontSize: 18, fontWeight: 600, color: isNew ? TV_THEME.accent : paid ? TV_THEME.text : TV_THEME.textSoft, letterSpacing: "-0.01em" }}>
           {fmt(sale.value)}
         </div>
         <div style={{ fontSize: 11, color: TV_THEME.textSoft, marginTop: 2 }}>{relTime(sale.soldAt)}</div>
@@ -416,58 +483,6 @@ function CelebrationOverlay({ sale, onDone }: CelebrationOverlayProps) {
   );
 }
 
-// ─── Sound picker ─────────────────────────────────────────────────────────────
-
-function SoundPicker() {
-  const [preset, setPreset] = useState<SaleSoundPreset>(() => getSaleSoundPreset());
-  const [soundOn, setSoundOn] = useState(() => isSaleSoundUnlocked());
-
-  const select = (id: SaleSoundPreset) => {
-    setSaleSoundPreset(id);
-    setPreset(id);
-    previewSaleSound(id);
-    setSoundOn(true);
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textSoft, fontWeight: 500 }}>
-        Som da venda
-      </div>
-      {!soundOn && (
-        <p style={{ fontSize: 10, color: "#d9bd7e", lineHeight: 1.4 }}>
-          Clique em um som para ativar o áudio
-        </p>
-      )}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        {SALE_SOUND_PRESETS.map((s) => {
-          const active = preset === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => select(s.id)}
-              style={{
-                background: active ? "rgba(217,189,126,0.15)" : "rgba(255,255,255,0.03)",
-                border: active ? "1px solid rgba(217,189,126,0.5)" : "1px solid rgba(255,255,255,0.07)",
-                borderRadius: 10,
-                padding: "10px 12px",
-                cursor: "pointer",
-                textAlign: "left",
-                color: "#fcfcfc",
-                fontFamily: "inherit",
-              }}
-            >
-              <div style={{ fontSize: 16, marginBottom: 2 }}>{s.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 600 }}>{s.label}</div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function TVDashboard() {
@@ -492,6 +507,7 @@ function TVDashboard() {
       value: s.saleValue,
       soldAt: new Date(s.soldAt),
       isNew: newSaleIds.has(s.id),
+      boletoPaid: s.boletoPaid,
     }));
   }, [data?.recentSales, newSaleIds]);
 
@@ -512,6 +528,7 @@ function TVDashboard() {
         value: latest.saleValue,
         soldAt: new Date(latest.soldAt),
         isNew: true,
+        boletoPaid: latest.boletoPaid,
       };
       setNewSaleIds((prev) => new Set(prev).add(latest.id));
       setCelebration(newSale);
@@ -544,21 +561,26 @@ function TVDashboard() {
 
   const dailyTarget = data?.target ?? 0;
   const dailyCurrent = data?.current ?? 0;
+  const dailyPending = data?.currentPending ?? 0;
   const periodTarget = data?.periodGoal?.targetAmount ?? 0;
   const periodCurrent = data?.periodGoal?.currentAmount ?? 0;
+  const periodPending = data?.periodGoal?.currentPending ?? 0;
   const todayCount = data?.todaySalesCount ?? 0;
+  const todayPaidCount = data?.todayPaidSalesCount ?? 0;
   const salesRanking: RankingEntry[] = useMemo(
     () =>
       (data?.salesRanking ?? []).map((r) => ({
         position: r.position,
         name: r.name,
         total: r.total,
+        pendingTotal: r.pendingTotal,
         count: r.count,
+        pendingCount: r.pendingCount,
       })),
     [data?.salesRanking],
   );
 
-  const ticketMedio = todayCount > 0 ? dailyCurrent / todayCount : 0;
+  const ticketMedio = todayPaidCount > 0 ? dailyCurrent / todayPaidCount : 0;
   const maiorVenda = sales.length ? Math.max(...sales.map((s) => s.value)) : 0;
   const dismissCelebration = useCallback(() => setCelebration(null), []);
 
@@ -696,6 +718,7 @@ function TVDashboard() {
             label="Meta do Dia"
             sublabel={`${todayCount} venda${todayCount !== 1 ? "s" : ""} hoje`}
             value={dailyCurrent}
+            pendingValue={dailyPending}
             total={dailyTarget}
             icon="📅"
           />
@@ -703,6 +726,7 @@ function TVDashboard() {
             label="Meta Geral"
             sublabel="acumulado do período"
             value={periodCurrent}
+            pendingValue={periodPending}
             total={periodTarget}
             icon="🎯"
             accent
@@ -735,7 +759,6 @@ function TVDashboard() {
                 <div style={{ fontSize: 11, color: TV_THEME.accentWarm }}>{k.sub}</div>
               </div>
             ))}
-            <SoundPicker />
           </div>
 
           {/* Ranking + Últimas vendas (50/50) */}

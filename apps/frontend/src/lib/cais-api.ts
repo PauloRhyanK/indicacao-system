@@ -151,6 +151,7 @@ export interface DailyGoalToday {
   presetMultiplier: number;
   target: number;
   current: number;
+  currentPending: number;
   percent: number;
   hasOverride: boolean;
   overrideAmount: number | null;
@@ -158,24 +159,29 @@ export interface DailyGoalToday {
     id: string;
     targetAmount: number;
     currentAmount: number;
+    currentPending: number;
     startDate: string;
     endDate: string;
   } | null;
   presets: DailyGoalPreset[];
   todaySalesCount: number;
+  todayPaidSalesCount: number;
   recentSales: {
     id: string;
     leadName: string;
     sellerName: string;
     saleValue: number;
     soldAt: string;
+    boletoPaid: boolean;
   }[];
   salesRanking: {
     position: number;
     userId: string;
     name: string;
     total: number;
+    pendingTotal: number;
     count: number;
+    pendingCount: number;
   }[];
 }
 

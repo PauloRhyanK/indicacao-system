@@ -148,17 +148,59 @@ export async function deleteOverride(dateStr: string) {
   await prisma.metaDailyOverride.delete({ where: { date } });
 }
 
+async function sumPurchasesByBoletoStatus(
+  where: Prisma.PurchaseWhereInput,
+): Promise<{ paid: number; pending: number; paidCount: number; pendingCount: number }> {
+  const purchases = await prisma.purchase.findMany({
+    where,
+    select: { amount: true, boletoPaid: true },
+  });
+
+  let paid = 0;
+  let pending = 0;
+  let paidCount = 0;
+  let pendingCount = 0;
+
+  for (const p of purchases) {
+    const amt = decimalToNumber(p.amount);
+    if (p.boletoPaid) {
+      paid += amt;
+      paidCount += 1;
+    } else {
+      pending += amt;
+      pendingCount += 1;
+    }
+  }
+
+  return { paid, pending, paidCount, pendingCount };
+}
+
 export async function getDailyProgress(date: Date) {
   const { start, end } = dayBoundsBusiness(date);
-  const agg = await prisma.purchase.aggregate({
-    where: {
-      deletedAt: null,
-      lead: { deletedAt: null },
-      purchaseDate: { gte: start, lt: end },
-    },
-    _sum: { amount: true },
+  const { paid } = await sumPurchasesByBoletoStatus({
+    deletedAt: null,
+    lead: { deletedAt: null },
+    purchaseDate: { gte: start, lt: end },
   });
-  return decimalToNumber(agg._sum.amount);
+  return paid;
+}
+
+async function getDailyProgressSplit(date: Date) {
+  const { start, end } = dayBoundsBusiness(date);
+  return sumPurchasesByBoletoStatus({
+    deletedAt: null,
+    lead: { deletedAt: null },
+    purchaseDate: { gte: start, lt: end },
+  });
+}
+
+async function getPeriodProgressSplit(startDate: Date, endDate: Date) {
+  const { start, end } = periodBoundsBusiness(startDate, endDate);
+  return sumPurchasesByBoletoStatus({
+    deletedAt: null,
+    lead: { deletedAt: null },
+    purchaseDate: { gte: start, lt: end },
+  });
 }
 
 export async function resolveDailyTarget(date: Date) {
@@ -209,12 +251,23 @@ async function getPeriodSalesRanking(start: Date, end: Date) {
     },
     select: {
       amount: true,
+      boletoPaid: true,
       responsavelId: true,
       responsavel: { select: { id: true, name: true } },
     },
   });
 
-  const totals = new Map<string, { userId: string; name: string; total: number; count: number }>();
+  const totals = new Map<
+    string,
+    {
+      userId: string;
+      name: string;
+      total: number;
+      pendingTotal: number;
+      count: number;
+      pendingCount: number;
+    }
+  >();
 
   for (const p of purchases) {
     const seller = p.responsavel;
@@ -224,38 +277,53 @@ async function getPeriodSalesRanking(start: Date, end: Date) {
       userId: seller.id,
       name: seller.name,
       total: 0,
+      pendingTotal: 0,
       count: 0,
+      pendingCount: 0,
     };
-    entry.total += decimalToNumber(p.amount);
-    entry.count += 1;
+    const amt = decimalToNumber(p.amount);
+    if (p.boletoPaid) {
+      entry.total += amt;
+      entry.count += 1;
+    } else {
+      entry.pendingTotal += amt;
+      entry.pendingCount += 1;
+    }
     totals.set(p.responsavelId, entry);
   }
 
   return [...totals.values()]
-    .sort((a, b) => b.total - a.total || b.count - a.count)
+    .sort((a, b) => b.total - a.total || b.pendingTotal - a.pendingTotal || b.count - a.count)
     .map((row, index) => ({
       position: index + 1,
       userId: row.userId,
       name: row.name,
       total: row.total,
+      pendingTotal: row.pendingTotal,
       count: row.count,
+      pendingCount: row.pendingCount,
     }));
 }
 
 export async function getDailyTodaySummary() {
   const today = new Date();
-  const { start, end } = dayBoundsBusiness(today);
   const resolved = await resolveDailyTarget(today);
-  const current = await getDailyProgress(today);
+  const dailySplit = await getDailyProgressSplit(today);
+  const current = dailySplit.paid;
+  const currentPending = dailySplit.pending;
   const percent = resolved.target > 0 ? Math.min(100, (current / resolved.target) * 100) : 0;
 
-  const [periodGoal, recentPurchases, todayCount] = await Promise.all([
+  const [periodGoal, recentPurchases] = await Promise.all([
     getCurrentGoal(),
     prisma.purchase.findMany({
       where: { deletedAt: null, lead: { deletedAt: null } },
       orderBy: { purchaseDate: "desc" },
       take: 10,
-      include: {
+      select: {
+        id: true,
+        amount: true,
+        boletoPaid: true,
+        purchaseDate: true,
         responsavel: { select: { name: true } },
         lead: {
           select: {
@@ -265,24 +333,22 @@ export async function getDailyTodaySummary() {
         },
       },
     }),
-    prisma.purchase.count({
-      where: {
-        deletedAt: null,
-        lead: { deletedAt: null },
-        purchaseDate: { gte: start, lt: end },
-      },
-    }),
   ]);
 
   const salesRanking = periodGoal
     ? await getPeriodSalesRanking(periodGoal.startDate, periodGoal.endDate)
     : [];
 
+  const periodSplit = periodGoal
+    ? await getPeriodProgressSplit(periodGoal.startDate, periodGoal.endDate)
+    : null;
+
   const period = periodGoal
     ? {
         id: periodGoal.id,
         targetAmount: decimalToNumber(periodGoal.targetAmount),
-        currentAmount: decimalToNumber(periodGoal.currentAmount),
+        currentAmount: periodSplit?.paid ?? 0,
+        currentPending: periodSplit?.pending ?? 0,
         startDate: periodGoal.startDate.toISOString(),
         endDate: periodGoal.endDate.toISOString(),
       }
@@ -291,15 +357,18 @@ export async function getDailyTodaySummary() {
   return {
     ...resolved,
     current,
+    currentPending,
     percent,
     periodGoal: period,
-    todaySalesCount: todayCount,
+    todaySalesCount: dailySplit.paidCount + dailySplit.pendingCount,
+    todayPaidSalesCount: dailySplit.paidCount,
     recentSales: recentPurchases.map((p) => ({
       id: p.id,
       leadName: p.lead.name,
       sellerName: p.responsavel?.name ?? p.lead.responsavel?.name ?? "Equipe CAIS",
       saleValue: decimalToNumber(p.amount),
       soldAt: p.purchaseDate.toISOString(),
+      boletoPaid: p.boletoPaid,
     })),
     salesRanking,
     presets: DAILY_PRESET_SLUGS.map((slug) => ({

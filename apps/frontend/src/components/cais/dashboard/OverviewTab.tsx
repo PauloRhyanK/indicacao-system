@@ -16,6 +16,7 @@ import {
   RecentSalesPanel,
   SalesRankingPanel,
 } from "@/components/cais/dashboard/SalesPanels";
+import { GoalProgressBar } from "@/components/cais/dashboard/GoalProgressBar";
 import {
   fetchAllLeads,
   fetchMetaPeriod,
@@ -35,24 +36,32 @@ export function OverviewTab() {
   });
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
-  const [progressW, setProgressW] = useState(0);
-  const [dailyProgressW, setDailyProgressW] = useState(0);
+  const [barsAnimated, setBarsAnimated] = useState(false);
+  const [dailyBarsAnimated, setDailyBarsAnimated] = useState(false);
 
   const volume = meta.data?.current_value ?? 0;
   const target = meta.data?.target_value ?? 0;
-  const pct = target ? Math.min(100, (volume / target) * 100) : 0;
 
   const dailyTarget = dailyGoal.data?.target ?? 0;
   const dailyCurrent = dailyGoal.data?.current ?? 0;
+  const dailyPending = dailyGoal.data?.currentPending ?? 0;
   const dailyPct = dailyGoal.data?.percent ?? 0;
 
-  useEffect(() => {
-    const t = setTimeout(() => setProgressW(pct), 150);
-    return () => clearTimeout(t);
-  }, [pct]);
+  const periodFromDaily = dailyGoal.data?.periodGoal;
+  const periodTarget = periodFromDaily?.targetAmount ?? target;
+  const periodCurrent = periodFromDaily?.currentAmount ?? volume;
+  const periodPending = periodFromDaily?.currentPending ?? 0;
+  const periodPct = periodTarget ? Math.min(100, (periodCurrent / periodTarget) * 100) : 0;
 
   useEffect(() => {
-    const t = setTimeout(() => setDailyProgressW(dailyPct), 150);
+    setBarsAnimated(false);
+    const t = setTimeout(() => setBarsAnimated(true), 150);
+    return () => clearTimeout(t);
+  }, [periodPct]);
+
+  useEffect(() => {
+    setDailyBarsAnimated(false);
+    const t = setTimeout(() => setDailyBarsAnimated(true), 150);
     return () => clearTimeout(t);
   }, [dailyPct]);
 
@@ -74,7 +83,9 @@ export function OverviewTab() {
         position: r.position,
         name: r.name,
         total: r.total,
+        pendingTotal: r.pendingTotal,
         count: r.count,
+        pendingCount: r.pendingCount,
       })),
     [dailyGoal.data?.salesRanking],
   );
@@ -85,18 +96,23 @@ export function OverviewTab() {
     <>
       <div className="mb-8 rounded-lg border-l-[3px] border-ouro bg-slate-50 px-[22px] py-[18px]">
         <SectionHeader>Meta do Período</SectionHeader>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
-          <div
-            className="h-full rounded-full bg-ouro transition-[width] duration-1000 ease-out"
-            style={{ width: `${progressW}%` }}
-          />
-        </div>
+        <GoalProgressBar
+          paid={periodCurrent}
+          pending={periodPending}
+          target={periodTarget}
+          animated={barsAnimated}
+          paidClassName="bg-ouro"
+          pendingClassName="bg-slate-300/80"
+        />
         <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
           <span className="text-[13px] text-slate-700">
-            {formatBRL(volume)} de {formatBRL(target)}
+            {formatBRL(periodCurrent)} de {formatBRL(periodTarget)}
+            {periodPending > 0 && (
+              <span className="text-slate-400"> · +{formatBRL(periodPending)} pendente</span>
+            )}
           </span>
           <span className="text-[13px] font-semibold text-azul-profundo">
-            {pct.toFixed(1)}%
+            {periodPct.toFixed(1)}%
           </span>
         </div>
         {meta.data && (
@@ -108,15 +124,20 @@ export function OverviewTab() {
         <SectionHeader>Meta do Dia (empresa)</SectionHeader>
         {dailyTarget > 0 ? (
           <>
-            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-azul-medio transition-[width] duration-1000 ease-out"
-                style={{ width: `${dailyProgressW}%` }}
-              />
-            </div>
+            <GoalProgressBar
+              paid={dailyCurrent}
+              pending={dailyPending}
+              target={dailyTarget}
+              animated={dailyBarsAnimated}
+              paidClassName="bg-azul-medio"
+              pendingClassName="bg-slate-300/80"
+            />
             <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-[13px] text-slate-700">
                 {formatBRL(dailyCurrent)} de {formatBRL(dailyTarget)}
+                {dailyPending > 0 && (
+                  <span className="text-slate-400"> · +{formatBRL(dailyPending)} pendente</span>
+                )}
               </span>
               <span className="text-[13px] font-semibold text-azul-profundo">
                 {dailyPct.toFixed(1)}%
@@ -126,8 +147,13 @@ export function OverviewTab() {
         ) : (
           <div className="mt-1">
             <p className="text-[22px] font-semibold text-azul-profundo">{formatBRL(dailyCurrent)}</p>
+            {dailyPending > 0 && (
+              <p className="mt-1 text-[13px] text-slate-400">+{formatBRL(dailyPending)} pendente</p>
+            )}
             <p className="mt-1 text-[13px] text-slate-500">
-              {dailyCurrent > 0 ? "vendido hoje · sem meta definida" : "sem meta definida · nenhuma venda hoje"}
+              {dailyCurrent > 0 || dailyPending > 0
+                ? "vendido hoje · sem meta definida"
+                : "sem meta definida · nenhuma venda hoje"}
             </p>
           </div>
         )}
