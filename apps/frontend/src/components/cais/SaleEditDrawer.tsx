@@ -57,6 +57,7 @@ export function SaleEditDrawer({
   const [saleValue, setSaleValue] = useState("");
   const [consortiumTypeId, setConsortiumTypeId] = useState("");
   const [boletoPaid, setBoletoPaid] = useState(false);
+  const [rewardWarning, setRewardWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sale || !open) return;
@@ -64,6 +65,7 @@ export function SaleEditDrawer({
     setSaleValue(String(sale.sale_value));
     setConsortiumTypeId(sale.consortium_type_id ?? "");
     setBoletoPaid(sale.boleto_paid);
+    setRewardWarning(null);
   }, [sale, open]);
 
   const saleDirty = (() => {
@@ -103,12 +105,18 @@ export function SaleEditDrawer({
 
       return updateSale(sale.id, patch);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["meta"] });
       qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
       qc.invalidateQueries({ queryKey: ["personal-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
+      if (result.stalePaidRewards > 0) {
+        setRewardWarning(
+          `O valor da venda mudou e ${result.stalePaidRewards} bônus de indicação já pagos precisam de revisão em Indicações.`,
+        );
+      }
     },
   });
 
@@ -118,7 +126,14 @@ export function SaleEditDrawer({
 
     try {
       const tasks: Promise<unknown>[] = [];
-      if (saleDirty) tasks.push(saleMutation.mutateAsync());
+      let stalePaidRewards = 0;
+      if (saleDirty) {
+        tasks.push(
+          saleMutation.mutateAsync().then((result) => {
+            stalePaidRewards = result.stalePaidRewards;
+          }),
+        );
+      }
       if (canEditLead && leadFieldsRef.current?.isDirty()) {
         tasks.push(leadFieldsRef.current.submit());
       }
@@ -127,7 +142,7 @@ export function SaleEditDrawer({
         return;
       }
       await Promise.all(tasks);
-      onClose();
+      if (stalePaidRewards === 0) onClose();
     } catch {
       // erros exibidos nos blocos do formulário
     }
@@ -229,6 +244,12 @@ export function SaleEditDrawer({
               Marcado como pago
             </label>
           </Field>
+
+          {rewardWarning && (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+              {rewardWarning}
+            </p>
+          )}
 
           {saleMutation.isError && (
             <p className="mb-3 text-[12px] text-status-red">
