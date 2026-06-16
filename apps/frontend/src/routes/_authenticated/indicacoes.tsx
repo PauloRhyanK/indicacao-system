@@ -56,17 +56,6 @@ function IndicacoesPage() {
       }),
   });
 
-  const pendingSummary = useQuery({
-    queryKey: ["campaign-rewards-pending"],
-    queryFn: () =>
-      fetchCampaignRewards({
-        limit: 100,
-        pendingOnly: true,
-        includeWithoutRewards: false,
-      }),
-    enabled: canManageRewards,
-  });
-
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
 
   const bonusChain = useQuery({
@@ -79,32 +68,24 @@ function IndicacoesPage() {
     mutationFn: () => backfillCampaignRewards(100),
     onSuccess: async (result) => {
       await qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
-      await qc.invalidateQueries({ queryKey: ["campaign-rewards-pending"] });
       if (result.remaining > 0 && result.processed > 0) {
         backfillMutation.mutate();
       }
     },
   });
 
-  const startQueueMutation = useMutation({
-    mutationFn: () =>
-      fetchCampaignRewards({
-        limit: 100,
-        pendingOnly: true,
-        includeWithoutRewards: false,
-      }),
-    onSuccess: (data) => {
-      const ids = data.items.map((item) => item.purchaseId);
-      if (ids.length === 0) return;
-      setRewardQueue(ids);
-      setRewardQueueIndex(0);
-      setRewardsPurchaseId(ids[0]!);
-    },
-  });
-
   const items = list.data?.items ?? [];
   const backfillRemaining = list.data?.backfillRemaining ?? 0;
-  const pendingCount = pendingSummary.data?.pagination.total ?? 0;
+
+  const pendingPurchaseIds = useMemo(
+    () =>
+      items
+        .filter((item) => item.rewardsGenerated && item.pendingCount > 0)
+        .map((item) => item.purchaseId),
+    [items],
+  );
+
+  const pendingCount = pendingPurchaseIds.length;
 
   const filteredItems = useMemo(
     () => filterRewardItems(items, filters, meta.data),
@@ -123,19 +104,24 @@ function IndicacoesPage() {
     setFilters((f) => ({ ...f, ...patch }));
   };
 
+  function startRewardQueue() {
+    if (pendingPurchaseIds.length === 0) return;
+    setRewardQueue(pendingPurchaseIds);
+    setRewardQueueIndex(0);
+    setRewardsPurchaseId(pendingPurchaseIds[0]!);
+  }
+
   function exitRewardQueue() {
     setRewardQueue(null);
     setRewardQueueIndex(0);
     setRewardsPurchaseId(null);
     void qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
-    void qc.invalidateQueries({ queryKey: ["campaign-rewards-pending"] });
   }
 
   function advanceRewardQueue() {
     if (!rewardQueue) return;
     const next = rewardQueueIndex + 1;
     void qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
-    void qc.invalidateQueries({ queryKey: ["campaign-rewards-pending"] });
     if (next >= rewardQueue.length) {
       exitRewardQueue();
     } else {
@@ -159,11 +145,12 @@ function IndicacoesPage() {
         </p>
       </div>
 
-      {canManageRewards && (
+      {pendingCount > 0 && (
         <PendingRewardsPanel
           count={pendingCount}
-          disabled={startQueueMutation.isPending || !!rewardQueue}
-          onStartQueue={() => startQueueMutation.mutate()}
+          canManage={canManageRewards}
+          disabled={!!rewardQueue}
+          onStartQueue={startRewardQueue}
         />
       )}
 

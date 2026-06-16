@@ -5,10 +5,12 @@ export function PendingRewardsPanel({
   count,
   onStartQueue,
   disabled,
+  canManage = true,
 }: {
   count: number;
   onStartQueue: () => void;
   disabled?: boolean;
+  canManage?: boolean;
 }) {
   if (count === 0) return null;
 
@@ -23,20 +25,25 @@ export function PendingRewardsPanel({
             Recompensas pendentes de conferência
           </p>
           <p className="mt-0.5 text-[12px] leading-snug text-amber-800">
-            Após a atualização do sistema, confira e registre o pagamento das recompensas das
-            vendas já realizadas.
+            Confira e registre o pagamento das recompensas das vendas já realizadas.
           </p>
         </div>
       </div>
-      <Button
-        type="button"
-        variant="gold"
-        className="shrink-0"
-        disabled={disabled}
-        onClick={onStartQueue}
-      >
-        Conferir em lote
-      </Button>
+      {canManage ? (
+        <Button
+          type="button"
+          variant="gold"
+          className="shrink-0"
+          disabled={disabled}
+          onClick={onStartQueue}
+        >
+          Conferir em lote
+        </Button>
+      ) : (
+        <p className="max-w-[12rem] shrink-0 text-[12px] text-amber-800">
+          Peça a um administrador para registrar os pagamentos.
+        </p>
+      )}
     </div>
   );
 }
