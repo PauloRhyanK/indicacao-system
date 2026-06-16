@@ -82,3 +82,19 @@ export const RJ_STATUS_PILL_CLASS: Record<RjStatus, string> = {
   semcontato: "bg-slate-100 text-slate-600 border-slate-200",
   recusou: "bg-red-50 text-red-800 border-red-200",
 };
+
+export const RJ_ENTITY_TYPE_LABELS: Record<string, string> = {
+  credor: "Credor",
+  config: "Configuração",
+  usuario: "Usuário",
+  papel: "Papel",
+};
+
+export const RJ_ACTION_LABELS: Record<string, string> = {
+  create: "Criação",
+  update: "Alteração",
+  delete: "Exclusão",
+  approve: "Liberação",
+  reset_password: "Reset de senha",
+  role_change: "Papéis alterados",
+};

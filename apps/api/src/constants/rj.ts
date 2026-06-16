@@ -52,3 +52,33 @@ export const RJ_STATUS_ORDER: Record<RjStatus, number> = {
   semcontato: 3,
   recusou: 4,
 };
+
+export const RJ_FIELD_LABELS: Record<string, string> = {
+  nome: "Nome",
+  sujeito: "Sujeito ao condomínio",
+  classe: "Classe",
+  motivo: "Motivo de exclusão",
+  valor: "Valor",
+  status: "Status",
+  contato: "Contato",
+  passo: "Próximo passo",
+  retorno: "Data de retorno",
+  obs: "Observações",
+  passivo: "Passivo total",
+};
+
+export const RJ_ENTITY_TYPE_LABELS: Record<string, string> = {
+  credor: "Credor",
+  config: "Configuração",
+  usuario: "Usuário",
+  papel: "Papel",
+};
+
+export const RJ_ACTION_LABELS: Record<string, string> = {
+  create: "Criação",
+  update: "Alteração",
+  delete: "Exclusão",
+  approve: "Liberação",
+  reset_password: "Reset de senha",
+  role_change: "Papéis alterados",
+};

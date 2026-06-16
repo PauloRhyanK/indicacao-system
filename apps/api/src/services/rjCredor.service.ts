@@ -1,6 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
+import { RJ_STATUS_LABELS, type RjStatus } from "../constants/rj.js";
 import { notFound } from "../utils/httpError.js";
+import {
+  buildStatusChangeSummary,
+  diffCredorFields,
+  recordRjAudit,
+} from "./rjAudit.service.js";
 import {
   buildCredoresCsv,
   computeClasses,
@@ -46,7 +52,7 @@ export async function listCredores() {
   };
 }
 
-export async function createCredor(input: CreateCredorInput) {
+export async function createCredor(input: CreateCredorInput, actorUserId?: string) {
   const { classe, motivo } = normalizeCredorFields(input);
 
   const created = await prisma.rjCredor.create({
@@ -64,10 +70,27 @@ export async function createCredor(input: CreateCredorInput) {
     },
   });
 
+  await recordRjAudit({
+    actorUserId,
+    entityType: "credor",
+    entityId: created.id,
+    entityLabel: created.nome,
+    action: "create",
+    summary: `Credor cadastrado: ${created.nome}`,
+    changes: [
+      {
+        field: "status",
+        label: "Status",
+        oldValue: null,
+        newValue: RJ_STATUS_LABELS[created.status as RjStatus] ?? created.status,
+      },
+    ],
+  });
+
   return serializeCredor(created);
 }
 
-export async function updateCredor(id: string, input: UpdateCredorInput) {
+export async function updateCredor(id: string, input: UpdateCredorInput, actorUserId?: string) {
   const existing = await findActiveCredor(id);
   if (!existing) throw notFound("Credor não encontrado");
 
@@ -94,28 +117,76 @@ export async function updateCredor(id: string, input: UpdateCredorInput) {
     },
   });
 
+  const { changes, summary } = diffCredorFields(existing, updated);
+  if (changes.length > 0) {
+    await recordRjAudit({
+      actorUserId,
+      entityType: "credor",
+      entityId: updated.id,
+      entityLabel: updated.nome,
+      action: "update",
+      summary,
+      changes,
+    });
+  }
+
   return serializeCredor(updated);
 }
 
-export async function updateCredorStatus(id: string, input: UpdateCredorStatusInput) {
+export async function updateCredorStatus(
+  id: string,
+  input: UpdateCredorStatusInput,
+  actorUserId?: string,
+) {
   const existing = await findActiveCredor(id);
   if (!existing) throw notFound("Credor não encontrado");
+
+  if (existing.status === input.status) {
+    return serializeCredor(existing);
+  }
 
   const updated = await prisma.rjCredor.update({
     where: { id },
     data: { status: input.status },
   });
 
+  const summary = buildStatusChangeSummary(existing.status, updated.status);
+  await recordRjAudit({
+    actorUserId,
+    entityType: "credor",
+    entityId: updated.id,
+    entityLabel: updated.nome,
+    action: "update",
+    summary,
+    changes: [
+      {
+        field: "status",
+        label: "Status",
+        oldValue: RJ_STATUS_LABELS[existing.status as RjStatus] ?? existing.status,
+        newValue: RJ_STATUS_LABELS[updated.status as RjStatus] ?? updated.status,
+      },
+    ],
+  });
+
   return serializeCredor(updated);
 }
 
-export async function softDeleteCredor(id: string) {
+export async function softDeleteCredor(id: string, actorUserId?: string) {
   const existing = await findActiveCredor(id);
   if (!existing) throw notFound("Credor não encontrado");
 
   await prisma.rjCredor.update({
     where: { id },
     data: { deletedAt: new Date() },
+  });
+
+  await recordRjAudit({
+    actorUserId,
+    entityType: "credor",
+    entityId: existing.id,
+    entityLabel: existing.nome,
+    action: "delete",
+    summary: `Credor excluído: ${existing.nome}`,
   });
 }
 

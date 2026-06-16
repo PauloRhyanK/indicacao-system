@@ -1502,6 +1502,90 @@ export async function updateRjConfig(passivo: number): Promise<RjConfig> {
   return res.data;
 }
 
+export type RjAuditEntityType = "credor" | "config" | "usuario" | "papel";
+export type RjAuditAction =
+  | "create"
+  | "update"
+  | "delete"
+  | "approve"
+  | "reset_password"
+  | "role_change";
+
+export interface RjAuditChange {
+  field: string;
+  label: string;
+  oldValue: string | null;
+  newValue: string | null;
+}
+
+export interface RjAuditLogEntry {
+  id: string;
+  createdAt: string;
+  actorId: string | null;
+  actorName: string;
+  actorEmail: string;
+  entityType: RjAuditEntityType;
+  entityId: string;
+  entityLabel: string;
+  action: RjAuditAction;
+  summary: string;
+  changes: RjAuditChange[] | null;
+}
+
+export interface RjHistoricoResponse {
+  items: RjAuditLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface RjHistoricoFilters {
+  page?: number;
+  limit?: number;
+  entityType?: RjAuditEntityType;
+  entityId?: string;
+  actorId?: string;
+  from?: string;
+  to?: string;
+  q?: string;
+}
+
+export async function fetchRjHistorico(
+  filters: RjHistoricoFilters = {},
+): Promise<RjHistoricoResponse> {
+  const params = new URLSearchParams();
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
+  if (filters.entityType) params.set("entityType", filters.entityType);
+  if (filters.entityId) params.set("entityId", filters.entityId);
+  if (filters.actorId) params.set("actorId", filters.actorId);
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  if (filters.q) params.set("q", filters.q);
+  const qs = params.toString();
+  const res = await apiFetch<{ data: RjHistoricoResponse }>(
+    `/rj/historico${qs ? `?${qs}` : ""}`,
+  );
+  return res.data;
+}
+
+export async function fetchRjCredorHistorico(
+  credorId: string,
+  filters: Omit<RjHistoricoFilters, "entityType" | "entityId"> = {},
+): Promise<RjHistoricoResponse> {
+  const params = new URLSearchParams();
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  if (filters.q) params.set("q", filters.q);
+  const qs = params.toString();
+  const res = await apiFetch<{ data: RjHistoricoResponse }>(
+    `/rj/credores/${credorId}/historico${qs ? `?${qs}` : ""}`,
+  );
+  return res.data;
+}
+
 export async function downloadRjCredoresCsv(): Promise<void> {
   const token = getToken();
   const res = await fetch(`${getApiBaseUrl()}/rj/credores/export/csv`, {

@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedCredoresRouteImport } from './routes/_authenticated/credores'
 import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
@@ -62,6 +63,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHistoricoRoute = AuthenticatedHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCredoresRoute = AuthenticatedCredoresRouteImport.update({
   id: '/credores',
   path: '/credores',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/credores': typeof AuthenticatedCredoresRoute
+  '/historico': typeof AuthenticatedHistoricoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/credores': typeof AuthenticatedCredoresRoute
+  '/historico': typeof AuthenticatedHistoricoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/_authenticated/credores': typeof AuthenticatedCredoresRoute
+  '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/primeiro-acesso'
     | '/configuracoes'
     | '/credores'
+    | '/historico'
     | '/painel'
     | '/usuarios'
     | '/configuracoes/papeis'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/primeiro-acesso'
     | '/credores'
+    | '/historico'
     | '/painel'
     | '/usuarios'
     | '/configuracoes/papeis'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/primeiro-acesso'
     | '/_authenticated/configuracoes'
     | '/_authenticated/credores'
+    | '/_authenticated/historico'
     | '/_authenticated/painel'
     | '/_authenticated/usuarios'
     | '/_authenticated/configuracoes/papeis'
@@ -247,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/historico': {
+      id: '/_authenticated/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AuthenticatedHistoricoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/credores': {
       id: '/_authenticated/credores'
       path: '/credores'
@@ -308,6 +327,7 @@ const AuthenticatedConfiguracoesRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRouteRoute: typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   AuthenticatedCredoresRoute: typeof AuthenticatedCredoresRoute
+  AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
 }
@@ -316,6 +336,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRouteRoute:
     AuthenticatedConfiguracoesRouteRouteWithChildren,
   AuthenticatedCredoresRoute: AuthenticatedCredoresRoute,
+  AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
 }

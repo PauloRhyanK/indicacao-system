@@ -2,8 +2,10 @@ import type { FastifyInstance } from "fastify";
 import {
   deleteRjCredor,
   getRjConfig,
+  getRjCredorHistorico,
   getRjCredores,
   getRjCredoresCsv,
+  getRjHistorico,
   patchRjCredor,
   patchRjCredorStatus,
   postRjCredor,
@@ -82,4 +84,8 @@ export async function rjRoutes(app: FastifyInstance) {
   app.get("/rj/usuarios/:id/roles", { preHandler: [...rjSettings] }, getRjUserRolesHandler);
 
   app.put("/rj/usuarios/:id/roles", { preHandler: [...rjSettings] }, putRjUserRoles);
+
+  app.get("/rj/historico", { preHandler: [...rjSettings] }, getRjHistorico);
+
+  app.get("/rj/credores/:id/historico", { preHandler: [...rjSettings] }, getRjCredorHistorico);
 }

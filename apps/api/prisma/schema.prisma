@@ -312,3 +312,22 @@ model RjConfig {
 
   @@map("rj_config")
 }
+
+model RjAuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  actorId     String?  @map("actor_id") @db.Uuid
+  actorName   String   @map("actor_name")
+  actorEmail  String   @map("actor_email")
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  entityLabel String   @map("entity_label")
+  action      String
+  summary     String
+  changes     Json?
+
+  @@index([createdAt(sort: Desc)])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("rj_audit_logs")
+}

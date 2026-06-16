@@ -7,6 +7,7 @@ import { activeUserWhere } from "../utils/softDelete.js";
 import { badRequest, conflict, notFound } from "../utils/httpError.js";
 import { assignRoleToUser } from "./permission.service.js";
 import { setConfidencialUserRoles } from "./rjRole.service.js";
+import { recordRjAudit } from "./rjAudit.service.js";
 import type { CreateConfidencialUserInput } from "../schemas/confidencialUser.schema.js";
 
 const publicSelect = {
@@ -62,7 +63,10 @@ export async function listConfidencialUsers() {
   return users.map(mapConfidencialUser);
 }
 
-export async function createConfidencialUser(input: CreateConfidencialUserInput) {
+export async function createConfidencialUser(
+  input: CreateConfidencialUserInput,
+  actorUserId?: string,
+) {
   const email = input.email.trim().toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing && !existing.deletedAt) {
@@ -93,10 +97,32 @@ export async function createConfidencialUser(input: CreateConfidencialUserInput)
     where: { id: user.id },
     select: publicSelect,
   });
-  return full ? mapConfidencialUser(full) : null;
+  const mapped = full ? mapConfidencialUser(full) : null;
+
+  if (mapped) {
+    const roleNames = mapped.roles.map((r) => r.name);
+    await recordRjAudit({
+      actorUserId,
+      entityType: "usuario",
+      entityId: mapped.id,
+      entityLabel: mapped.email,
+      action: "create",
+      summary: `Usuário cadastrado: ${mapped.name} (${mapped.email})`,
+      changes: [
+        {
+          field: "roles",
+          label: "Papéis",
+          oldValue: null,
+          newValue: roleNames.join(", ") || "—",
+        },
+      ],
+    });
+  }
+
+  return mapped;
 }
 
-export async function approveConfidencialUser(userId: string) {
+export async function approveConfidencialUser(userId: string, actorUserId?: string) {
   const user = await prisma.user.findFirst({
     where: { id: userId, ...activeUserWhere, accessScope: "CONFIDENCIAL" },
     select: publicSelect,
@@ -111,6 +137,16 @@ export async function approveConfidencialUser(userId: string) {
     data: { confidencialApprovedAt: new Date() },
     select: publicSelect,
   });
+
+  await recordRjAudit({
+    actorUserId,
+    entityType: "usuario",
+    entityId: updated.id,
+    entityLabel: updated.email,
+    action: "approve",
+    summary: `Acesso liberado: ${updated.name} (${updated.email})`,
+  });
+
   return mapConfidencialUser(updated);
 }
 
@@ -121,7 +157,7 @@ export async function resetConfidencialUserPassword(userId: string, actorUserId:
 
   const user = await prisma.user.findFirst({
     where: { id: userId, ...activeUserWhere, accessScope: "CONFIDENCIAL" },
-    select: { id: true, mustChangePassword: true },
+    select: { id: true, name: true, email: true, mustChangePassword: true },
   });
   if (!user) throw notFound("Usuário confidencial não encontrado");
 
@@ -134,18 +170,36 @@ export async function resetConfidencialUserPassword(userId: string, actorUserId:
     data: { mustChangePassword: true },
   });
 
+  await recordRjAudit({
+    actorUserId,
+    entityType: "usuario",
+    entityId: user.id,
+    entityLabel: user.email,
+    action: "reset_password",
+    summary: `Senha resetada: ${user.name} (${user.email})`,
+  });
+
   return { alreadyPending: false as const };
 }
 
-export async function deleteConfidencialUser(userId: string) {
+export async function deleteConfidencialUser(userId: string, actorUserId?: string) {
   const user = await prisma.user.findFirst({
     where: { id: userId, ...activeUserWhere, accessScope: "CONFIDENCIAL" },
-    select: { id: true },
+    select: { id: true, name: true, email: true },
   });
   if (!user) throw notFound("Usuário confidencial não encontrado");
 
   await prisma.user.update({
     where: { id: userId },
     data: { deletedAt: new Date() },
+  });
+
+  await recordRjAudit({
+    actorUserId,
+    entityType: "usuario",
+    entityId: user.id,
+    entityLabel: user.email,
+    action: "delete",
+    summary: `Usuário removido: ${user.name} (${user.email})`,
   });
 }

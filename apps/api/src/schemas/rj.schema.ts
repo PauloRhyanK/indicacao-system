@@ -75,6 +75,17 @@ export const updateConfigSchema = z.object({
   passivo: z.number().min(0),
 });
 
+export const listRjHistoricoQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  entityType: z.enum(["credor", "config", "usuario", "papel"]).optional(),
+  entityId: z.string().optional(),
+  actorId: z.string().uuid().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  q: z.string().optional(),
+});
+
 export type CreateCredorInput = z.infer<typeof createCredorSchema>;
 export type UpdateCredorInput = z.infer<typeof updateCredorSchema>;
 export type UpdateCredorStatusInput = z.infer<typeof updateCredorStatusSchema>;

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  History,
   LogOut,
   Settings,
   Users,
@@ -14,6 +15,7 @@ import caisLogo from "@/assets/cais-logo.png";
 
 const navItems = [
   { to: "/credores", label: "Credores", icon: Users, permission: ["rj.view"] as const },
+  { to: "/historico", label: "Histórico", icon: History, adminOnly: true as const },
   { to: "/configuracoes", label: "Configurações", icon: Settings, permission: ["rj.settings"] as const },
 ] as const;
 
@@ -26,9 +28,12 @@ export function ConfidencialAppLayout({ children }: { children: React.ReactNode 
   const { can, canAny, canRjSettings } = usePermissions();
   const [expanded, setExpanded] = useState(true);
 
-  const nav = navItems.filter((item) =>
-    item.to === "/configuracoes" ? canRjSettings() : canAny(...item.permission),
-  );
+  const nav = navItems.filter((item) => {
+    if ("adminOnly" in item && item.adminOnly) return canRjSettings();
+    if (item.to === "/configuracoes") return canRjSettings();
+    if ("permission" in item) return canAny(...item.permission);
+    return false;
+  });
   const readOnly = can("rj.view") && !can("rj.manage");
 
   useEffect(() => {
