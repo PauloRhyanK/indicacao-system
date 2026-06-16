@@ -1,6 +1,5 @@
 import { formatBRL } from "@/lib/cais-api";
 import { cn } from "@/lib/utils";
-import { RankingAmountBar } from "@/components/cais/dashboard/GoalProgressBar";
 
 export interface SalesRankingEntry {
   position: number;
@@ -46,11 +45,6 @@ export function SalesRankingPanel({
   entries: SalesRankingEntry[];
   className?: string;
 }) {
-  const maxTotal = Math.max(
-    1,
-    ...entries.map((e) => e.total + (e.pendingTotal ?? 0)),
-  );
-
   return (
     <div
       className={cn(
@@ -82,7 +76,7 @@ export function SalesRankingPanel({
                     : "border-slate-200 bg-slate-50/50",
                 )}
               >
-                <div className="mb-2 flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] font-bold text-azul-profundo">
                     {initials(entry.name)}
                   </div>
@@ -111,12 +105,6 @@ export function SalesRankingPanel({
                     )}
                   </div>
                 </div>
-                <RankingAmountBar
-                  paid={entry.total}
-                  pending={pendingTotal}
-                  maxTotal={maxTotal}
-                  paidColorClassName={entry.position === 1 ? "bg-ouro" : "bg-azul-medio"}
-                />
               </div>
             );
           })

@@ -253,8 +253,6 @@ interface RankingEntry {
 }
 
 function SalesRanking({ entries }: { entries: RankingEntry[] }) {
-  const maxTotal = Math.max(1, ...entries.map((e) => e.total + e.pendingTotal));
-
   return (
     <div style={{
       display: "flex", flexDirection: "column",
@@ -276,12 +274,7 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
             Nenhuma venda no período
           </div>
         ) : (
-          entries.map((entry) => {
-            const paidPct = Math.max(entry.total > 0 ? 4 : 0, Math.round((entry.total / maxTotal) * 100));
-            const pendingPct = entry.pendingTotal > 0
-              ? Math.max(4, Math.round((entry.pendingTotal / maxTotal) * 100))
-              : 0;
-            return (
+          entries.map((entry) => (
               <div
                 key={`${entry.position}-${entry.name}`}
                 style={{
@@ -292,7 +285,7 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
                   border: entry.position <= 3 ? "1px solid rgba(232,200,130,0.28)" : `1px solid ${TV_THEME.cardBorder}`,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
                     background: "rgba(255,255,255,0.16)",
@@ -326,27 +319,8 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
                     )}
                   </div>
                 </div>
-                <div style={{ height: 6, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{ display: "flex", height: "100%" }}>
-                    {paidPct > 0 && (
-                      <div style={{
-                        height: "100%", width: `${paidPct}%`,
-                        background: entry.position === 1 ? TV_THEME.accent : TV_THEME.accentMint,
-                        borderRadius: pendingPct > 0 ? "999px 0 0 999px" : 999,
-                      }} />
-                    )}
-                    {pendingPct > 0 && (
-                      <div style={{
-                        height: "100%", width: `${pendingPct}%`,
-                        background: "rgba(255,255,255,0.28)",
-                        borderRadius: paidPct > 0 ? "0 999px 999px 0" : 999,
-                      }} />
-                    )}
-                  </div>
-                </div>
               </div>
-            );
-          })
+            ))
         )}
       </div>
     </div>
