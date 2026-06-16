@@ -9,6 +9,11 @@ import {
   postRjCredor,
   putRjConfig,
 } from "../controllers/rj.controller.js";
+import {
+  getConfidencialUsers,
+  postConfidencialUser,
+  removeConfidencialUser,
+} from "../controllers/confidencialUser.controller.js";
 import { authenticate, requirePermission } from "../middlewares/auth.js";
 
 export async function rjRoutes(app: FastifyInstance) {
@@ -58,5 +63,23 @@ export async function rjRoutes(app: FastifyInstance) {
     "/rj/config",
     { preHandler: [authenticate, requirePermission("rj.manage")] },
     putRjConfig,
+  );
+
+  app.get(
+    "/rj/usuarios",
+    { preHandler: [authenticate, requirePermission("rj.manage")] },
+    getConfidencialUsers,
+  );
+
+  app.post(
+    "/rj/usuarios",
+    { preHandler: [authenticate, requirePermission("rj.manage")] },
+    postConfidencialUser,
+  );
+
+  app.delete(
+    "/rj/usuarios/:id",
+    { preHandler: [authenticate, requirePermission("rj.manage")] },
+    removeConfidencialUser,
   );
 }

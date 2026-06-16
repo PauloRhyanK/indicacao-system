@@ -59,11 +59,12 @@ async function seedAdmin(adminRoleId: string) {
   const passwordHash = await bcrypt.hash(adminPassword, 10);
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { passwordHash, name: "Administrador" },
+    update: { passwordHash, name: "Administrador", accessScope: "FULL" },
     create: {
       name: "Administrador",
       email: adminEmail,
       passwordHash,
+      accessScope: "FULL",
     },
   });
   await assignRoleToUser(prisma, admin.id, adminRoleId);

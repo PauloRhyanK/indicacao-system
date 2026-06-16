@@ -38,16 +38,25 @@ enum CampaignRewardStatus {
   CANCELLED
 }
 
+enum UserAccessScope {
+  INTERNAL
+  FULL
+  CONFIDENCIAL
+
+  @@map("user_access_scope")
+}
+
 model User {
-  id                  String    @id @default(uuid()) @db.Uuid
+  id                  String           @id @default(uuid()) @db.Uuid
   name                String
-  email               String    @unique
+  email               String           @unique
   phone               String?
-  passwordHash        String    @map("password_hash")
-  mustChangePassword  Boolean   @default(false) @map("must_change_password")
-  personalDailyTarget Decimal?  @map("personal_daily_target") @db.Decimal(14, 2)
-  createdAt           DateTime  @default(now()) @map("created_at")
-  deletedAt           DateTime? @map("deleted_at")
+  passwordHash        String           @map("password_hash")
+  mustChangePassword  Boolean          @default(false) @map("must_change_password")
+  accessScope         UserAccessScope  @default(INTERNAL) @map("access_scope")
+  personalDailyTarget Decimal?         @map("personal_daily_target") @db.Decimal(14, 2)
+  createdAt           DateTime         @default(now()) @map("created_at")
+  deletedAt           DateTime?        @map("deleted_at")
 
   leadsAsResponsavel     Lead[]     @relation("LeadResponsavel")
   leadsAsCoVendedor      Lead[]     @relation("LeadCoVendedor")

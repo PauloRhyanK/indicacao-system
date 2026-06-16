@@ -3,6 +3,7 @@ import { z } from "zod";
 export const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
   password: z.string().min(1, "Senha obrigatória"),
+  realm: z.enum(["admin", "confidencial"]).default("admin"),
 });
 
 export const registerSchema = z.object({

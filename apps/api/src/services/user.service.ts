@@ -74,6 +74,7 @@ export async function createUser(input: CreateUserInput, actorUserId: string) {
       name: input.name,
       email: input.email,
       passwordHash: await bcrypt.hash(input.password, 10),
+      accessScope: "INTERNAL",
     },
     select: { id: true },
   });

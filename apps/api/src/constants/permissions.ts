@@ -47,6 +47,8 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
   },
 ];
 
+export const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+
 export const ALL_PERMISSION_KEYS = PERMISSIONS_CATALOG.map((p) => p.key);
 
 /** Espelha o consultor de hoje (sem admin). */
@@ -64,3 +66,4 @@ export const COLABORADOR_PERMISSION_KEYS = [
 
 export const ROLE_ADMIN_NAME = "Administrador";
 export const ROLE_COLABORADOR_NAME = "Colaborador";
+export const ROLE_CONFIDENCIAL_NAME = "Acesso Confidencial";

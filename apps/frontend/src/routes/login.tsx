@@ -34,7 +34,7 @@ function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, "admin");
       navigate({ to: "/dashboard", replace: true });
     } catch (err) {
       if (

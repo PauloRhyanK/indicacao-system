@@ -7,6 +7,9 @@ export const Route = createFileRoute("/_authenticated")({
     if (!isAuthenticated()) throw redirect({ to: "/login" });
     try {
       const session = await fetchMe();
+      if (session.user.accessScope === "INTERNAL") {
+        throw redirect({ to: "/acesso-negado" });
+      }
       if (session.user.mustChangePassword) {
         throw redirect({ to: "/primeiro-acesso" });
       }

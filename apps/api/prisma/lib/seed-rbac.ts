@@ -40,6 +40,8 @@ const PERMISSIONS_CATALOG = [
   },
 ] as const;
 
+const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+
 const COLABORADOR_PERMISSION_KEYS = [
   "leads.view_all",
   "leads.create",
@@ -54,6 +56,7 @@ const COLABORADOR_PERMISSION_KEYS = [
 
 const ROLE_ADMIN_NAME = "Administrador";
 const ROLE_COLABORADOR_NAME = "Colaborador";
+const ROLE_CONFIDENCIAL_NAME = "Acesso Confidencial";
 
 async function syncPermissionsCatalog(prisma: PrismaClient) {
   for (const p of PERMISSIONS_CATALOG) {
@@ -80,6 +83,12 @@ export async function ensureSystemRoles(prisma: PrismaClient) {
     create: { name: ROLE_COLABORADOR_NAME, isSystem: true },
   });
 
+  const confidencialRole = await prisma.role.upsert({
+    where: { name: ROLE_CONFIDENCIAL_NAME },
+    update: { isSystem: true },
+    create: { name: ROLE_CONFIDENCIAL_NAME, isSystem: true },
+  });
+
   const allKeys = PERMISSIONS_CATALOG.map((p) => p.key);
 
   await prisma.rolePermission.deleteMany({ where: { roleId: adminRole.id } });
@@ -97,7 +106,20 @@ export async function ensureSystemRoles(prisma: PrismaClient) {
     skipDuplicates: true,
   });
 
-  return { adminRoleId: adminRole.id, colaboradorRoleId: colabRole.id };
+  await prisma.rolePermission.deleteMany({ where: { roleId: confidencialRole.id } });
+  await prisma.rolePermission.createMany({
+    data: CONFIDENCIAL_ROLE_PERMISSION_KEYS.map((permissionKey) => ({
+      roleId: confidencialRole.id,
+      permissionKey,
+    })),
+    skipDuplicates: true,
+  });
+
+  return {
+    adminRoleId: adminRole.id,
+    colaboradorRoleId: colabRole.id,
+    confidencialRoleId: confidencialRole.id,
+  };
 }
 
 export async function assignRoleToUser(prisma: PrismaClient, userId: string, roleId: string) {

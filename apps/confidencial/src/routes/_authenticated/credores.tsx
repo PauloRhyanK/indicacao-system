@@ -13,8 +13,9 @@ export const Route = createFileRoute("/_authenticated/credores")({
 });
 
 function CredoresRoute() {
+  const { permissions } = Route.useRouteContext();
   return (
-    <ConfidencialLayout>
+    <ConfidencialLayout canManageUsers={permissions.includes("rj.manage")}>
       <RjCredoresPage />
     </ConfidencialLayout>
   );

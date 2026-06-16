@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { fetchMe, isAuthenticated } from "@/lib/api/auth";
+import { fetchMe, isAuthenticated, logout } from "@/lib/api/auth";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -7,6 +7,10 @@ export const Route = createFileRoute("/_authenticated")({
     if (!isAuthenticated()) throw redirect({ to: "/login" });
     try {
       const session = await fetchMe();
+      if (session.user.accessScope === "CONFIDENCIAL") {
+        logout();
+        throw redirect({ to: "/login" });
+      }
       if (session.user.mustChangePassword) {
         throw redirect({ to: "/primeiro-acesso" });
       }

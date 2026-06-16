@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { login, isAuthenticated, PASSWORD_SETUP_REQUIRED } from "@/lib/api/auth";
+import { login, isAuthenticated, PASSWORD_SETUP_REQUIRED, ACCESS_DENIED_WRONG_REALM, ACCESS_DENIED_NO_RJ } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/cais/Button";
 import { inputClass } from "@/components/cais/SlideOver";
@@ -28,7 +28,7 @@ function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const session = await login(email, password);
+      const session = await login(email, password, "confidencial");
       if (!session.permissions.includes("rj.view")) {
         navigate({ to: "/acesso-negado", replace: true });
         return;
@@ -40,6 +40,16 @@ function LoginPage() {
         (err.details as { code?: string } | undefined)?.code === PASSWORD_SETUP_REQUIRED
       ) {
         setError("Defina sua senha no primeiro acesso antes de entrar.");
+      } else if (
+        err instanceof ApiError &&
+        (err.details as { code?: string } | undefined)?.code === ACCESS_DENIED_WRONG_REALM
+      ) {
+        setError("Esta conta não tem acesso a este ambiente. Use o sistema admin.");
+      } else if (
+        err instanceof ApiError &&
+        (err.details as { code?: string } | undefined)?.code === ACCESS_DENIED_NO_RJ
+      ) {
+        setError("Sem permissão para acessar o ambiente confidencial.");
       } else {
         setError("E-mail ou senha inválidos.");
       }

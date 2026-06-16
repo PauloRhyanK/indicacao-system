@@ -1,9 +1,15 @@
-import { LogOut } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { LogOut, Users } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { logout } from "@/lib/api/auth";
 import caisLogo from "@/assets/cais-logo.png";
 
-export function ConfidencialLayout({ children }: { children: React.ReactNode }) {
+export function ConfidencialLayout({
+  children,
+  canManageUsers = false,
+}: {
+  children: React.ReactNode;
+  canManageUsers?: boolean;
+}) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -26,6 +32,15 @@ export function ConfidencialLayout({ children }: { children: React.ReactNode }) 
             <span className="hidden rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 sm:inline">
               Controle Interno
             </span>
+            {canManageUsers && (
+              <Link
+                to="/usuarios"
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-[12px] font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-azul-profundo"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Usuários
+              </Link>
+            )}
             <button
               type="button"
               onClick={handleLogout}

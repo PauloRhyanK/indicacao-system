@@ -425,7 +425,7 @@ function CreateUserForm({ roles }: { roles: { id: string; name: string }[] }) {
         onChange={(e) => setPassword(e.target.value)}
       />
       <div className="flex flex-wrap gap-2">
-        {roles.map((r) => {
+        {roles.filter((r) => r.name !== "Acesso Confidencial").map((r) => {
           const active = roleIds.includes(r.id);
           return (
             <button

@@ -11,6 +11,7 @@ export interface AuthUser {
   name: string;
   email: string;
   roles: AuthRole[];
+  accessScope: "INTERNAL" | "FULL" | "CONFIDENCIAL";
   createdAt: string;
   mustChangePassword?: boolean;
 }
@@ -32,13 +33,21 @@ interface MeResponse {
 }
 
 export const PASSWORD_SETUP_REQUIRED = "PASSWORD_SETUP_REQUIRED";
+export const ACCESS_DENIED_WRONG_REALM = "ACCESS_DENIED_WRONG_REALM";
+export const ACCESS_DENIED_NO_RJ = "ACCESS_DENIED_NO_RJ";
 
-export async function login(email: string, password: string): Promise<AuthSession> {
+export type AuthRealm = "admin" | "confidencial";
+
+export async function login(
+  email: string,
+  password: string,
+  realm: AuthRealm = "admin",
+): Promise<AuthSession> {
   const data = await apiFetch<AuthResponse>(
     "/auth/login",
     {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, realm }),
     },
     false,
   );

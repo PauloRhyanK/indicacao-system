@@ -35,6 +35,10 @@ function PrimeiroAcessoPage() {
     setLoading(true);
     try {
       const session = await setInitialPassword(email.trim(), password);
+      if (session.user.accessScope === "INTERNAL") {
+        navigate({ to: "/acesso-negado", replace: true });
+        return;
+      }
       if (!session.permissions.includes("rj.view")) {
         navigate({ to: "/acesso-negado", replace: true });
         return;

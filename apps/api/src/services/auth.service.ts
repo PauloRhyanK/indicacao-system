@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import type { UserAccessScope } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { badRequest, conflict, unauthorized } from "../utils/httpError.js";
 import {
@@ -56,6 +57,7 @@ export async function registerUser(input: RegisterInput) {
       name: input.name,
       email: input.email,
       passwordHash: await bcrypt.hash(input.password, 10),
+      accessScope: "INTERNAL",
     },
   });
 
@@ -70,6 +72,7 @@ export function publicUser(
     email: string;
     createdAt: Date;
     mustChangePassword?: boolean;
+    accessScope?: UserAccessScope;
   },
   roles: { id: string; name: string; isSystem: boolean }[] = [],
 ) {
@@ -78,6 +81,7 @@ export function publicUser(
     name: user.name,
     email: user.email,
     roles,
+    accessScope: user.accessScope ?? "INTERNAL",
     createdAt: user.createdAt,
     mustChangePassword: user.mustChangePassword ?? false,
   };

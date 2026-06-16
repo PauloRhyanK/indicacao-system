@@ -1527,3 +1527,33 @@ export async function downloadRjCredoresCsv(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+export interface ConfidencialUser {
+  id: string;
+  name: string;
+  email: string;
+  mustChangePassword: boolean;
+  accessScope: "CONFIDENCIAL";
+  createdAt: string;
+  roles: { id: string; name: string; isSystem: boolean }[];
+}
+
+export async function fetchConfidencialUsers(): Promise<ConfidencialUser[]> {
+  const res = await apiFetch<{ data: ConfidencialUser[] }>("/rj/usuarios");
+  return res.data;
+}
+
+export async function createConfidencialUser(input: {
+  name: string;
+  email: string;
+}): Promise<ConfidencialUser> {
+  const res = await apiFetch<{ data: ConfidencialUser }>("/rj/usuarios", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function deleteConfidencialUser(id: string): Promise<void> {
+  await apiFetch(`/rj/usuarios/${id}`, { method: "DELETE" });
+}
+
