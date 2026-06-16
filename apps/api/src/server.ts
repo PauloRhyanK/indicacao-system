@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { prisma } from "./config/prisma.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { registerRoutes } from "./routes/index.js";
+import { ensureAllCampaignRewardsGenerated } from "./services/campaignReward.service.js";
 
 async function buildServer() {
   const app = Fastify({
@@ -44,8 +45,27 @@ async function buildServer() {
   return app;
 }
 
+async function runStartupTasks(app: Awaited<ReturnType<typeof buildServer>>) {
+  try {
+    const result = await ensureAllCampaignRewardsGenerated();
+    if (result.processed > 0) {
+      app.log.info(`Recompensas da campanha geradas para ${result.processed} venda(s)`);
+    }
+    if (result.remaining > 0) {
+      app.log.warn(`${result.remaining} venda(s) ainda sem recompensas geradas`);
+    }
+    if (result.errors.length > 0) {
+      app.log.warn({ err: result.errors }, "Falhas ao gerar recompensas da campanha");
+    }
+  } catch (err) {
+    app.log.warn(err, "Backfill de recompensas ignorado na inicialização");
+  }
+}
+
 async function start() {
   const app = await buildServer();
+
+  await runStartupTasks(app);
 
   const shutdown = async (signal: string) => {
     app.log.info(`Recebido ${signal}, encerrando...`);

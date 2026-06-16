@@ -301,6 +301,23 @@ export async function backfillCampaignRewards(input: BackfillCampaignRewardsInpu
   return { processed, remaining, errors };
 }
 
+/** Gera recompensas para todas as vendas que ainda não têm registro (idempotente). */
+export async function ensureAllCampaignRewardsGenerated() {
+  let totalProcessed = 0;
+  const allErrors: { purchaseId: string; message: string }[] = [];
+  let remaining = await countPurchasesWithoutRewards();
+
+  while (remaining > 0) {
+    const batch = await backfillCampaignRewards({ limit: 200 });
+    totalProcessed += batch.processed;
+    allErrors.push(...batch.errors);
+    if (batch.processed === 0) break;
+    remaining = batch.remaining;
+  }
+
+  return { processed: totalProcessed, remaining, errors: allErrors };
+}
+
 async function loadPurchaseSummary(
   purchase: {
     id: string;

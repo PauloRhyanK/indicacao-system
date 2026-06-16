@@ -25,5 +25,5 @@ COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY pnpm-workspace.yaml ./
 WORKDIR /app/apps/api
 EXPOSE 3001
-# Aplica migrations pendentes e sobe a API.
+# Aplica migrations pendentes, gera recompensas de vendas antigas e sobe a API.
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
