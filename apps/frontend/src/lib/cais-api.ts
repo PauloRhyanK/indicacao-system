@@ -623,7 +623,7 @@ export async function updateSale(
     sale_value?: number;
     consortium_type_id?: string | null;
   },
-): Promise<Sale> {
+): Promise<{ sale: Sale; stalePaidRewards: number }> {
   const body: Record<string, unknown> = {};
   if (patch.sale_date) body.purchaseDate = toPurchaseDateIso(patch.sale_date);
   if (patch.boleto_paid !== undefined) body.boletoPaid = patch.boleto_paid;
@@ -632,11 +632,17 @@ export async function updateSale(
     body.consortiumTypeId = patch.consortium_type_id;
   }
 
-  const res = await apiFetch<{ data: ApiPurchase }>(`/purchases/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-  return mapSale(res.data);
+  const res = await apiFetch<{ data: ApiPurchase; stalePaidRewards?: number }>(
+    `/purchases/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    },
+  );
+  return {
+    sale: mapSale(res.data),
+    stalePaidRewards: res.stalePaidRewards ?? 0,
+  };
 }
 
 export async function deleteSale(
@@ -892,6 +898,143 @@ export async function fetchBonusChain(leadId: string): Promise<BonusChainResult>
     `/leads/${leadId}/bonus-chain?maxDepth=10`,
   );
   return res.data;
+}
+
+export type CampaignRewardType =
+  | "RESPONSAVEL"
+  | "CO_VENDEDOR"
+  | "FIRST_CONTACT"
+  | "REFERRAL"
+  | "CLIENT";
+
+export type ClientRewardChoice = "CASHBACK" | "TRAVEL_VOUCHER";
+
+export type CampaignRewardStatus = "PENDING" | "PAID" | "CANCELLED";
+
+export interface CampaignReward {
+  id: string;
+  purchaseId: string;
+  type: CampaignRewardType;
+  referralLevel: number;
+  recipientType: "USER" | "LEAD" | null;
+  recipientId: string | null;
+  recipientName: string;
+  amount: number | null;
+  clientChoice: ClientRewardChoice | null;
+  status: CampaignRewardStatus;
+  amountStale: boolean;
+  paidAt: string | null;
+  notes: string | null;
+}
+
+export interface PurchaseRewardsSummary {
+  purchaseId: string;
+  leadId: string;
+  leadName: string;
+  leadPhone: string | null;
+  purchaseAmount: number;
+  purchaseDate: string;
+  directReferrerName: string | null;
+  rewardsGenerated: boolean;
+  totalRewards: number;
+  paidCount: number;
+  pendingCount: number;
+  staleCount: number;
+  rewards: CampaignReward[];
+}
+
+export interface CampaignRewardsListResult {
+  items: PurchaseRewardsSummary[];
+  pagination: LeadsPagination;
+  backfillRemaining: number;
+}
+
+export const REWARD_TYPE_LABELS: Record<CampaignRewardType, string> = {
+  RESPONSAVEL: "Vendedor responsável",
+  CO_VENDEDOR: "Co-vendedor",
+  FIRST_CONTACT: "Primeiro contato",
+  REFERRAL: "Indicação",
+  CLIENT: "Cliente",
+};
+
+export const CLIENT_CHOICE_LABELS: Record<ClientRewardChoice, string> = {
+  CASHBACK: "Cashback (1ª parcela)",
+  TRAVEL_VOUCHER: "Voucher de viagens",
+};
+
+function mapCampaignReward(api: CampaignReward): CampaignReward {
+  return api;
+}
+
+function mapPurchaseRewardsSummary(api: PurchaseRewardsSummary): PurchaseRewardsSummary {
+  return {
+    ...api,
+    rewards: api.rewards.map(mapCampaignReward),
+  };
+}
+
+export async function fetchCampaignRewards(params?: {
+  page?: number;
+  limit?: number;
+  pendingOnly?: boolean;
+  hasReferral?: boolean;
+  includeWithoutRewards?: boolean;
+}): Promise<CampaignRewardsListResult> {
+  const search = new URLSearchParams();
+  if (params?.page) search.set("page", String(params.page));
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.pendingOnly) search.set("pendingOnly", "true");
+  if (params?.hasReferral) search.set("hasReferral", "true");
+  if (params?.includeWithoutRewards) search.set("includeWithoutRewards", "true");
+  const qs = search.toString();
+  const res = await apiFetch<CampaignRewardsListResult>(
+    `/campaign-rewards${qs ? `?${qs}` : ""}`,
+  );
+  return {
+    ...res,
+    items: res.items.map(mapPurchaseRewardsSummary),
+  };
+}
+
+export async function fetchPurchaseCampaignRewards(
+  purchaseId: string,
+): Promise<PurchaseRewardsSummary> {
+  const res = await apiFetch<{ data: PurchaseRewardsSummary }>(
+    `/purchases/${purchaseId}/campaign-rewards`,
+  );
+  return mapPurchaseRewardsSummary(res.data);
+}
+
+export async function updateCampaignReward(
+  id: string,
+  patch: {
+    status?: CampaignRewardStatus;
+    clientChoice?: ClientRewardChoice | null;
+    notes?: string | null;
+  },
+): Promise<CampaignReward> {
+  const res = await apiFetch<{ data: CampaignReward }>(`/campaign-rewards/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  return mapCampaignReward(res.data);
+}
+
+export async function bulkMarkCampaignRewardsPaid(ids: string[]): Promise<CampaignReward[]> {
+  const res = await apiFetch<{ data: CampaignReward[] }>("/campaign-rewards/bulk", {
+    method: "PATCH",
+    body: JSON.stringify({ ids, status: "PAID" }),
+  });
+  return res.data.map(mapCampaignReward);
+}
+
+export async function backfillCampaignRewards(
+  limit = 100,
+): Promise<{ processed: number; remaining: number; errors: { purchaseId: string; message: string }[] }> {
+  return apiFetch("/campaign-rewards/backfill", {
+    method: "POST",
+    body: JSON.stringify({ limit }),
+  });
 }
 
 export interface ImportRowDetail {
