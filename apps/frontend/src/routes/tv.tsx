@@ -1,12 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
-import {
-  applyDailyPresetToday,
-  fetchDailyGoalToday,
-  type DailyPresetSlug,
-} from "@/lib/cais-api";
+import { fetchDailyGoalToday } from "@/lib/cais-api";
 import {
   getSaleSoundPreset,
   isSaleSoundUnlocked,
@@ -28,8 +24,6 @@ interface Sale {
   soldAt: Date;
   isNew?: boolean;
 }
-
-const TV_TOKEN = import.meta.env.VITE_TV_TOKEN as string | undefined;
 
 const TV_THEME = {
   bg: "#243d4f",
@@ -422,64 +416,7 @@ function CelebrationOverlay({ sale, onDone }: CelebrationOverlayProps) {
   );
 }
 
-// ─── Preset quick-set (TV) ────────────────────────────────────────────────────
-
-const PRESET_ICONS: Record<DailyPresetSlug, string> = {
-  normal: "📊",
-  peak: "🔥",
-  reduced: "🌙",
-  sprint: "⚡",
-};
-
-function PresetQuickSet({
-  presets,
-  activeSlug,
-  onApply,
-  applying,
-  disabled,
-}: {
-  presets: { slug: DailyPresetSlug; label: string; multiplier: number }[];
-  activeSlug: DailyPresetSlug | null;
-  onApply: (slug: DailyPresetSlug) => void;
-  applying: boolean;
-  disabled: boolean;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textSoft, fontWeight: 500 }}>
-        Meta do dia
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        {presets.map((p) => {
-          const active = activeSlug === p.slug;
-          return (
-            <button
-              key={p.slug}
-              type="button"
-              disabled={disabled || applying}
-              onClick={() => onApply(p.slug)}
-              style={{
-                background: active ? "rgba(217,189,126,0.15)" : "rgba(255,255,255,0.03)",
-                border: active ? "1px solid rgba(217,189,126,0.5)" : "1px solid rgba(255,255,255,0.07)",
-                borderRadius: 10,
-                padding: "10px 12px",
-                cursor: disabled || applying ? "not-allowed" : "pointer",
-                opacity: disabled ? 0.45 : 1,
-                textAlign: "left",
-                color: "#fcfcfc",
-                fontFamily: "inherit",
-              }}
-            >
-              <div style={{ fontSize: 16, marginBottom: 2 }}>{PRESET_ICONS[p.slug]}</div>
-              <div style={{ fontSize: 12, fontWeight: 600 }}>{p.label}</div>
-              <div style={{ fontSize: 10, color: "#346f93" }}>{p.multiplier}× base</div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// ─── Sound picker ─────────────────────────────────────────────────────────────
 
 function SoundPicker() {
   const [preset, setPreset] = useState<SaleSoundPreset>(() => getSaleSoundPreset());
@@ -534,7 +471,6 @@ function SoundPicker() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function TVDashboard() {
-  const queryClient = useQueryClient();
   const [celebration, setCelebration] = useState<Sale | null>(null);
   const [newSaleIds, setNewSaleIds] = useState<Set<string>>(new Set());
   const [tick, setTick] = useState(0);
@@ -589,13 +525,6 @@ function TVDashboard() {
     }
   }, [data?.recentSales]);
 
-  const presetMutation = useMutation({
-    mutationFn: (slug: DailyPresetSlug) => applyDailyPresetToday(slug, TV_TOKEN),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["daily-goal-today"] });
-    },
-  });
-
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 30000);
     return () => clearInterval(t);
@@ -618,7 +547,6 @@ function TVDashboard() {
   const periodTarget = data?.periodGoal?.targetAmount ?? 0;
   const periodCurrent = data?.periodGoal?.currentAmount ?? 0;
   const todayCount = data?.todaySalesCount ?? 0;
-  const activePreset = data?.presetSlug ?? null;
   const salesRanking: RankingEntry[] = useMemo(
     () =>
       (data?.salesRanking ?? []).map((r) => ({
@@ -807,15 +735,6 @@ function TVDashboard() {
                 <div style={{ fontSize: 11, color: TV_THEME.accentWarm }}>{k.sub}</div>
               </div>
             ))}
-            {data?.presets && (
-              <PresetQuickSet
-                presets={data.presets}
-                activeSlug={activePreset}
-                onApply={(slug) => presetMutation.mutate(slug)}
-                applying={presetMutation.isPending}
-                disabled={!TV_TOKEN}
-              />
-            )}
             <SoundPicker />
           </div>
 
