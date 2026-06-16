@@ -1,18 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "./Button";
 import { fetchBonusChain, formatDate, type Sale } from "@/lib/cais-api";
 import { CommercialRolesList, ReferralChainList } from "./ReferralChainList";
 
 export function SaleExpandedPanel({
   sale,
   enabled,
-  canDelete,
-  onCancel,
 }: {
   sale: Sale;
   enabled: boolean;
-  canDelete?: boolean;
-  onCancel?: () => void;
 }) {
   const chain = useQuery({
     queryKey: ["bonus-chain", sale.lead_id],
@@ -46,11 +41,6 @@ export function SaleExpandedPanel({
           <p className="text-[12px] text-slate-500">
             Lead criado em {formatDate(sale.lead_created_at)}
           </p>
-        ) : null}
-        {canDelete && onCancel ? (
-          <Button variant="ghost" className="text-red-600 hover:bg-red-50" onClick={onCancel}>
-            Desfazer venda
-          </Button>
         ) : null}
       </div>
       <div>

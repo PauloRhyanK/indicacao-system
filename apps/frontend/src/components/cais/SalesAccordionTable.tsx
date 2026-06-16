@@ -327,12 +327,7 @@ export function SalesAccordionTable({
                   onEdit={setEditSale}
                 />
                 <AccordionContent className="p-0">
-                  <SaleExpandedPanel
-                    sale={sale}
-                    enabled={isExpanded}
-                    canDelete={canDelete}
-                    onCancel={() => setReverseTarget(sale)}
-                  />
+                  <SaleExpandedPanel sale={sale} enabled={isExpanded} />
                 </AccordionContent>
               </AccordionItem>
             );
