@@ -13,9 +13,7 @@ import { notFound, unauthorized } from "../utils/httpError.js";
 import {
   ACCESS_DENIED_NO_RJ,
   ACCESS_DENIED_WRONG_REALM,
-  ACCESS_PENDING_APPROVAL,
   canAccessRealm,
-  isConfidencialUserApproved,
   resolveAccessScope,
   type AuthRealm,
 } from "../constants/accessScope.js";
@@ -49,19 +47,6 @@ async function issueToken(
   };
 }
 
-function assertConfidencialApproved(
-  user: { accessScope: UserAccessScope; confidencialApprovedAt: Date | null },
-  realm: AuthRealm,
-) {
-  if (realm !== "confidencial") return;
-  if (!isConfidencialUserApproved(user)) {
-    throw unauthorized(
-      "Sua conta aguarda aprovação do administrador para acessar o ambiente confidencial.",
-      { code: ACCESS_PENDING_APPROVAL },
-    );
-  }
-}
-
 function assertRealmAccess(
   user: { accessScope: UserAccessScope },
   permissions: Set<string>,
@@ -90,7 +75,6 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
   const user = await validateCredentials(input);
   const permissions = await getUserPermissions(user.id);
   assertRealmAccess(user, permissions, input.realm);
-  assertConfidencialApproved(user, input.realm);
   return reply.send(await issueToken(user, reply));
 }
 

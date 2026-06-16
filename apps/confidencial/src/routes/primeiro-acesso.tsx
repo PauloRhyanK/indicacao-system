@@ -74,7 +74,8 @@ function PrimeiroAcessoPage() {
         </div>
 
         <p className="mb-5 text-center text-[13px] text-slate-600">
-          Use o e-mail cadastrado pelo administrador e escolha sua senha para acessar o sistema.
+          Informe seu e-mail e escolha uma senha. Se a conta ainda não existir, ela será criada e
+          ficará aguardando liberação do administrador.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

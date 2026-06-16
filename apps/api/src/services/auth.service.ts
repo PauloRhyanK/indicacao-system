@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import type { UserAccessScope } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { badRequest, conflict, unauthorized } from "../utils/httpError.js";
+import { ROLE_CONFIDENCIAL_NAME } from "../constants/permissions.js";
 import {
   assignRoleToUser,
   getColaboradorRoleId,
@@ -26,24 +27,73 @@ export async function validateCredentials(input: LoginInput) {
   return user;
 }
 
+async function getDefaultConfidencialRoleId() {
+  const role = await prisma.role.findUnique({ where: { name: ROLE_CONFIDENCIAL_NAME } });
+  if (!role) throw badRequest("Ambiente confidencial não configurado.");
+  return role.id;
+}
+
+function nameFromEmail(email: string) {
+  const local = email.split("@")[0] ?? "Usuário";
+  return local.replace(/[._-]+/g, " ").trim() || "Usuário";
+}
+
 export async function setInitialPassword(input: SetInitialPasswordInput) {
   const email = input.email.trim().toLowerCase();
+  const passwordHash = await bcrypt.hash(input.password, 10);
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || user.deletedAt) throw unauthorized("E-mail não encontrado");
+
+  if (!user) {
+    const created = await prisma.user.create({
+      data: {
+        name: nameFromEmail(email),
+        email,
+        passwordHash,
+        mustChangePassword: false,
+        accessScope: "CONFIDENCIAL",
+        confidencialApprovedAt: null,
+      },
+    });
+    await assignRoleToUser(created.id, await getDefaultConfidencialRoleId());
+    return created;
+  }
+
+  if (user.deletedAt) {
+    if (user.accessScope !== "CONFIDENCIAL") {
+      throw badRequest("Este e-mail não pode ser usado neste ambiente.");
+    }
+    const restored = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        deletedAt: null,
+        passwordHash,
+        mustChangePassword: false,
+        confidencialApprovedAt: null,
+      },
+    });
+    await assignRoleToUser(restored.id, await getDefaultConfidencialRoleId());
+    return restored;
+  }
+
+  if (user.accessScope === "INTERNAL") {
+    throw badRequest("Este e-mail já está cadastrado no sistema admin.");
+  }
+
+  if (user.accessScope !== "CONFIDENCIAL") {
+    throw unauthorized("E-mail não encontrado");
+  }
 
   if (!user.mustChangePassword) {
     throw badRequest("Esta conta já possui senha definida. Use o login normal.");
   }
 
-  const updated = await prisma.user.update({
+  return prisma.user.update({
     where: { id: user.id },
     data: {
-      passwordHash: await bcrypt.hash(input.password, 10),
+      passwordHash,
       mustChangePassword: false,
     },
   });
-
-  return updated;
 }
 
 export async function registerUser(input: RegisterInput) {
