@@ -7,6 +7,7 @@ import { Badge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { CampaignRewardsDialog } from "@/components/cais/CampaignRewardsDialog";
 import { PageLoader, EmptyState } from "@/components/cais/Feedback";
+import { PendingRewardsPanel } from "@/components/cais/PendingRewardsPanel";
 import { ReferralChainDialog } from "@/components/cais/ReferralChainDialog";
 import {
   backfillCampaignRewards,
@@ -29,6 +30,8 @@ function IndicacoesPage() {
   const canManageRewards = can("rewards.manage");
 
   const [rewardsPurchaseId, setRewardsPurchaseId] = useState<string | null>(null);
+  const [rewardQueue, setRewardQueue] = useState<string[] | null>(null);
+  const [rewardQueueIndex, setRewardQueueIndex] = useState(0);
   const [chainLead, setChainLead] = useState<{
     id: string;
     name: string;
@@ -44,6 +47,17 @@ function IndicacoesPage() {
       }),
   });
 
+  const pendingSummary = useQuery({
+    queryKey: ["campaign-rewards-pending"],
+    queryFn: () =>
+      fetchCampaignRewards({
+        limit: 100,
+        pendingOnly: true,
+        includeWithoutRewards: false,
+      }),
+    enabled: canManageRewards,
+  });
+
   const bonusChain = useQuery({
     queryKey: ["bonus-chain", chainLead?.id],
     queryFn: () => fetchBonusChain(chainLead!.id),
@@ -54,14 +68,59 @@ function IndicacoesPage() {
     mutationFn: () => backfillCampaignRewards(100),
     onSuccess: async (result) => {
       await qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
+      await qc.invalidateQueries({ queryKey: ["campaign-rewards-pending"] });
       if (result.remaining > 0 && result.processed > 0) {
         backfillMutation.mutate();
       }
     },
   });
 
+  const startQueueMutation = useMutation({
+    mutationFn: () =>
+      fetchCampaignRewards({
+        limit: 100,
+        pendingOnly: true,
+        includeWithoutRewards: false,
+      }),
+    onSuccess: (data) => {
+      const ids = data.items.map((item) => item.purchaseId);
+      if (ids.length === 0) return;
+      setRewardQueue(ids);
+      setRewardQueueIndex(0);
+      setRewardsPurchaseId(ids[0]!);
+    },
+  });
+
   const items = list.data?.items ?? [];
   const backfillRemaining = list.data?.backfillRemaining ?? 0;
+  const pendingCount = pendingSummary.data?.pagination.total ?? 0;
+
+  function exitRewardQueue() {
+    setRewardQueue(null);
+    setRewardQueueIndex(0);
+    setRewardsPurchaseId(null);
+    void qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
+    void qc.invalidateQueries({ queryKey: ["campaign-rewards-pending"] });
+  }
+
+  function advanceRewardQueue() {
+    if (!rewardQueue) return;
+    const next = rewardQueueIndex + 1;
+    void qc.invalidateQueries({ queryKey: ["campaign-rewards-list"] });
+    void qc.invalidateQueries({ queryKey: ["campaign-rewards-pending"] });
+    if (next >= rewardQueue.length) {
+      exitRewardQueue();
+    } else {
+      setRewardQueueIndex(next);
+      setRewardsPurchaseId(rewardQueue[next]!);
+    }
+  }
+
+  function openPurchaseModal(purchaseId: string) {
+    setRewardQueue(null);
+    setRewardQueueIndex(0);
+    setRewardsPurchaseId(purchaseId);
+  }
 
   return (
     <AppLayout>
@@ -71,6 +130,14 @@ function IndicacoesPage() {
           Controle de recompensas da campanha por venda — equipe, indicação e cliente.
         </p>
       </div>
+
+      {canManageRewards && (
+        <PendingRewardsPanel
+          count={pendingCount}
+          disabled={startQueueMutation.isPending || !!rewardQueue}
+          onStartQueue={() => startQueueMutation.mutate()}
+        />
+      )}
 
       {canManageRewards && backfillRemaining > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ouro/40 bg-ouro/10 px-4 py-3">
@@ -113,8 +180,11 @@ function IndicacoesPage() {
               {items.map((row) => (
                 <tr
                   key={row.purchaseId}
-                  onClick={() => setRewardsPurchaseId(row.purchaseId)}
-                  className="cursor-pointer transition-colors hover:bg-slate-50"
+                  onClick={() => openPurchaseModal(row.purchaseId)}
+                  className={cn(
+                    "cursor-pointer transition-colors hover:bg-slate-50",
+                    rewardQueue?.[rewardQueueIndex] === row.purchaseId && "bg-ouro/10",
+                  )}
                 >
                   <td className="border-b border-slate-200 px-2 py-2.5">
                     <div className="flex justify-center gap-1">
@@ -176,6 +246,17 @@ function IndicacoesPage() {
         onClose={() => setRewardsPurchaseId(null)}
         purchaseId={rewardsPurchaseId}
         canManage={canManageRewards}
+        queue={
+          rewardQueue
+            ? {
+                index: rewardQueueIndex,
+                total: rewardQueue.length,
+                onSkip: advanceRewardQueue,
+                onNext: advanceRewardQueue,
+                onExit: exitRewardQueue,
+              }
+            : undefined
+        }
       />
 
       <ReferralChainDialog

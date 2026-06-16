@@ -217,11 +217,19 @@ export function CampaignRewardsDialog({
   onClose,
   purchaseId,
   canManage,
+  queue,
 }: {
   open: boolean;
   onClose: () => void;
   purchaseId: string | null;
   canManage: boolean;
+  queue?: {
+    index: number;
+    total: number;
+    onSkip: () => void;
+    onNext: () => void;
+    onExit: () => void;
+  };
 }) {
   const qc = useQueryClient();
 
@@ -259,9 +267,21 @@ export function CampaignRewardsDialog({
     void detail.refetch();
   }
 
+  function handleClose() {
+    if (queue) {
+      queue.onExit();
+    } else {
+      onClose();
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-azul-profundo/40 animate-fade-in" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-azul-profundo/40 animate-fade-in"
+        onClick={queue ? undefined : handleClose}
+        aria-hidden
+      />
       <div
         className={cn(
           "relative flex w-full max-w-md flex-col overflow-hidden rounded-lg border border-slate-200 bg-branco shadow-xl",
@@ -274,6 +294,11 @@ export function CampaignRewardsDialog({
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-[15px] font-semibold text-azul-profundo">Recompensas da campanha</h2>
+            {queue && (
+              <p className="text-[11px] font-medium text-ouro">
+                {queue.index + 1} de {queue.total}
+              </p>
+            )}
             {summary && (
               <p className="truncate text-[12px] text-slate-500">
                 {summary.leadName} · {formatBRL(summary.purchaseAmount)}
@@ -282,9 +307,9 @@ export function CampaignRewardsDialog({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded p-1 text-slate-500 hover:bg-slate-100"
-            aria-label="Fechar"
+            aria-label={queue ? "Encerrar conferência em lote" : "Fechar"}
           >
             <X className="h-4 w-4" />
           </button>
@@ -356,27 +381,59 @@ export function CampaignRewardsDialog({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-3">
-          {summary && (
+          {summary && !queue && (
             <Link
               to="/leads/$id"
               params={{ id: summary.leadId }}
               className="text-[12px] font-medium text-azul-medio hover:text-azul-profundo"
-              onClick={onClose}
+              onClick={handleClose}
             >
               Ficha do lead →
             </Link>
           )}
-          {canManage && allPendingIds.length > 0 && (
-            <Button
-              type="button"
-              variant="gold"
-              disabled={bulkMutation.isPending}
-              onClick={() => bulkMutation.mutate(allPendingIds)}
-              className="text-[12px]"
+          {summary && queue && (
+            <Link
+              to="/leads/$id"
+              params={{ id: summary.leadId }}
+              className="text-[12px] font-medium text-azul-medio hover:text-azul-profundo"
+              onClick={queue.onExit}
             >
-              {bulkMutation.isPending ? "Salvando..." : "Marcar tudo como pago"}
-            </Button>
+              Ficha do lead →
+            </Link>
           )}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {queue && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-[12px]"
+                  onClick={queue.onSkip}
+                >
+                  Pular
+                </Button>
+                <Button
+                  type="button"
+                  variant="gold"
+                  className="text-[12px]"
+                  onClick={queue.onNext}
+                >
+                  {queue.index + 1 >= queue.total ? "Concluir" : "Próximo"}
+                </Button>
+              </>
+            )}
+            {!queue && canManage && allPendingIds.length > 0 && (
+              <Button
+                type="button"
+                variant="gold"
+                disabled={bulkMutation.isPending}
+                onClick={() => bulkMutation.mutate(allPendingIds)}
+                className="text-[12px]"
+              >
+                {bulkMutation.isPending ? "Salvando..." : "Marcar tudo como pago"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
