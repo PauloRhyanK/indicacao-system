@@ -7,7 +7,8 @@ import { StatusBadge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { EditLeadForm } from "@/components/cais/EditLeadForm";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
-import { CommercialRolesList, ReferralChainList } from "@/components/cais/ReferralChainList";
+import { CommercialRolesList } from "@/components/cais/ReferralChainList";
+import { ReferralChainDiagram } from "@/components/cais/ReferralChainDiagram";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import {
   AlertDialog,
@@ -199,16 +200,14 @@ function LeadDetail() {
 
       <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
         <SectionHeader>Cadeia de indicação</SectionHeader>
-        {referralChain.isLoading ? (
-          <PageLoader />
-        ) : (
-          <ReferralChainList
-            chain={referralChain.data?.chain ?? []}
-            treeTruncated={referralChain.data?.tree_truncated}
-            error={referralChain.isError}
-            onRetry={() => referralChain.refetch()}
-          />
-        )}
+        <ReferralChainDiagram
+          chain={referralChain.data?.chain ?? []}
+          currentLead={{ name: l.name, phone: l.phone }}
+          treeTruncated={referralChain.data?.tree_truncated}
+          loading={referralChain.isLoading}
+          error={referralChain.isError}
+          onRetry={() => referralChain.refetch()}
+        />
       </div>
 
       <div className="rounded-md border border-slate-200 bg-branco p-5">
