@@ -19,6 +19,25 @@ enum OpportunityGrade {
   EXTREMO
 }
 
+enum CampaignRewardType {
+  RESPONSAVEL
+  CO_VENDEDOR
+  FIRST_CONTACT
+  REFERRAL
+  CLIENT
+}
+
+enum ClientRewardChoice {
+  CASHBACK
+  TRAVEL_VOUCHER
+}
+
+enum CampaignRewardStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
 model User {
   id                  String    @id @default(uuid()) @db.Uuid
   name                String
@@ -34,7 +53,8 @@ model User {
   leadsAsCoVendedor      Lead[]     @relation("LeadCoVendedor")
   leadsCreated           Lead[]     @relation("LeadCreatedBy")
   leadsFirstContact      Lead[]     @relation("LeadFirstContact")
-  purchasesAsResponsavel Purchase[] @relation("PurchaseResponsavel")
+  purchasesAsResponsavel Purchase[]     @relation("PurchaseResponsavel")
+  campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
   userRoles              UserRole[]
   aliases            UserAlias[]
 
@@ -184,12 +204,40 @@ model Purchase {
   lead           Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
   responsavel    User?           @relation("PurchaseResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
   consortiumType ConsortiumType? @relation(fields: [consortiumTypeId], references: [id], onDelete: SetNull)
+  campaignRewards CampaignReward[]
 
   @@index([leadId])
   @@index([responsavelId])
   @@index([consortiumTypeId])
   @@index([deletedAt])
   @@map("purchases")
+}
+
+model CampaignReward {
+  id            String               @id @default(uuid()) @db.Uuid
+  purchaseId    String               @map("purchase_id") @db.Uuid
+  type          CampaignRewardType
+  referralLevel Int                  @default(0) @map("referral_level")
+  recipientType ReferrerType?        @map("recipient_type")
+  recipientId   String?              @map("recipient_id") @db.Uuid
+  recipientName String               @map("recipient_name")
+  amount        Decimal?             @db.Decimal(15, 2)
+  clientChoice  ClientRewardChoice?  @map("client_choice")
+  status        CampaignRewardStatus @default(PENDING)
+  amountStale   Boolean              @default(false) @map("amount_stale")
+  paidAt        DateTime?            @map("paid_at")
+  paidById      String?              @map("paid_by_id") @db.Uuid
+  notes         String?
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  paidBy   User?    @relation("CampaignRewardPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+
+  @@unique([purchaseId, type, referralLevel])
+  @@index([purchaseId])
+  @@index([status])
+  @@map("campaign_rewards")
 }
 
 model Goal {
