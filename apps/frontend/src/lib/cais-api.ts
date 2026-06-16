@@ -447,7 +447,21 @@ function buildLeadsQuery(filters?: LeadsFilters): string {
   return qs ? `?${qs}` : "";
 }
 
-function businessDateKey(date: Date | string): string {
+/** Datas só com dia (YYYY-MM-DD ou meia-noite UTC) usam o prefixo como dia civil. */
+function extractCalendarDateIso(value: string): string | null {
+  const trimmed = value.trim();
+  const dateOnly = /^(\d{4}-\d{2}-\d{2})$/.exec(trimmed);
+  if (dateOnly) return dateOnly[1];
+  const utcMidnight = /^(\d{4}-\d{2}-\d{2})T00:00:00(?:\.000)?Z$/.exec(trimmed);
+  if (utcMidnight) return utcMidnight[1];
+  return null;
+}
+
+export function businessDateKey(date: Date | string): string {
+  if (typeof date === "string") {
+    const calendar = extractCalendarDateIso(date);
+    if (calendar) return calendar;
+  }
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -456,8 +470,8 @@ function businessDateKey(date: Date | string): string {
   }).format(typeof date === "string" ? new Date(date) : date);
 }
 
-export function isSaleTodayInBusinessTz(soldAt: string): boolean {
-  return businessDateKey(soldAt) === businessDateKey(new Date());
+export function isSaleTodayInBusinessTz(iso: string): boolean {
+  return businessDateKey(iso) === businessDateKey(new Date());
 }
 
 function mapSale(api: ApiPurchase): Sale {
@@ -474,7 +488,8 @@ function mapSale(api: ApiPurchase): Sale {
     consortium_type_id: api.consortiumType?.id ?? null,
     sold_at: api.purchaseDate,
     boleto_paid: api.boletoPaid ?? false,
-    can_reverse_today: isSaleTodayInBusinessTz(api.purchaseDate),
+    // Alinhado ao backend (deletePurchase usa createdAt na meta do dia).
+    can_reverse_today: isSaleTodayInBusinessTz(api.createdAt),
     commercial: {
       responsavel: mapUserRef(api.responsavel) ?? mapUserRef(lead?.responsavel),
       co_vendedor: mapUserRef(lead?.coVendedor),

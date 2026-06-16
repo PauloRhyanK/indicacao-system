@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { MetaPeriod, Sale } from "@/lib/cais-api";
-import { isSaleTodayInBusinessTz } from "@/lib/cais-api";
+import { businessDateKey, isSaleTodayInBusinessTz } from "@/lib/cais-api";
 
 export type SalesScope = "mine" | "all";
 export type SalesPeriod = "today" | "week" | "month" | "period";
@@ -23,15 +23,6 @@ export const defaultSalesFilters = (currentUserId?: string): SalesFiltersState =
   consortiumTypeId: "",
   search: "",
 });
-
-function businessDateKey(date: Date | string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(typeof date === "string" ? new Date(date) : date);
-}
 
 function startOfWeekBusiness(now = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-US", {
