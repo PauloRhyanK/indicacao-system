@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter api dev",
     "dev:frontend": "pnpm --filter tanstack_start_ts dev",
+    "dev:confidencial": "pnpm --filter cais-confidencial dev",
     "dev:all": "concurrently -n api,web -c blue,green \"pnpm --filter api dev\" \"pnpm --filter tanstack_start_ts dev\"",
     "build": "pnpm --filter api build",
     "docker:dev": "docker compose -f docker/docker-compose.dev.yml up -d",

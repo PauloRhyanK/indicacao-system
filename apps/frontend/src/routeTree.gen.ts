@@ -21,7 +21,6 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
-import { Route as AuthenticatedRjCredoresRouteImport } from './routes/_authenticated/rj.credores'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
@@ -87,11 +86,6 @@ const AuthenticatedConfiguracoesIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
   } as any)
-const AuthenticatedRjCredoresRoute = AuthenticatedRjCredoresRouteImport.update({
-  id: '/rj/credores',
-  path: '/rj/credores',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   id: '/leads/$id',
   path: '/leads/$id',
@@ -123,7 +117,6 @@ export interface FileRoutesByFullPath {
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
-  '/rj/credores': typeof AuthenticatedRjCredoresRoute
   '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
 }
@@ -139,7 +132,6 @@ export interface FileRoutesByTo {
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
-  '/rj/credores': typeof AuthenticatedRjCredoresRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
 }
@@ -158,7 +150,6 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
-  '/_authenticated/rj/credores': typeof AuthenticatedRjCredoresRoute
   '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
 }
@@ -177,7 +168,6 @@ export interface FileRouteTypes {
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
     | '/leads/$id'
-    | '/rj/credores'
     | '/configuracoes/'
     | '/leads/'
   fileRoutesByTo: FileRoutesByTo
@@ -193,7 +183,6 @@ export interface FileRouteTypes {
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
     | '/leads/$id'
-    | '/rj/credores'
     | '/configuracoes'
     | '/leads'
   id:
@@ -211,7 +200,6 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes/metas'
     | '/_authenticated/configuracoes/papeis'
     | '/_authenticated/leads/$id'
-    | '/_authenticated/rj/credores'
     | '/_authenticated/configuracoes/'
     | '/_authenticated/leads/'
   fileRoutesById: FileRoutesById
@@ -311,13 +299,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesIndexRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
     }
-    '/_authenticated/rj/credores': {
-      id: '/_authenticated/rj/credores'
-      path: '/rj/credores'
-      fullPath: '/rj/credores'
-      preLoaderRoute: typeof AuthenticatedRjCredoresRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/leads/$id': {
       id: '/_authenticated/leads/$id'
       path: '/leads/$id'
@@ -367,7 +348,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndicacoesRoute: typeof AuthenticatedIndicacoesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
-  AuthenticatedRjCredoresRoute: typeof AuthenticatedRjCredoresRoute
   AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
 }
 
@@ -378,7 +358,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndicacoesRoute: AuthenticatedIndicacoesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
-  AuthenticatedRjCredoresRoute: AuthenticatedRjCredoresRoute,
   AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
 }
 

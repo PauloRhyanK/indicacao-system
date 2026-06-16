@@ -263,7 +263,13 @@ Lista completa de endpoints, payloads e permissões: [`DOCUMENTACAO.md` §4](./D
 
 ## Produção
 
-Arquitetura: **frontend na Vercel** + **API e Postgres na VPS via Docker**.
+Arquitetura: **dois frontends na Vercel** (admin + confidencial) + **API e Postgres na VPS via Docker**.
+
+| Domínio | App | Root Directory (Vercel) |
+|---------|-----|-------------------------|
+| `admin.caisinvestimentos.com.br` | CRM (leads, vendas, indicações) | `apps/frontend` |
+| `confidencial.caisinvestimentos.com.br` | Condomínio de credores (RJ) | `apps/confidencial` |
+| `api.caisinvestimentos.com.br` | API REST | VPS Docker |
 
 ### Backend (VPS)
 
@@ -283,15 +289,39 @@ Sobe Postgres (rede interna) + API + pgAdmin. API e pgAdmin entram na rede Docke
 
 Use o alias **`cais-api`** (não `api`) para evitar conflito com outros projetos na mesma VPS.
 
-`CORS_ORIGIN` deve apontar para a URL do frontend na Vercel (ex.: `https://cais-indicacoes.vercel.app`).
+`CORS_ORIGIN` deve listar **ambos** os frontends (admin e confidencial), separados por vírgula:
 
-### Frontend (Vercel)
+```env
+CORS_ORIGIN=https://admin.caisinvestimentos.com.br,https://confidencial.caisinvestimentos.com.br
+```
+
+Após alterar `CORS_ORIGIN`, redeploy/restart do container da API.
+
+### Frontend admin (Vercel)
 
 1. Importe o repositório; **Root Directory:** `apps/frontend`
 2. Framework: TanStack Start (Nitro)
-3. Variáveis:
-   - `VITE_API_URL` — URL pública da API (ex.: `https://api.seudominio.com.br/api/v1`)
+3. Domínio customizado: `admin.caisinvestimentos.com.br` (Cloudflare CNAME → Vercel)
+4. Variáveis:
+   - `VITE_API_URL` — URL pública da API (ex.: `https://api.caisinvestimentos.com.br/api/v1`)
    - `VITE_TV_TOKEN` / `VITE_TV_SOUND` — opcionais, painel TV
+
+### Frontend confidencial (Vercel — 2º projeto)
+
+1. Novo projeto no mesmo repositório; **Root Directory:** `apps/confidencial`
+2. Domínio customizado: `confidencial.caisinvestimentos.com.br` (Cloudflare CNAME → Vercel)
+3. Variáveis:
+   - `VITE_API_URL` — mesma URL da API (`https://api.caisinvestimentos.com.br/api/v1`)
+
+O módulo RJ **não** aparece no menu do admin. Acesso exige permissão `rj.view` (Administrador recebe por padrão). Login é independente do admin (sessão JWT por subdomínio).
+
+Dev local:
+
+```bash
+pnpm dev:confidencial   # http://localhost:5174
+pnpm dev:frontend       # admin
+pnpm --filter api dev   # API
+```
 
 Em dev local, o proxy Vite (`/api/v1` → `localhost:3001`) funciona sem `VITE_API_URL`.
 
