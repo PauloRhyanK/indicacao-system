@@ -16,7 +16,18 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
   { key: "sales.create", label: "Registrar venda", groupName: "Vendas" },
   { key: "sales.view_all", label: "Ver todas as vendas", groupName: "Vendas" },
   { key: "sales.delete", label: "Cancelar venda", groupName: "Vendas" },
-  { key: "rewards.manage", label: "Gerenciar recompensas da campanha", groupName: "Campanha" },
+  {
+    key: "rewards.payments",
+    label: "Ver e registrar pagamento de recompensas",
+    description: "Equipe comercial, indicação e confirmação de pagamento",
+    groupName: "Indicações",
+  },
+  {
+    key: "rewards.client_choice",
+    label: "Registrar escolha do cliente",
+    description: "Cashback ou voucher de viagens",
+    groupName: "Indicações",
+  },
   { key: "meta.configure_day", label: "Configurar meta do dia", groupName: "Metas" },
   { key: "meta.configure_global", label: "Configurar meta global", groupName: "Metas" },
   { key: "dashboard.general", label: "Visão geral da empresa", groupName: "Dashboard" },
@@ -36,6 +47,7 @@ export const COLABORADOR_PERMISSION_KEYS = [
   "leads.import",
   "sales.create",
   "sales.view_all",
+  "rewards.client_choice",
   "dashboard.general",
   "tv.view",
 ] as const;

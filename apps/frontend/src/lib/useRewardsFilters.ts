@@ -1,5 +1,9 @@
 import { useMemo } from "react";
-import type { MetaPeriod, PurchaseRewardsSummary } from "@/lib/cais-api";
+import {
+  CLIENT_CHOICE_LABELS,
+  type MetaPeriod,
+  type PurchaseRewardsSummary,
+} from "@/lib/cais-api";
 import { businessDateKey, isSaleTodayInBusinessTz } from "@/lib/cais-api";
 import type { SalesPeriod } from "@/lib/useSalesFilters";
 
@@ -96,7 +100,9 @@ export function filterRewardItems(
     if (filters.referral === "without" && item.directReferrerName) return false;
 
     if (search) {
-      const hay = `${item.leadName} ${item.leadPhone ?? ""} ${item.directReferrerName ?? ""}`.toLowerCase();
+      const clientChoice = item.rewards.find((r) => r.type === "CLIENT")?.clientChoice;
+      const choiceLabel = clientChoice ? CLIENT_CHOICE_LABELS[clientChoice] : "";
+      const hay = `${item.leadName} ${item.leadPhone ?? ""} ${choiceLabel}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
 

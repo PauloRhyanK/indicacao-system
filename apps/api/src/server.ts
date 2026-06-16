@@ -7,6 +7,7 @@ import { prisma } from "./config/prisma.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { registerRoutes } from "./routes/index.js";
 import { ensureAllCampaignRewardsGenerated } from "./services/campaignReward.service.js";
+import { ensureSystemRoles } from "./services/permission.service.js";
 
 async function buildServer() {
   const app = Fastify({
@@ -46,6 +47,13 @@ async function buildServer() {
 }
 
 async function runStartupTasks(app: Awaited<ReturnType<typeof buildServer>>) {
+  try {
+    await ensureSystemRoles();
+    app.log.info("Papéis e permissões do sistema sincronizados");
+  } catch (err) {
+    app.log.warn(err, "Sincronização de papéis ignorada na inicialização");
+  }
+
   try {
     const result = await ensureAllCampaignRewardsGenerated();
     if (result.processed > 0) {

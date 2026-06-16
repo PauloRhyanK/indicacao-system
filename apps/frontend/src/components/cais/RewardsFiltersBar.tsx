@@ -5,9 +5,11 @@ import type { SalesPeriod } from "@/lib/useSalesFilters";
 export function RewardsFiltersBar({
   filters,
   onChange,
+  showPaymentFilter = true,
 }: {
   filters: RewardsFiltersState;
   onChange: (patch: Partial<RewardsFiltersState>) => void;
+  showPaymentFilter?: boolean;
 }) {
   const selectClass = inputClass + " h-9 text-[13px]";
 
@@ -29,22 +31,24 @@ export function RewardsFiltersBar({
         </select>
       </label>
 
-      <label className="min-w-[150px] flex-1">
-        <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">
-          Recompensas
-        </span>
-        <select
-          className={selectClass}
-          value={filters.payment}
-          onChange={(e) => onChange({ payment: e.target.value as RewardsPaymentFilter })}
-        >
-          <option value="all">Todas</option>
-          <option value="pending">Com pendências</option>
-          <option value="paid">Todas pagas</option>
-          <option value="not_generated">Não geradas</option>
-          <option value="review">Precisam revisão</option>
-        </select>
-      </label>
+      {showPaymentFilter && (
+        <label className="min-w-[150px] flex-1">
+          <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            Recompensas
+          </span>
+          <select
+            className={selectClass}
+            value={filters.payment}
+            onChange={(e) => onChange({ payment: e.target.value as RewardsPaymentFilter })}
+          >
+            <option value="all">Todas</option>
+            <option value="pending">Com pendências</option>
+            <option value="paid">Todas pagas</option>
+            <option value="not_generated">Não geradas</option>
+            <option value="review">Precisam revisão</option>
+          </select>
+        </label>
+      )}
 
       <label className="min-w-[140px] flex-1">
         <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500">
@@ -68,7 +72,7 @@ export function RewardsFiltersBar({
         <input
           type="search"
           className={selectClass}
-          placeholder="Lead, telefone ou indicador…"
+          placeholder="Lead, telefone ou escolha…"
           value={filters.search}
           onChange={(e) => onChange({ search: e.target.value })}
         />

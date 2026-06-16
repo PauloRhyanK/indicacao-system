@@ -5,7 +5,7 @@ import {
   ReferrerType,
 } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
-import { badRequest, notFound } from "../utils/httpError.js";
+import { badRequest, forbidden, notFound } from "../utils/httpError.js";
 import { getBonusChain } from "./bonusChain.service.js";
 import { referralBonusAmount } from "./campaignReward.rules.js";
 import { activeLeadWhere, activePurchaseWhere } from "../utils/softDelete.js";
@@ -103,7 +103,6 @@ async function buildRewardSeeds(
       name: true,
       responsavel: { select: { id: true, name: true } },
       coVendedor: { select: { id: true, name: true } },
-      firstContact: { select: { id: true, name: true } },
     },
   });
   if (!lead) throw notFound("Lead não encontrado");
@@ -127,15 +126,6 @@ async function buildRewardSeeds(
       recipientType: ReferrerType.USER,
       recipientId: lead.coVendedor.id,
       recipientName: lead.coVendedor.name,
-    });
-  }
-  if (lead.firstContact) {
-    seeds.push({
-      type: CampaignRewardType.FIRST_CONTACT,
-      referralLevel: NON_REFERRAL_LEVEL,
-      recipientType: ReferrerType.USER,
-      recipientId: lead.firstContact.id,
-      recipientName: lead.firstContact.name,
     });
   }
 
@@ -199,6 +189,15 @@ export async function generateRewardsForPurchase(purchaseId: string) {
         },
       });
     }
+
+    await tx.campaignReward.updateMany({
+      where: {
+        purchaseId,
+        type: CampaignRewardType.FIRST_CONTACT,
+        status: { not: CampaignRewardStatus.CANCELLED },
+      },
+      data: { status: CampaignRewardStatus.CANCELLED },
+    });
   });
 
   return getRewardsByPurchaseId(purchaseId);
@@ -422,10 +421,15 @@ export async function updateCampaignReward(
   id: string,
   input: UpdateCampaignRewardInput,
   paidById?: string,
+  permissions?: Set<string>,
 ) {
   const existing = await prisma.campaignReward.findUnique({ where: { id } });
   if (!existing || existing.status === CampaignRewardStatus.CANCELLED) {
     throw notFound("Recompensa não encontrada");
+  }
+
+  if (permissions) {
+    assertRewardUpdateAllowed(permissions, existing.type, input);
   }
 
   if (input.status === CampaignRewardStatus.PAID && existing.type === CampaignRewardType.CLIENT) {
@@ -465,6 +469,7 @@ export async function updateCampaignReward(
 export async function bulkUpdateCampaignRewards(
   input: BulkUpdateCampaignRewardsInput,
   paidById?: string,
+  permissions?: Set<string>,
 ) {
   const results: CampaignRewardDto[] = [];
   for (const id of input.ids) {
@@ -472,8 +477,49 @@ export async function bulkUpdateCampaignRewards(
       id,
       { status: input.status, notes: input.notes },
       paidById,
+      permissions,
     );
     results.push(updated);
   }
   return results;
+}
+
+function canManageRewardPayments(permissions: Set<string>) {
+  return permissions.has("rewards.payments") || permissions.has("rewards.manage");
+}
+
+function canEditClientRewardChoice(permissions: Set<string>) {
+  if (permissions.has("rewards.client_choice") || permissions.has("rewards.manage")) {
+    return true;
+  }
+  return !canManageRewardPayments(permissions) && permissions.has("sales.view_all");
+}
+
+export function assertRewardUpdateAllowed(
+  permissions: Set<string>,
+  rewardType: CampaignRewardType,
+  input: UpdateCampaignRewardInput,
+) {
+  if (input.clientChoice !== undefined) {
+    if (rewardType !== CampaignRewardType.CLIENT) {
+      throw badRequest("Escolha do cliente só se aplica à recompensa do cliente");
+    }
+    if (!canEditClientRewardChoice(permissions)) {
+      throw forbidden("Sem permissão para registrar escolha do cliente");
+    }
+  }
+
+  if (input.status !== undefined && !canManageRewardPayments(permissions)) {
+    throw forbidden("Sem permissão para registrar pagamento de recompensas");
+  }
+
+  if (input.notes !== undefined && !canManageRewardPayments(permissions)) {
+    throw forbidden("Sem permissão para alterar observações de recompensas");
+  }
+}
+
+export function assertRewardPaymentsAllowed(permissions: Set<string>) {
+  if (!canManageRewardPayments(permissions)) {
+    throw forbidden("Sem permissão para registrar pagamento de recompensas");
+  }
 }

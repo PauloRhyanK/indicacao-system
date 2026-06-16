@@ -109,7 +109,7 @@ function ConfiguracoesPage() {
             to="/configuracoes/papeis"
             className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-azul-medio transition-colors hover:border-azul-medio hover:bg-white hover:text-azul-profundo"
           >
-            Gerenciar papéis →
+            Gerenciar Permissões →
           </Link>
         </div>
       )}

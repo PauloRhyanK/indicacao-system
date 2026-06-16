@@ -9,6 +9,9 @@ import {
 } from "../controllers/campaignReward.controller.js";
 import { authenticate, loadPermissions, requirePermission } from "../middlewares/auth.js";
 
+const REWARD_PAYMENTS = ["rewards.payments", "rewards.manage"] as const;
+const REWARD_WRITE = ["rewards.payments", "rewards.client_choice", "rewards.manage"] as const;
+
 export async function campaignRewardRoutes(app: FastifyInstance) {
   app.addHook("preHandler", authenticate);
   app.addHook("preHandler", loadPermissions);
@@ -21,19 +24,19 @@ export async function campaignRewardRoutes(app: FastifyInstance) {
 
   app.patch(
     "/campaign-rewards/bulk",
-    { preHandler: [requirePermission("rewards.manage")] },
+    { preHandler: [requirePermission(...REWARD_PAYMENTS)] },
     patchCampaignRewardsBulk,
   );
 
   app.post(
     "/campaign-rewards/backfill",
-    { preHandler: [requirePermission("rewards.manage")] },
+    { preHandler: [requirePermission(...REWARD_PAYMENTS)] },
     postCampaignRewardsBackfill,
   );
 
   app.patch(
     "/campaign-rewards/:id",
-    { preHandler: [requirePermission("rewards.manage")] },
+    { preHandler: [requirePermission(...REWARD_WRITE)] },
     patchCampaignReward,
   );
 
@@ -45,7 +48,7 @@ export async function campaignRewardRoutes(app: FastifyInstance) {
 
   app.post(
     "/purchases/:id/campaign-rewards/backfill",
-    { preHandler: [requirePermission("rewards.manage")] },
+    { preHandler: [requirePermission(...REWARD_PAYMENTS)] },
     postPurchaseCampaignRewardsBackfill,
   );
 }

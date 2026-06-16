@@ -12,13 +12,15 @@ import { ReferralChainDialog } from "@/components/cais/ReferralChainDialog";
 import { RewardsFiltersBar } from "@/components/cais/RewardsFiltersBar";
 import {
   backfillCampaignRewards,
+  CLIENT_CHOICE_LABELS,
   fetchBonusChain,
   fetchCampaignRewards,
   fetchMetaPeriod,
   formatBRL,
   formatDate,
+  type PurchaseRewardsSummary,
 } from "@/lib/cais-api";
-import { usePermissions } from "@/lib/use-permissions";
+import { usePermissions, canEditClientRewardChoice, canManageRewardPayments } from "@/lib/use-permissions";
 import {
   defaultRewardsFilters,
   filterRewardItems,
@@ -35,7 +37,8 @@ export const Route = createFileRoute("/_authenticated/indicacoes")({
 function IndicacoesPage() {
   const qc = useQueryClient();
   const { can } = usePermissions();
-  const canManageRewards = can("rewards.manage");
+  const canManagePayments = canManageRewardPayments(can);
+  const canEditClientChoice = canEditClientRewardChoice(can);
 
   const [rewardsPurchaseId, setRewardsPurchaseId] = useState<string | null>(null);
   const [rewardQueue, setRewardQueue] = useState<string[] | null>(null);
@@ -85,7 +88,20 @@ function IndicacoesPage() {
     [items],
   );
 
+  const pendingClientChoiceIds = useMemo(
+    () =>
+      items
+        .filter((item) => {
+          if (!item.rewardsGenerated) return false;
+          const client = item.rewards.find((r) => r.type === "CLIENT");
+          return client != null && client.clientChoice == null;
+        })
+        .map((item) => item.purchaseId),
+    [items],
+  );
+
   const pendingCount = pendingPurchaseIds.length;
+  const pendingClientChoiceCount = pendingClientChoiceIds.length;
 
   const filteredItems = useMemo(
     () => filterRewardItems(items, filters, meta.data),
@@ -96,7 +112,7 @@ function IndicacoesPage() {
 
   const hasActiveFilters =
     filters.search.trim() !== "" ||
-    filters.payment !== "all" ||
+    (canManagePayments && filters.payment !== "all") ||
     filters.referral !== "all" ||
     filters.period !== "period";
 
@@ -104,11 +120,11 @@ function IndicacoesPage() {
     setFilters((f) => ({ ...f, ...patch }));
   };
 
-  function startRewardQueue() {
-    if (pendingPurchaseIds.length === 0) return;
-    setRewardQueue(pendingPurchaseIds);
+  function startRewardQueue(ids: string[]) {
+    if (ids.length === 0) return;
+    setRewardQueue(ids);
     setRewardQueueIndex(0);
-    setRewardsPurchaseId(pendingPurchaseIds[0]!);
+    setRewardsPurchaseId(ids[0]!);
   }
 
   function exitRewardQueue() {
@@ -141,20 +157,32 @@ function IndicacoesPage() {
       <div className="mb-6">
         <h1 className="text-[26px] font-semibold text-azul-profundo">Indicações</h1>
         <p className="text-[14px] text-slate-500">
-          Controle de recompensas da campanha por venda — equipe, indicação e cliente.
+          {canManagePayments
+            ? "Controle de recompensas da campanha por venda — equipe, indicação e cliente."
+            : "Registre a escolha de recompensa do cliente (cashback ou voucher) por venda."}
         </p>
       </div>
 
-      {pendingCount > 0 && (
+      {canManagePayments && pendingCount > 0 && (
         <PendingRewardsPanel
           count={pendingCount}
-          canManage={canManageRewards}
+          canManage
           disabled={!!rewardQueue}
-          onStartQueue={startRewardQueue}
+          onStartQueue={() => startRewardQueue(pendingPurchaseIds)}
         />
       )}
 
-      {canManageRewards && backfillRemaining > 0 && (
+      {canEditClientChoice && !canManagePayments && pendingClientChoiceCount > 0 && (
+        <PendingRewardsPanel
+          count={pendingClientChoiceCount}
+          variant="client_choice"
+          canManage
+          disabled={!!rewardQueue}
+          onStartQueue={() => startRewardQueue(pendingClientChoiceIds)}
+        />
+      )}
+
+      {canManagePayments && backfillRemaining > 0 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ouro/40 bg-ouro/10 px-4 py-3">
           <p className="text-[13px] text-azul-profundo">
             <span className="font-semibold">{backfillRemaining}</span> venda(s) ainda sem
@@ -172,7 +200,11 @@ function IndicacoesPage() {
       )}
 
       <div className="mb-4 rounded-md border border-slate-200 bg-branco p-4">
-        <RewardsFiltersBar filters={filters} onChange={patchFilters} />
+        <RewardsFiltersBar
+          filters={filters}
+          onChange={patchFilters}
+          showPaymentFilter={canManagePayments}
+        />
       </div>
 
       {hasActiveFilters && (
@@ -204,7 +236,7 @@ function IndicacoesPage() {
         <div className="overflow-hidden rounded-md border border-slate-200 bg-branco">
           <p className="border-b border-slate-200 px-4 py-2.5 text-[12px] text-slate-500">
             Mostrando {summary.count} de {summary.total} vendas — {formatBRL(summary.volume)}
-            {summary.pending > 0
+            {canManagePayments && summary.pending > 0
               ? ` · ${summary.pending} com recompensas pendentes`
               : ""}
           </p>
@@ -216,15 +248,23 @@ function IndicacoesPage() {
                 <Th>Lead</Th>
                 <Th>Valor</Th>
                 <Th>Data</Th>
-                <Th>Indicado por</Th>
-                <Th>Recompensas</Th>
+                <Th>Escolha do cliente</Th>
+                {canManagePayments && <Th>Recompensas</Th>}
               </tr>
             </thead>
             <tbody>
               {filteredItems.map((row) => (
                 <tr
                   key={row.purchaseId}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => openPurchaseModal(row.purchaseId)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openPurchaseModal(row.purchaseId);
+                    }
+                  }}
                   className={cn(
                     "cursor-pointer transition-colors hover:bg-slate-50",
                     rewardQueue?.[rewardQueueIndex] === row.purchaseId && "bg-ouro/10",
@@ -260,24 +300,26 @@ function IndicacoesPage() {
                     {formatDate(row.purchaseDate)}
                   </td>
                   <td className="border-b border-slate-200 px-3 py-2.5 text-[13px] text-slate-600">
-                    {row.directReferrerName ?? "—"}
+                    {formatClientRewardChoice(row)}
                   </td>
-                  <td className="border-b border-slate-200 px-3 py-2.5">
-                    <div className="flex flex-wrap gap-1.5">
-                      {!row.rewardsGenerated ? (
-                        <Badge variant="amber">Não geradas</Badge>
-                      ) : (
-                        <>
-                          <Badge variant={row.pendingCount === 0 ? "green" : "amber"}>
-                            {row.paidCount}/{row.totalRewards} pagos
-                          </Badge>
-                          {row.staleCount > 0 && (
-                            <Badge variant="amber">Revisar</Badge>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
+                  {canManagePayments && (
+                    <td className="border-b border-slate-200 px-3 py-2.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        {!row.rewardsGenerated ? (
+                          <Badge variant="amber">Não geradas</Badge>
+                        ) : (
+                          <>
+                            <Badge variant={row.pendingCount === 0 ? "green" : "amber"}>
+                              {row.paidCount}/{row.totalRewards} pagos
+                            </Badge>
+                            {row.staleCount > 0 && (
+                              <Badge variant="amber">Revisar</Badge>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -290,7 +332,8 @@ function IndicacoesPage() {
         open={!!rewardsPurchaseId}
         onClose={() => setRewardsPurchaseId(null)}
         purchaseId={rewardsPurchaseId}
-        canManage={canManageRewards}
+        canManagePayments={canManagePayments}
+        canEditClientChoice={canEditClientChoice}
         queue={
           rewardQueue
             ? {
@@ -316,6 +359,13 @@ function IndicacoesPage() {
       />
     </AppLayout>
   );
+}
+
+function formatClientRewardChoice(row: PurchaseRewardsSummary): string {
+  if (!row.rewardsGenerated) return "—";
+  const clientReward = row.rewards.find((r) => r.type === "CLIENT");
+  if (!clientReward?.clientChoice) return "—";
+  return CLIENT_CHOICE_LABELS[clientReward.clientChoice];
 }
 
 function Th({ children, className }: { children?: React.ReactNode; className?: string }) {

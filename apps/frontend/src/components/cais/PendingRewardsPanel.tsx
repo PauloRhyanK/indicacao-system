@@ -6,13 +6,17 @@ export function PendingRewardsPanel({
   onStartQueue,
   disabled,
   canManage = true,
+  variant = "payments",
 }: {
   count: number;
   onStartQueue: () => void;
   disabled?: boolean;
   canManage?: boolean;
+  variant?: "payments" | "client_choice";
 }) {
   if (count === 0) return null;
+
+  const isClientChoice = variant === "client_choice";
 
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50/50 px-4 py-3">
@@ -22,10 +26,14 @@ export function PendingRewardsPanel({
         </Badge>
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-amber-900">
-            Recompensas pendentes de conferência
+            {isClientChoice
+              ? "Escolhas do cliente pendentes"
+              : "Recompensas pendentes de conferência"}
           </p>
           <p className="mt-0.5 text-[12px] leading-snug text-amber-800">
-            Confira e registre o pagamento das recompensas das vendas já realizadas.
+            {isClientChoice
+              ? "Registre cashback ou voucher de viagens para os clientes das vendas realizadas."
+              : "Confira e registre o pagamento das recompensas das vendas já realizadas."}
           </p>
         </div>
       </div>
@@ -37,11 +45,13 @@ export function PendingRewardsPanel({
           disabled={disabled}
           onClick={onStartQueue}
         >
-          Conferir em lote
+          {isClientChoice ? "Preencher em lote" : "Conferir em lote"}
         </Button>
       ) : (
         <p className="max-w-[12rem] shrink-0 text-[12px] text-amber-800">
-          Peça a um administrador para registrar os pagamentos.
+          {isClientChoice
+            ? "Peça a um administrador para registrar as escolhas."
+            : "Peça a um administrador para registrar os pagamentos."}
         </p>
       )}
     </div>
