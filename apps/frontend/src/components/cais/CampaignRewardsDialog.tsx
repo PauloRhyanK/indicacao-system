@@ -21,18 +21,22 @@ import {
 import { cn } from "@/lib/utils";
 
 function groupRewards(rewards: CampaignReward[]) {
-  const commercial = rewards.filter((r) =>
+  const visible = rewards.filter(
+    (r) => r.status !== "CANCELLED" && r.type !== "FIRST_CONTACT",
+  );
+  const commercial = visible.filter((r) =>
     ["RESPONSAVEL", "CO_VENDEDOR"].includes(r.type),
   );
-  const referral = rewards
+  const referral = visible
     .filter((r) => r.type === "REFERRAL")
     .sort((a, b) => a.referralLevel - b.referralLevel);
-  const client = rewards.filter((r) => r.type === "CLIENT");
+  const client = visible.filter((r) => r.type === "CLIENT");
   return { commercial, referral, client };
 }
 
 function payablePendingIds(rewards: CampaignReward[]) {
   return rewards
+    .filter((r) => r.status !== "CANCELLED" && r.type !== "FIRST_CONTACT")
     .filter((r) => r.status === "PENDING")
     .filter((r) => r.type !== "CLIENT" || r.clientChoice)
     .map((r) => r.id);
@@ -351,9 +355,19 @@ export function CampaignRewardsDialog({
               </p>
             )}
             {summary && (
-              <p className="truncate text-[12px] text-slate-500">
-                {summary.leadName} · {formatBRL(summary.purchaseAmount)}
-              </p>
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[12px] text-slate-500">
+                <span className="truncate">
+                  {summary.leadName} · {formatBRL(summary.purchaseAmount)}
+                </span>
+                <Link
+                  to="/leads/$id"
+                  params={{ id: summary.leadId }}
+                  className="shrink-0 font-medium text-azul-medio hover:text-azul-profundo"
+                  onClick={queue ? queue.onExit : handleClose}
+                >
+                  Ficha do lead →
+                </Link>
+              </div>
             )}
           </div>
           <button
@@ -394,12 +408,6 @@ export function CampaignRewardsDialog({
               {canManagePayments && summary.staleCount > 0 && (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">
                   Valor da venda mudou — revise indicações já pagas.
-                </p>
-              )}
-
-              {canManagePayments && (
-                <p className="text-[11px] text-slate-500">
-                  {summary.paidCount}/{summary.totalRewards} pagas
                 </p>
               )}
 
@@ -455,28 +463,8 @@ export function CampaignRewardsDialog({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-3">
-          {summary && !queue && (
-            <Link
-              to="/leads/$id"
-              params={{ id: summary.leadId }}
-              className="text-[12px] font-medium text-azul-medio hover:text-azul-profundo"
-              onClick={handleClose}
-            >
-              Ficha do lead →
-            </Link>
-          )}
-          {summary && queue && (
-            <Link
-              to="/leads/$id"
-              params={{ id: summary.leadId }}
-              className="text-[12px] font-medium text-azul-medio hover:text-azul-profundo"
-              onClick={queue.onExit}
-            >
-              Ficha do lead →
-            </Link>
-          )}
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+        {(queue || (canManagePayments && allPendingIds.length > 0)) && (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-4 py-3">
             {queue && (
               <>
                 <Button
@@ -509,7 +497,7 @@ export function CampaignRewardsDialog({
               </Button>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

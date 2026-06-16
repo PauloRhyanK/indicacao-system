@@ -19,6 +19,26 @@ import type {
 
 const NON_REFERRAL_LEVEL = 0;
 
+function isCountableCampaignReward(reward: {
+  status: CampaignRewardStatus;
+  type: CampaignRewardType;
+}) {
+  return (
+    reward.status !== CampaignRewardStatus.CANCELLED &&
+    reward.type !== CampaignRewardType.FIRST_CONTACT
+  );
+}
+
+export async function cancelLegacyFirstContactRewards() {
+  await prisma.campaignReward.updateMany({
+    where: {
+      type: CampaignRewardType.FIRST_CONTACT,
+      status: { not: CampaignRewardStatus.CANCELLED },
+    },
+    data: { status: CampaignRewardStatus.CANCELLED },
+  });
+}
+
 export interface CampaignRewardDto {
   id: string;
   purchaseId: string;
@@ -302,6 +322,8 @@ export async function backfillCampaignRewards(input: BackfillCampaignRewardsInpu
 
 /** Gera recompensas para todas as vendas que ainda não têm registro (idempotente). */
 export async function ensureAllCampaignRewardsGenerated() {
+  await cancelLegacyFirstContactRewards();
+
   let totalProcessed = 0;
   const allErrors: { purchaseId: string; message: string }[] = [];
   let remaining = await countPurchasesWithoutRewards();
@@ -327,7 +349,7 @@ async function loadPurchaseSummary(
   rewards: CampaignRewardDto[],
 ): Promise<PurchaseRewardsSummaryDto> {
   const referrer = await getReferrerOf(purchase.lead.id);
-  const active = rewards.filter((r) => r.status !== CampaignRewardStatus.CANCELLED);
+  const active = rewards.filter(isCountableCampaignReward);
 
   return {
     purchaseId: purchase.id,
@@ -373,7 +395,10 @@ export async function listCampaignRewards(query: ListCampaignRewardsQuery) {
     include: {
       lead: { select: { id: true, name: true, phone: true } },
       campaignRewards: {
-        where: { status: { not: CampaignRewardStatus.CANCELLED } },
+        where: {
+          status: { not: CampaignRewardStatus.CANCELLED },
+          type: { not: CampaignRewardType.FIRST_CONTACT },
+        },
         orderBy: [{ type: "asc" }, { referralLevel: "asc" }],
       },
     },

@@ -962,14 +962,35 @@ export const CLIENT_CHOICE_LABELS: Record<ClientRewardChoice, string> = {
   TRAVEL_VOUCHER: "Voucher de viagens",
 };
 
+/** Recompensas exibidas na campanha (sem legado FIRST_CONTACT nem canceladas). */
+export function getVisibleCampaignRewards(rewards: CampaignReward[]): CampaignReward[] {
+  return rewards.filter(
+    (r) => r.status !== "CANCELLED" && r.type !== "FIRST_CONTACT",
+  );
+}
+
+export function getCampaignRewardCounts(rewards: CampaignReward[]) {
+  const visible = getVisibleCampaignRewards(rewards);
+  return {
+    totalRewards: visible.length,
+    paidCount: visible.filter((r) => r.status === "PAID").length,
+    pendingCount: visible.filter((r) => r.status === "PENDING").length,
+    staleCount: visible.filter((r) => r.amountStale).length,
+  };
+}
+
 function mapCampaignReward(api: CampaignReward): CampaignReward {
   return api;
 }
 
 function mapPurchaseRewardsSummary(api: PurchaseRewardsSummary): PurchaseRewardsSummary {
+  const rewards = api.rewards.map(mapCampaignReward);
+  const visible = getVisibleCampaignRewards(rewards);
   return {
     ...api,
-    rewards: api.rewards.map(mapCampaignReward),
+    ...getCampaignRewardCounts(rewards),
+    rewardsGenerated: visible.length > 0,
+    rewards: visible,
   };
 }
 
