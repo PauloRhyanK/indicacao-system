@@ -5,6 +5,7 @@ import {
   PERMISSIONS_CATALOG,
   ROLE_ADMIN_NAME,
   ROLE_COLABORADOR_NAME,
+  applyRjPermissionCompat,
 } from "../constants/permissions.js";
 import { badRequest, conflict, forbidden, notFound } from "../utils/httpError.js";
 
@@ -28,6 +29,7 @@ export async function getUserPermissions(userId: string): Promise<Set<string>> {
     select: {
       role: {
         select: {
+          name: true,
           rolePermissions: { select: { permissionKey: true } },
         },
       },
@@ -35,11 +37,15 @@ export async function getUserPermissions(userId: string): Promise<Set<string>> {
   });
 
   const perms = new Set<string>();
+  const roleNames: string[] = [];
   for (const row of rows) {
+    roleNames.push(row.role.name);
     for (const rp of row.role.rolePermissions) {
       perms.add(rp.permissionKey);
     }
   }
+
+  applyRjPermissionCompat(perms, roleNames);
 
   permissionCache.set(userId, { perms, expires: Date.now() + CACHE_TTL_MS });
   return perms;

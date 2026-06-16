@@ -19,10 +19,7 @@ const LEAD_STATUSES = [
   "Reagendar",
 ];
 
-const CONSORTIUM_TYPES = [
-  "Imóvel",
-  "Automóvel",
-];
+const CONSORTIUM_TYPES = ["Imóvel", "Automóvel"];
 
 async function seedLookups() {
   for (const name of LEAD_STATUSES) {
@@ -43,7 +40,7 @@ async function seedLookups() {
   }
 }
 
-async function seedAdmin(adminRoleId: string) {
+async function seedAdminUser(adminRoleId: string) {
   const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim();
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
 
@@ -59,26 +56,66 @@ async function seedAdmin(adminRoleId: string) {
   const passwordHash = await bcrypt.hash(adminPassword, 10);
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { passwordHash, name: "Administrador", accessScope: "FULL" },
+    update: { passwordHash, name: "Administrador", accessScope: "INTERNAL" },
     create: {
       name: "Administrador",
       email: adminEmail,
       passwordHash,
-      accessScope: "FULL",
+      accessScope: "INTERNAL",
     },
   });
   await assignRoleToUser(prisma, admin.id, adminRoleId);
   return admin.email;
 }
 
+async function seedRjAdminUser(adminRjRoleId: string) {
+  const email = process.env.SEED_RJ_ADMIN_EMAIL?.trim();
+  const password = process.env.SEED_RJ_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    console.log("SEED_RJ_ADMIN_* não definido — admin RJ não criado.");
+    return null;
+  }
+  if (password.length < 6) {
+    throw new Error("SEED_RJ_ADMIN_PASSWORD deve ter ao menos 6 caracteres.");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      passwordHash,
+      name: "Administrador RJ",
+      accessScope: "CONFIDENCIAL",
+      confidencialApprovedAt: new Date(),
+    },
+    create: {
+      name: "Administrador RJ",
+      email,
+      passwordHash,
+      accessScope: "CONFIDENCIAL",
+      confidencialApprovedAt: new Date(),
+    },
+  });
+  await assignRoleToUser(prisma, user.id, adminRjRoleId);
+  await prisma.userRole.deleteMany({
+    where: { userId: user.id, roleId: { not: adminRjRoleId } },
+  });
+  return user.email;
+}
+
 async function main() {
   await seedLookups();
-  const { adminRoleId } = await ensureSystemRoles(prisma);
-  const adminEmail = await seedAdmin(adminRoleId);
+  const { adminRoleId, adminRjRoleId } = await ensureSystemRoles(prisma);
+  const adminEmail = await seedAdminUser(adminRoleId);
+  const rjAdminEmail = await seedRjAdminUser(adminRjRoleId);
 
   console.log("Seed concluído.");
   console.log("Domínios (status, consórcios) e papéis RBAC sincronizados.");
-  console.log(`Administrador: ${adminEmail} (senha de SEED_ADMIN_PASSWORD no .env)`);
+  console.log(`Administrador CRM: ${adminEmail} (SEED_ADMIN_PASSWORD no .env)`);
+  if (rjAdminEmail) {
+    console.log(`Administrador RJ: ${rjAdminEmail} (SEED_RJ_ADMIN_PASSWORD no .env)`);
+  }
 }
 
 main()

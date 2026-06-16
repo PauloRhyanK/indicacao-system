@@ -13,7 +13,9 @@ import { notFound, unauthorized } from "../utils/httpError.js";
 import {
   ACCESS_DENIED_NO_RJ,
   ACCESS_DENIED_WRONG_REALM,
+  ACCESS_PENDING_APPROVAL,
   canAccessRealm,
+  isConfidencialUserApproved,
   resolveAccessScope,
   type AuthRealm,
 } from "../constants/accessScope.js";
@@ -26,6 +28,7 @@ async function issueToken(
     createdAt: Date;
     mustChangePassword?: boolean;
     accessScope: UserAccessScope;
+    confidencialApprovedAt?: Date | null;
   },
   reply: FastifyReply,
 ) {
@@ -33,7 +36,7 @@ async function issueToken(
     getUserPermissions(user.id),
     getUserRoles(user.id),
   ]);
-  const effectiveScope = resolveAccessScope(user.accessScope, roles);
+  const scope = resolveAccessScope(user.accessScope);
   const token = await reply.jwtSign({
     sub: user.id,
     name: user.name,
@@ -41,25 +44,37 @@ async function issueToken(
   });
   return {
     token,
-    user: publicUser({ ...user, accessScope: effectiveScope }, roles),
+    user: publicUser({ ...user, accessScope: scope }, roles),
     permissions: Array.from(permissions),
   };
 }
 
+function assertConfidencialApproved(
+  user: { accessScope: UserAccessScope; confidencialApprovedAt: Date | null },
+  realm: AuthRealm,
+) {
+  if (realm !== "confidencial") return;
+  if (!isConfidencialUserApproved(user)) {
+    throw unauthorized(
+      "Sua conta aguarda aprovação do administrador para acessar o ambiente confidencial.",
+      { code: ACCESS_PENDING_APPROVAL },
+    );
+  }
+}
+
 function assertRealmAccess(
   user: { accessScope: UserAccessScope },
-  roles: { name: string }[],
   permissions: Set<string>,
   realm: AuthRealm,
 ) {
-  const effectiveScope = resolveAccessScope(user.accessScope, roles);
-  if (!canAccessRealm(effectiveScope, realm, permissions)) {
+  const scope = resolveAccessScope(user.accessScope);
+  if (!canAccessRealm(scope, realm, permissions)) {
     if (realm === "admin") {
       throw unauthorized("Esta conta é exclusiva do ambiente confidencial.", {
         code: ACCESS_DENIED_WRONG_REALM,
       });
     }
-    if (effectiveScope === "INTERNAL") {
+    if (scope === "INTERNAL") {
       throw unauthorized("Esta conta não tem acesso ao ambiente confidencial.", {
         code: ACCESS_DENIED_WRONG_REALM,
       });
@@ -73,11 +88,9 @@ function assertRealmAccess(
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   const input = loginSchema.parse(request.body);
   const user = await validateCredentials(input);
-  const [permissions, roles] = await Promise.all([
-    getUserPermissions(user.id),
-    getUserRoles(user.id),
-  ]);
-  assertRealmAccess(user, roles, permissions, input.realm);
+  const permissions = await getUserPermissions(user.id);
+  assertRealmAccess(user, permissions, input.realm);
+  assertConfidencialApproved(user, input.realm);
   return reply.send(await issueToken(user, reply));
 }
 
@@ -104,10 +117,7 @@ export async function me(request: FastifyRequest, reply: FastifyReply) {
     getUserRoles(user.id),
   ]);
   return reply.send({
-    user: publicUser(
-      { ...user, accessScope: resolveAccessScope(user.accessScope, roles) },
-      roles,
-    ),
+    user: publicUser({ ...user, accessScope: resolveAccessScope(user.accessScope) }, roles),
     permissions: Array.from(permissions),
   });
 }

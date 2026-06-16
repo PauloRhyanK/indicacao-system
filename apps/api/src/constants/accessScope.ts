@@ -1,28 +1,32 @@
 import type { UserAccessScope } from "@prisma/client";
-import { ROLE_ADMIN_NAME } from "./permissions.js";
 
 export type AuthRealm = "admin" | "confidencial";
 
 export const ACCESS_DENIED_WRONG_REALM = "ACCESS_DENIED_WRONG_REALM";
 export const ACCESS_DENIED_NO_RJ = "ACCESS_DENIED_NO_RJ";
+export const ACCESS_PENDING_APPROVAL = "ACCESS_PENDING_APPROVAL";
 
-export function resolveAccessScope(
-  accessScope: UserAccessScope,
-  roles: { name: string }[],
-): UserAccessScope {
-  if (roles.some((r) => r.name === ROLE_ADMIN_NAME)) return "FULL";
+export function resolveAccessScope(accessScope: UserAccessScope): UserAccessScope {
   return accessScope;
 }
 
+export function isConfidencialUserApproved(user: {
+  accessScope: UserAccessScope;
+  confidencialApprovedAt: Date | null;
+}): boolean {
+  if (user.accessScope !== "CONFIDENCIAL") return true;
+  return user.confidencialApprovedAt != null;
+}
+
 export function canAccessRealm(
-  effectiveScope: UserAccessScope,
+  accessScope: UserAccessScope,
   realm: AuthRealm,
   permissions: Set<string> | string[],
 ): boolean {
   const permissionList = Array.isArray(permissions) ? permissions : Array.from(permissions);
   if (realm === "admin") {
-    return effectiveScope === "INTERNAL" || effectiveScope === "FULL";
+    return accessScope === "INTERNAL";
   }
-  if (effectiveScope !== "CONFIDENCIAL" && effectiveScope !== "FULL") return false;
+  if (accessScope !== "CONFIDENCIAL") return false;
   return permissionList.includes("rj.view");
 }

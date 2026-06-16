@@ -1533,6 +1533,8 @@ export interface ConfidencialUser {
   email: string;
   mustChangePassword: boolean;
   accessScope: "CONFIDENCIAL";
+  confidencialApprovedAt: string | null;
+  isApproved: boolean;
   createdAt: string;
   roles: { id: string; name: string; isSystem: boolean }[];
 }
@@ -1545,6 +1547,7 @@ export async function fetchConfidencialUsers(): Promise<ConfidencialUser[]> {
 export async function createConfidencialUser(input: {
   name: string;
   email: string;
+  roleIds?: string[];
 }): Promise<ConfidencialUser> {
   const res = await apiFetch<{ data: ConfidencialUser }>("/rj/usuarios", {
     method: "POST",
@@ -1555,5 +1558,76 @@ export async function createConfidencialUser(input: {
 
 export async function deleteConfidencialUser(id: string): Promise<void> {
   await apiFetch(`/rj/usuarios/${id}`, { method: "DELETE" });
+}
+
+export async function approveConfidencialUser(id: string): Promise<ConfidencialUser> {
+  const res = await apiFetch<{ data: ConfidencialUser }>(`/rj/usuarios/${id}/approve`, {
+    method: "POST",
+  });
+  return res.data;
+}
+
+export async function resetConfidencialUserPassword(
+  id: string,
+): Promise<{ alreadyPending: boolean }> {
+  const res = await apiFetch<{ data: { alreadyPending: boolean } }>(
+    `/rj/usuarios/${id}/reset-password`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function fetchRjPermissionsCatalog(): Promise<PermissionGroup[]> {
+  const res = await apiFetch<{ data: PermissionGroup[] }>("/rj/permissions/catalog");
+  return res.data;
+}
+
+export async function fetchRjRoles(): Promise<RoleSummary[]> {
+  const res = await apiFetch<{ data: RoleSummary[] }>("/rj/roles");
+  return res.data;
+}
+
+export async function createRjRole(name: string): Promise<RoleSummary> {
+  const res = await apiFetch<{ data: RoleSummary }>("/rj/roles", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+  return res.data;
+}
+
+export async function updateRjRoleName(id: string, name: string): Promise<{ id: string; name: string }> {
+  const res = await apiFetch<{ data: { id: string; name: string } }>(`/rj/roles/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+  return res.data;
+}
+
+export async function deleteRjRole(id: string): Promise<void> {
+  await apiFetch(`/rj/roles/${id}`, { method: "DELETE" });
+}
+
+export async function updateRjRolePermissions(
+  id: string,
+  permissionKeys: string[],
+): Promise<RoleSummary | undefined> {
+  const res = await apiFetch<{ data: RoleSummary }>(`/rj/roles/${id}/permissions`, {
+    method: "PUT",
+    body: JSON.stringify({ permissionKeys }),
+  });
+  return res.data;
+}
+
+export async function updateConfidencialUserRoles(
+  userId: string,
+  roleIds: string[],
+): Promise<{ id: string; name: string; isSystem: boolean }[]> {
+  const res = await apiFetch<{
+    data: { id: string; name: string; isSystem: boolean }[];
+  }>(`/rj/usuarios/${userId}/roles`, {
+    method: "PUT",
+    body: JSON.stringify({ roleIds }),
+  });
+  return res.data;
 }
 

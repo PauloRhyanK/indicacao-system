@@ -1,9 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createConfidencialUserSchema } from "../schemas/confidencialUser.schema.js";
 import {
+  approveConfidencialUser,
   createConfidencialUser,
   deleteConfidencialUser,
   listConfidencialUsers,
+  resetConfidencialUserPassword,
 } from "../services/confidencialUser.service.js";
 
 export async function getConfidencialUsers(_request: FastifyRequest, reply: FastifyReply) {
@@ -21,4 +23,19 @@ export async function removeConfidencialUser(request: FastifyRequest, reply: Fas
   const { id } = request.params as { id: string };
   await deleteConfidencialUser(id);
   return reply.status(204).send();
+}
+
+export async function approveConfidencialUserHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const user = await approveConfidencialUser(id);
+  return reply.send({ data: user });
+}
+
+export async function resetConfidencialUserPasswordHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = request.params as { id: string };
+  const result = await resetConfidencialUserPassword(id, request.user.sub);
+  return reply.send({ data: result });
 }

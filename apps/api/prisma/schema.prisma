@@ -54,6 +54,7 @@ model User {
   passwordHash        String           @map("password_hash")
   mustChangePassword  Boolean          @default(false) @map("must_change_password")
   accessScope         UserAccessScope  @default(INTERNAL) @map("access_scope")
+  confidencialApprovedAt DateTime?     @map("confidencial_approved_at")
   personalDailyTarget Decimal?         @map("personal_daily_target") @db.Decimal(14, 2)
   createdAt           DateTime         @default(now()) @map("created_at")
   deletedAt           DateTime?        @map("deleted_at")

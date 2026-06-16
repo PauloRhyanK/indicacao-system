@@ -30,17 +30,24 @@ const PERMISSIONS_CATALOG = [
   { key: "settings.manage", label: "Gerenciar domínios do sistema", groupName: "Administração" },
   {
     key: "rj.view",
-    label: "Ver condomínio de credores (RJ)",
+    label: "Ver credores (somente leitura)",
     groupName: "Recuperacao Judicial",
   },
   {
     key: "rj.manage",
-    label: "Gerenciar condomínio de credores (RJ)",
+    label: "Gerenciar credores",
+    groupName: "Recuperacao Judicial",
+  },
+  {
+    key: "rj.settings",
+    label: "Configurações do confidencial",
     groupName: "Recuperacao Judicial",
   },
 ] as const;
 
-const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view", "rj.manage"] as const;
+const CONSULTA_CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+const ADMIN_RJ_ROLE_PERMISSION_KEYS = ["rj.view", "rj.manage", "rj.settings"] as const;
 
 const COLABORADOR_PERMISSION_KEYS = [
   "leads.view_all",
@@ -57,6 +64,8 @@ const COLABORADOR_PERMISSION_KEYS = [
 const ROLE_ADMIN_NAME = "Administrador";
 const ROLE_COLABORADOR_NAME = "Colaborador";
 const ROLE_CONFIDENCIAL_NAME = "Acesso Confidencial";
+const ROLE_CONSULTA_CONFIDENCIAL_NAME = "Consulta Confidencial";
+const ROLE_ADMIN_RJ_NAME = "Administrador RJ";
 
 async function syncPermissionsCatalog(prisma: PrismaClient) {
   for (const p of PERMISSIONS_CATALOG) {
@@ -89,6 +98,18 @@ export async function ensureSystemRoles(prisma: PrismaClient) {
     create: { name: ROLE_CONFIDENCIAL_NAME, isSystem: true },
   });
 
+  const consultaRole = await prisma.role.upsert({
+    where: { name: ROLE_CONSULTA_CONFIDENCIAL_NAME },
+    update: { isSystem: true },
+    create: { name: ROLE_CONSULTA_CONFIDENCIAL_NAME, isSystem: true },
+  });
+
+  const adminRjRole = await prisma.role.upsert({
+    where: { name: ROLE_ADMIN_RJ_NAME },
+    update: { isSystem: true },
+    create: { name: ROLE_ADMIN_RJ_NAME, isSystem: true },
+  });
+
   const allKeys = PERMISSIONS_CATALOG.map((p) => p.key);
 
   await prisma.rolePermission.deleteMany({ where: { roleId: adminRole.id } });
@@ -115,10 +136,30 @@ export async function ensureSystemRoles(prisma: PrismaClient) {
     skipDuplicates: true,
   });
 
+  await prisma.rolePermission.deleteMany({ where: { roleId: consultaRole.id } });
+  await prisma.rolePermission.createMany({
+    data: CONSULTA_CONFIDENCIAL_ROLE_PERMISSION_KEYS.map((permissionKey) => ({
+      roleId: consultaRole.id,
+      permissionKey,
+    })),
+    skipDuplicates: true,
+  });
+
+  await prisma.rolePermission.deleteMany({ where: { roleId: adminRjRole.id } });
+  await prisma.rolePermission.createMany({
+    data: ADMIN_RJ_ROLE_PERMISSION_KEYS.map((permissionKey) => ({
+      roleId: adminRjRole.id,
+      permissionKey,
+    })),
+    skipDuplicates: true,
+  });
+
   return {
     adminRoleId: adminRole.id,
     colaboradorRoleId: colabRole.id,
     confidencialRoleId: confidencialRole.id,
+    consultaRoleId: consultaRole.id,
+    adminRjRoleId: adminRjRole.id,
   };
 }
 

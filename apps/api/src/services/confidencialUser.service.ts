@@ -4,8 +4,9 @@ import type { UserAccessScope } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { ROLE_CONFIDENCIAL_NAME } from "../constants/permissions.js";
 import { activeUserWhere } from "../utils/softDelete.js";
-import { conflict, notFound } from "../utils/httpError.js";
+import { badRequest, conflict, notFound } from "../utils/httpError.js";
 import { assignRoleToUser } from "./permission.service.js";
+import { setConfidencialUserRoles } from "./rjRole.service.js";
 import type { CreateConfidencialUserInput } from "../schemas/confidencialUser.schema.js";
 
 const publicSelect = {
@@ -14,6 +15,7 @@ const publicSelect = {
   email: true,
   mustChangePassword: true,
   accessScope: true,
+  confidencialApprovedAt: true,
   createdAt: true,
   userRoles: {
     select: {
@@ -28,6 +30,7 @@ function mapConfidencialUser(row: {
   email: string;
   mustChangePassword: boolean;
   accessScope: UserAccessScope;
+  confidencialApprovedAt: Date | null;
   createdAt: Date;
   userRoles: { role: { id: string; name: string; isSystem: boolean } }[];
 }) {
@@ -37,12 +40,14 @@ function mapConfidencialUser(row: {
     email: row.email,
     mustChangePassword: row.mustChangePassword,
     accessScope: row.accessScope,
+    confidencialApprovedAt: row.confidencialApprovedAt?.toISOString() ?? null,
+    isApproved: row.confidencialApprovedAt != null,
     createdAt: row.createdAt,
     roles: row.userRoles.map((ur) => ur.role),
   };
 }
 
-async function getConfidencialRoleId() {
+async function getDefaultConfidencialRoleId() {
   const role = await prisma.role.findUnique({ where: { name: ROLE_CONFIDENCIAL_NAME } });
   if (!role) throw notFound("Papel de acesso confidencial não configurado");
   return role.id;
@@ -65,7 +70,6 @@ export async function createConfidencialUser(input: CreateConfidencialUserInput)
   }
 
   const placeholderPassword = randomBytes(32).toString("hex");
-  const confidencialRoleId = await getConfidencialRoleId();
 
   const user = await prisma.user.create({
     data: {
@@ -74,17 +78,63 @@ export async function createConfidencialUser(input: CreateConfidencialUserInput)
       passwordHash: await bcrypt.hash(placeholderPassword, 10),
       mustChangePassword: true,
       accessScope: "CONFIDENCIAL",
+      confidencialApprovedAt: new Date(),
     },
     select: { id: true },
   });
 
-  await assignRoleToUser(user.id, confidencialRoleId);
+  if (input.roleIds && input.roleIds.length > 0) {
+    await setConfidencialUserRoles(user.id, input.roleIds);
+  } else {
+    await assignRoleToUser(user.id, await getDefaultConfidencialRoleId());
+  }
 
   const full = await prisma.user.findUnique({
     where: { id: user.id },
     select: publicSelect,
   });
   return full ? mapConfidencialUser(full) : null;
+}
+
+export async function approveConfidencialUser(userId: string) {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, ...activeUserWhere, accessScope: "CONFIDENCIAL" },
+    select: publicSelect,
+  });
+  if (!user) throw notFound("Usuário confidencial não encontrado");
+  if (user.confidencialApprovedAt) {
+    throw badRequest("Este usuário já foi liberado.");
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { confidencialApprovedAt: new Date() },
+    select: publicSelect,
+  });
+  return mapConfidencialUser(updated);
+}
+
+export async function resetConfidencialUserPassword(userId: string, actorUserId: string) {
+  if (userId === actorUserId) {
+    throw badRequest("Use a página de redefinição de senha para alterar a sua própria senha.");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId, ...activeUserWhere, accessScope: "CONFIDENCIAL" },
+    select: { id: true, mustChangePassword: true },
+  });
+  if (!user) throw notFound("Usuário confidencial não encontrado");
+
+  if (user.mustChangePassword) {
+    return { alreadyPending: true as const };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { mustChangePassword: true },
+  });
+
+  return { alreadyPending: false as const };
 }
 
 export async function deleteConfidencialUser(userId: string) {

@@ -14,6 +14,12 @@ export interface AuthUser {
   accessScope: "INTERNAL" | "FULL" | "CONFIDENCIAL";
   createdAt: string;
   mustChangePassword?: boolean;
+  confidencialApprovedAt?: string | null;
+}
+
+export function isConfidencialApproved(user: AuthUser): boolean {
+  if (user.accessScope !== "CONFIDENCIAL") return true;
+  return Boolean(user.confidencialApprovedAt);
 }
 
 export interface AuthSession {
@@ -35,6 +41,7 @@ interface MeResponse {
 export const PASSWORD_SETUP_REQUIRED = "PASSWORD_SETUP_REQUIRED";
 export const ACCESS_DENIED_WRONG_REALM = "ACCESS_DENIED_WRONG_REALM";
 export const ACCESS_DENIED_NO_RJ = "ACCESS_DENIED_NO_RJ";
+export const ACCESS_PENDING_APPROVAL = "ACCESS_PENDING_APPROVAL";
 
 export type AuthRealm = "admin" | "confidencial";
 

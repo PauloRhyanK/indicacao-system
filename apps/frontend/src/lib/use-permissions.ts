@@ -18,7 +18,18 @@ export function usePermissions() {
     permissions,
     can: (key: string) => set.has(key),
     canAny: (...keys: string[]) => keys.some((k) => set.has(k)),
+    canRjSettings: () => canAccessRjSettings(permissions, me.data.user.roles),
   };
+}
+
+/** Compatível com admin RJ legado (rj.manage sem rj.settings explícita). */
+export function canAccessRjSettings(
+  permissions: string[],
+  roles: { name: string }[],
+): boolean {
+  const set = new Set(permissions);
+  if (set.has("rj.settings")) return true;
+  return roles.some((r) => r.name === "Administrador RJ") && set.has("rj.manage");
 }
 
 /** Pagamentos de recompensas (equipe, indicação, confirmação). */

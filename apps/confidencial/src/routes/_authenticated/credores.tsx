@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ConfidencialLayout } from "../../components/ConfidencialLayout";
 import { RjCredoresPage } from "@/components/cais/rj/RjCredoresPage";
+import { usePermissions } from "@/lib/use-permissions";
+import { ReadOnlyBanner } from "../../components/ReadOnlyBanner";
 
 export const Route = createFileRoute("/_authenticated/credores")({
   head: () => ({ meta: [{ title: "Credores MG2 — CAIS Confidencial" }] }),
@@ -9,14 +10,18 @@ export const Route = createFileRoute("/_authenticated/credores")({
       throw redirect({ to: "/acesso-negado" });
     }
   },
-  component: CredoresRoute,
+  component: CredoresPage,
 });
 
-function CredoresRoute() {
-  const { permissions } = Route.useRouteContext();
+function CredoresPage() {
+  const { user } = Route.useRouteContext();
+  const { can } = usePermissions();
+  const readOnly = !can("rj.manage");
+
   return (
-    <ConfidencialLayout canManageUsers={permissions.includes("rj.manage")}>
+    <>
+      {readOnly && <ReadOnlyBanner user={user} />}
       <RjCredoresPage />
-    </ConfidencialLayout>
+    </>
   );
 }

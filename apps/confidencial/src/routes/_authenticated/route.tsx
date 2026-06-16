@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { fetchMe, isAuthenticated } from "@/lib/api/auth";
+import { fetchMe, isAuthenticated, isConfidencialApproved } from "@/lib/api/auth";
+import { ConfidencialAppLayout } from "../../components/ConfidencialAppLayout";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -13,11 +14,25 @@ export const Route = createFileRoute("/_authenticated")({
       if (session.user.mustChangePassword) {
         throw redirect({ to: "/primeiro-acesso" });
       }
+      if (!session.permissions.includes("rj.view")) {
+        throw redirect({ to: "/acesso-negado" });
+      }
+      if (!isConfidencialApproved(session.user)) {
+        throw redirect({ to: "/aguardando-aprovacao" });
+      }
       return { user: session.user, permissions: session.permissions };
     } catch (err) {
       if (err && typeof err === "object" && "to" in err) throw err;
       throw redirect({ to: "/login" });
     }
   },
-  component: () => <Outlet />,
+  component: AuthenticatedLayout,
 });
+
+function AuthenticatedLayout() {
+  return (
+    <ConfidencialAppLayout>
+      <Outlet />
+    </ConfidencialAppLayout>
+  );
+}

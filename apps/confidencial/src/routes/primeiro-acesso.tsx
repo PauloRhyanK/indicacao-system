@@ -1,23 +1,31 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { setInitialPassword } from "@/lib/api/auth";
+import { useEffect, useState } from "react";
+import { setInitialPassword, isConfidencialApproved } from "@/lib/api/auth";
 import { Button } from "@/components/cais/Button";
 import { inputClass } from "@/components/cais/SlideOver";
 
 export const Route = createFileRoute("/primeiro-acesso")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    email: typeof search.email === "string" ? search.email : "",
+  }),
   head: () => ({
-    meta: [{ title: "Primeiro acesso — CAIS Confidencial" }],
+    meta: [{ title: "Criar senha — CAIS Confidencial" }],
   }),
   component: PrimeiroAcessoPage,
 });
 
 function PrimeiroAcessoPage() {
   const navigate = useNavigate();
+  const { email: emailFromUrl } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (emailFromUrl) setEmail(emailFromUrl);
+  }, [emailFromUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +51,10 @@ function PrimeiroAcessoPage() {
         navigate({ to: "/acesso-negado", replace: true });
         return;
       }
+      if (!isConfidencialApproved(session.user)) {
+        navigate({ to: "/aguardando-aprovacao", replace: true });
+        return;
+      }
       navigate({ to: "/credores", replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível definir a senha.");
@@ -58,11 +70,11 @@ function PrimeiroAcessoPage() {
           <div className="text-[28px] font-semibold tracking-[2px] text-azul-profundo">
             CAIS
           </div>
-          <div className="text-[13px] italic text-ouro-escuro">Primeiro acesso</div>
+          <div className="text-[13px] italic text-ouro-escuro">Criar senha</div>
         </div>
 
         <p className="mb-5 text-center text-[13px] text-slate-600">
-          Use o e-mail informado pelo administrador e defina sua senha de login.
+          Use o e-mail cadastrado pelo administrador e escolha sua senha para acessar o sistema.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,7 +122,7 @@ function PrimeiroAcessoPage() {
           {error && <p className="text-[12px] text-status-red">{error}</p>}
 
           <Button type="submit" variant="primary" block disabled={loading}>
-            {loading ? "Salvando..." : "Definir senha e entrar"}
+            {loading ? "Salvando..." : "Salvar senha"}
           </Button>
         </form>
 

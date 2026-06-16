@@ -11,11 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PrimeiroAcessoRouteImport } from './routes/primeiro-acesso'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as AcessoNegadoRouteImport } from './routes/acesso-negado'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedCredoresRouteImport } from './routes/_authenticated/credores'
+import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
+import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
+import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
+import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 
 const PrimeiroAcessoRoute = PrimeiroAcessoRouteImport.update({
   id: '/primeiro-acesso',
@@ -25,6 +31,11 @@ const PrimeiroAcessoRoute = PrimeiroAcessoRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
+  id: '/aguardando-aprovacao',
+  path: '/aguardando-aprovacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcessoNegadoRoute = AcessoNegadoRouteImport.update({
@@ -46,70 +57,134 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCredoresRoute = AuthenticatedCredoresRouteImport.update({
   id: '/credores',
   path: '/credores',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesRouteRoute =
+  AuthenticatedConfiguracoesRouteRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesIndexRoute =
+  AuthenticatedConfiguracoesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesUsuariosRoute =
+  AuthenticatedConfiguracoesUsuariosRouteImport.update({
+    id: '/usuarios',
+    path: '/usuarios',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesPapeisRoute =
+  AuthenticatedConfiguracoesPapeisRouteImport.update({
+    id: '/papeis',
+    path: '/papeis',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/credores': typeof AuthenticatedCredoresRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
+  '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/credores': typeof AuthenticatedCredoresRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/_authenticated/credores': typeof AuthenticatedCredoresRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/_authenticated/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
+  '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/login'
     | '/primeiro-acesso'
+    | '/configuracoes'
     | '/credores'
+    | '/painel'
     | '/usuarios'
+    | '/configuracoes/papeis'
+    | '/configuracoes/usuarios'
+    | '/configuracoes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/login'
     | '/primeiro-acesso'
     | '/credores'
+    | '/painel'
     | '/usuarios'
+    | '/configuracoes/papeis'
+    | '/configuracoes/usuarios'
+    | '/configuracoes'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/login'
     | '/primeiro-acesso'
+    | '/_authenticated/configuracoes'
     | '/_authenticated/credores'
+    | '/_authenticated/painel'
     | '/_authenticated/usuarios'
+    | '/_authenticated/configuracoes/papeis'
+    | '/_authenticated/configuracoes/usuarios'
+    | '/_authenticated/configuracoes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AcessoNegadoRoute: typeof AcessoNegadoRoute
+  AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   LoginRoute: typeof LoginRoute
   PrimeiroAcessoRoute: typeof PrimeiroAcessoRoute
 }
@@ -128,6 +203,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aguardando-aprovacao': {
+      id: '/aguardando-aprovacao'
+      path: '/aguardando-aprovacao'
+      fullPath: '/aguardando-aprovacao'
+      preLoaderRoute: typeof AguardandoAprovacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/acesso-negado': {
@@ -158,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/credores': {
       id: '/_authenticated/credores'
       path: '/credores'
@@ -165,16 +254,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCredoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes/': {
+      id: '/_authenticated/configuracoes/'
+      path: '/'
+      fullPath: '/configuracoes/'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesIndexRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
+    '/_authenticated/configuracoes/usuarios': {
+      id: '/_authenticated/configuracoes/usuarios'
+      path: '/usuarios'
+      fullPath: '/configuracoes/usuarios'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesUsuariosRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
+    '/_authenticated/configuracoes/papeis': {
+      id: '/_authenticated/configuracoes/papeis'
+      path: '/papeis'
+      fullPath: '/configuracoes/papeis'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesPapeisRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
   }
 }
 
+interface AuthenticatedConfiguracoesRouteRouteChildren {
+  AuthenticatedConfiguracoesPapeisRoute: typeof AuthenticatedConfiguracoesPapeisRoute
+  AuthenticatedConfiguracoesUsuariosRoute: typeof AuthenticatedConfiguracoesUsuariosRoute
+  AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
+}
+
+const AuthenticatedConfiguracoesRouteRouteChildren: AuthenticatedConfiguracoesRouteRouteChildren =
+  {
+    AuthenticatedConfiguracoesPapeisRoute:
+      AuthenticatedConfiguracoesPapeisRoute,
+    AuthenticatedConfiguracoesUsuariosRoute:
+      AuthenticatedConfiguracoesUsuariosRoute,
+    AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
+  }
+
+const AuthenticatedConfiguracoesRouteRouteWithChildren =
+  AuthenticatedConfiguracoesRouteRoute._addFileChildren(
+    AuthenticatedConfiguracoesRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedConfiguracoesRouteRoute: typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   AuthenticatedCredoresRoute: typeof AuthenticatedCredoresRoute
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedConfiguracoesRouteRoute:
+    AuthenticatedConfiguracoesRouteRouteWithChildren,
   AuthenticatedCredoresRoute: AuthenticatedCredoresRoute,
+  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
 }
 
@@ -185,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcessoNegadoRoute: AcessoNegadoRoute,
+  AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   LoginRoute: LoginRoute,
   PrimeiroAcessoRoute: PrimeiroAcessoRoute,
 }

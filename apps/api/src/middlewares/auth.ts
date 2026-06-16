@@ -1,4 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { prisma } from "../config/prisma.js";
+import { ACCESS_PENDING_APPROVAL, isConfidencialUserApproved } from "../constants/accessScope.js";
 import { forbidden, unauthorized } from "../utils/httpError.js";
 import { getUserPermissions, userHasAnyPermission } from "../services/permission.service.js";
 
@@ -7,6 +9,22 @@ export async function authenticate(request: FastifyRequest, _reply: FastifyReply
     await request.jwtVerify();
   } catch {
     throw unauthorized("Token ausente ou inválido");
+  }
+}
+
+export async function requireConfidencialApproved(request: FastifyRequest, _reply: FastifyReply) {
+  const userId = request.user?.sub;
+  if (!userId) throw unauthorized();
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: { accessScope: true, confidencialApprovedAt: true },
+  });
+  if (!user) throw unauthorized("Usuário não encontrado");
+  if (!isConfidencialUserApproved(user)) {
+    throw forbidden("Conta aguardando aprovação do administrador RJ.", {
+      code: ACCESS_PENDING_APPROVAL,
+    });
   }
 }
 

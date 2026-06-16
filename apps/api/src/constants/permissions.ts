@@ -37,17 +37,35 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
   { key: "settings.manage", label: "Gerenciar domínios do sistema", groupName: "Administração" },
   {
     key: "rj.view",
-    label: "Ver condomínio de credores (RJ)",
+    label: "Ver credores (somente leitura)",
+    description: "Consultar e exportar dados dos credores",
     groupName: "Recuperacao Judicial",
   },
   {
     key: "rj.manage",
-    label: "Gerenciar condomínio de credores (RJ)",
+    label: "Gerenciar credores",
+    description: "Criar, editar e excluir credores e parâmetros do condomínio",
+    groupName: "Recuperacao Judicial",
+  },
+  {
+    key: "rj.settings",
+    label: "Configurações do confidencial",
+    description: "Usuários, papéis e permissões do ambiente confidencial",
     groupName: "Recuperacao Judicial",
   },
 ];
 
-export const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+/** Papel padrão ao convidar alguém: opera credores, sem configurações. */
+export const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view", "rj.manage"] as const;
+
+/** Somente consulta nos credores. */
+export const CONSULTA_CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+
+export const ADMIN_RJ_ROLE_PERMISSION_KEYS = ["rj.view", "rj.manage", "rj.settings"] as const;
+
+export const RJ_PERMISSION_KEYS = ["rj.view", "rj.manage", "rj.settings"] as const;
+
+export const RJ_GROUP_NAME = "Recuperacao Judicial";
 
 export const ALL_PERMISSION_KEYS = PERMISSIONS_CATALOG.map((p) => p.key);
 
@@ -67,3 +85,22 @@ export const COLABORADOR_PERMISSION_KEYS = [
 export const ROLE_ADMIN_NAME = "Administrador";
 export const ROLE_COLABORADOR_NAME = "Colaborador";
 export const ROLE_CONFIDENCIAL_NAME = "Acesso Confidencial";
+export const ROLE_CONSULTA_CONFIDENCIAL_NAME = "Consulta Confidencial";
+export const ROLE_ADMIN_RJ_NAME = "Administrador RJ";
+
+/** Compat: admin RJ antes da migration 0022 tinha só rj.manage para configurações. */
+export function applyRjPermissionCompat(perms: Set<string>, roleNames: string[]): void {
+  if (
+    roleNames.includes(ROLE_ADMIN_RJ_NAME) &&
+    perms.has("rj.manage") &&
+    !perms.has("rj.settings")
+  ) {
+    perms.add("rj.settings");
+  }
+}
+
+export const RJ_SYSTEM_ROLE_NAMES = [
+  ROLE_CONFIDENCIAL_NAME,
+  ROLE_CONSULTA_CONFIDENCIAL_NAME,
+  ROLE_ADMIN_RJ_NAME,
+] as const;

@@ -73,6 +73,7 @@ export function publicUser(
     createdAt: Date;
     mustChangePassword?: boolean;
     accessScope?: UserAccessScope;
+    confidencialApprovedAt?: Date | null;
   },
   roles: { id: string; name: string; isSystem: boolean }[] = [],
 ) {
@@ -84,5 +85,6 @@ export function publicUser(
     accessScope: user.accessScope ?? "INTERNAL",
     createdAt: user.createdAt,
     mustChangePassword: user.mustChangePassword ?? false,
+    confidencialApprovedAt: user.confidencialApprovedAt?.toISOString() ?? null,
   };
 }

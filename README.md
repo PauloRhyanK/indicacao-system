@@ -297,6 +297,23 @@ CORS_ORIGIN=https://admin.caisinvestimentos.com.br,https://confidencial.caisinve
 
 Após alterar `CORS_ORIGIN`, redeploy/restart do container da API.
 
+**Ordem após atualização com RBAC RJ isolado (migration `0020`):**
+
+```bash
+pnpm db:migrate          # ou: docker exec cais_api_prod npx prisma migrate deploy
+pnpm db:seed             # ou: docker exec cais_api_prod npx prisma db seed
+# redeploy API + confidencial na Vercel
+```
+
+Variáveis de seed no `.env` da VPS (ver `.env.production.example`):
+
+| Variável | Uso |
+|----------|-----|
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Admin CRM (`accessScope: INTERNAL`) — só entra no admin |
+| `SEED_RJ_ADMIN_EMAIL` / `SEED_RJ_ADMIN_PASSWORD` | Admin RJ (`accessScope: CONFIDENCIAL`, papel **Administrador RJ**) — só entra no confidencial |
+
+Usuários com escopo `FULL` (legado) são convertidos para `INTERNAL` na migration `0020`. Não há mais acesso cruzado admin ↔ confidencial.
+
 ### Frontend admin (Vercel)
 
 1. Importe o repositório; **Root Directory:** `apps/frontend`
@@ -311,9 +328,11 @@ Após alterar `CORS_ORIGIN`, redeploy/restart do container da API.
 1. Novo projeto no mesmo repositório; **Root Directory:** `apps/confidencial`
 2. Domínio customizado: `confidencial.caisinvestimentos.com.br` (Cloudflare CNAME → Vercel)
 3. Variáveis:
-   - `VITE_API_URL` — mesma URL da API (`https://api.caisinvestimentos.com.br/api/v1`)
+   - `VITE_API_URL` — mesma URL da API (`https://api.caisinvestimentos.com.br/api/v1`) — **obrigatório em production** (sem fallback para `/api/v1` no domínio confidencial)
 
-O módulo RJ **não** aparece no menu do admin. Acesso exige permissão `rj.view` (Administrador recebe por padrão). Login é independente do admin (sessão JWT por subdomínio).
+O módulo RJ **não** aparece no menu do admin. Admin CRM (`INTERNAL`) e usuários RJ (`CONFIDENCIAL`) são totalmente separados: login com `realm: admin` ou `realm: confidencial`. Papéis e usuários RJ são gerenciados em **Configurações** no confidencial (requer `rj.settings`).
+
+Papéis RJ de sistema: **Acesso Confidencial** (credores com edição), **Consulta Confidencial** (somente leitura), **Administrador RJ** (credores + configurações).
 
 Dev local:
 

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { login, isAuthenticated, PASSWORD_SETUP_REQUIRED, ACCESS_DENIED_WRONG_REALM, ACCESS_DENIED_NO_RJ } from "@/lib/api/auth";
+import { login, isAuthenticated, fetchMe, PASSWORD_SETUP_REQUIRED, ACCESS_DENIED_WRONG_REALM, ACCESS_DENIED_NO_RJ, ACCESS_PENDING_APPROVAL, isConfidencialApproved } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { Button } from "@/components/cais/Button";
 import { inputClass } from "@/components/cais/SlideOver";
@@ -20,7 +20,20 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated()) navigate({ to: "/credores", replace: true });
+    if (!isAuthenticated()) return;
+    void fetchMe()
+      .then((session) => {
+        if (!session.permissions.includes("rj.view")) {
+          navigate({ to: "/acesso-negado", replace: true });
+          return;
+        }
+        if (!isConfidencialApproved(session.user)) {
+          navigate({ to: "/aguardando-aprovacao", replace: true });
+          return;
+        }
+        navigate({ to: "/credores", replace: true });
+      })
+      .catch(() => undefined);
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,13 +46,17 @@ function LoginPage() {
         navigate({ to: "/acesso-negado", replace: true });
         return;
       }
+      if (!isConfidencialApproved(session.user)) {
+        navigate({ to: "/aguardando-aprovacao", replace: true });
+        return;
+      }
       navigate({ to: "/credores", replace: true });
     } catch (err) {
       if (
         err instanceof ApiError &&
         (err.details as { code?: string } | undefined)?.code === PASSWORD_SETUP_REQUIRED
       ) {
-        setError("Defina sua senha no primeiro acesso antes de entrar.");
+        setError("Defina sua senha na página Criar senha antes de entrar.");
       } else if (
         err instanceof ApiError &&
         (err.details as { code?: string } | undefined)?.code === ACCESS_DENIED_WRONG_REALM
@@ -50,6 +67,11 @@ function LoginPage() {
         (err.details as { code?: string } | undefined)?.code === ACCESS_DENIED_NO_RJ
       ) {
         setError("Sem permissão para acessar o ambiente confidencial.");
+      } else if (
+        err instanceof ApiError &&
+        (err.details as { code?: string } | undefined)?.code === ACCESS_PENDING_APPROVAL
+      ) {
+        setError("Sua conta aguarda liberação do administrador RJ.");
       } else {
         setError("E-mail ou senha inválidos.");
       }
@@ -67,10 +89,6 @@ function LoginPage() {
           </div>
           <div className="text-[13px] italic text-ouro-escuro">Ambiente confidencial</div>
         </div>
-
-        <p className="mb-5 text-center text-[13px] text-slate-600">
-          Acesso restrito ao condomínio de credores da Recuperação Judicial.
-        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -108,12 +126,12 @@ function LoginPage() {
         </form>
 
         <p className="mt-5 text-center text-[12px] text-slate-500">
-          Primeiro acesso?{" "}
+          Primeira vez ou senha resetada?{" "}
           <Link
             to="/primeiro-acesso"
             className="font-medium text-azul-corporativo hover:text-ouro-escuro"
           >
-            Defina sua senha
+            Criar senha
           </Link>
         </p>
       </div>
