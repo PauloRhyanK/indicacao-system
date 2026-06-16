@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { ArrowDown, ArrowUp, Trash2, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Trash2, UserRound } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Badge } from "./Badge";
 import { EmptyState, Spinner } from "./Feedback";
 import { ReverseSaleDialog } from "./ReverseSaleDialog";
+import { SaleEditDrawer } from "./SaleEditDrawer";
 import { SaleExpandedPanel } from "./SaleExpandedPanel";
-import { inputClass } from "./SlideOver";
-import { formatBRL, formatDate, updateSale, type Sale } from "@/lib/cais-api";
+import { formatBRL, formatDate, type Sale } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
 import { cn } from "@/lib/utils";
 
 const GRID_COLS =
-  "grid grid-cols-[minmax(96px,1fr)_minmax(110px,1.4fr)_minmax(90px,1fr)_minmax(88px,1fr)_minmax(80px,1fr)_minmax(72px,0.9fr)_minmax(72px,auto)] gap-2 items-center";
+  "grid grid-cols-[minmax(96px,1fr)_minmax(110px,1.4fr)_minmax(90px,1fr)_minmax(88px,1fr)_minmax(80px,1fr)_minmax(72px,0.9fr)_minmax(96px,auto)] gap-2 items-center";
 
 const actionBtnClass =
   "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-azul-profundo disabled:pointer-events-none disabled:opacity-35";
@@ -57,12 +56,105 @@ function sortSales(sales: Sale[], column: SaleSortColumn, dir: SortDir): Sale[] 
   });
 }
 
-function toDateInputValue(iso: string): string {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+function SaleRowTrigger({
+  sale,
+  isHighlighted,
+  canDelete,
+  canEdit,
+  onCancel,
+  onEdit,
+}: {
+  sale: Sale;
+  isHighlighted: boolean;
+  canDelete: boolean;
+  canEdit: boolean;
+  onCancel: (sale: Sale) => void;
+  onEdit: (sale: Sale) => void;
+}) {
+  const pending = !sale.boleto_paid;
+  const stopRow = (e: React.MouseEvent) => e.stopPropagation();
+
+  return (
+    <AccordionPrimitive.Header className="flex">
+      <AccordionPrimitive.Trigger asChild>
+        <button
+          type="button"
+          className={cn(
+            GRID_COLS,
+            "w-full border-l-[3px] px-4 py-3.5 text-left text-[13px] transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul-medio/40 data-[state=open]:bg-slate-50/60",
+            pending ? "border-l-amber-400 bg-amber-50/40" : "border-l-transparent",
+            isHighlighted && "bg-ouro/5",
+          )}
+        >
+          <span className="text-slate-600">{formatDate(sale.sold_at)}</span>
+          <span className="min-w-0 truncate font-medium text-azul-profundo">{sale.lead_name}</span>
+          <span className="min-w-0 truncate text-[12px] text-slate-600">
+            {sale.commercial.responsavel?.name ?? "—"}
+          </span>
+          <span className="font-semibold tabular-nums text-azul-profundo">
+            {formatBRL(sale.sale_value)}
+          </span>
+          <span>
+            {sale.consortium_type ? (
+              <Badge variant="gray">{sale.consortium_type}</Badge>
+            ) : (
+              <span className="text-slate-400">—</span>
+            )}
+          </span>
+          <span>
+            <Badge variant={sale.boleto_paid ? "green" : "amber"}>
+              {sale.boleto_paid ? "Pago" : "Pendente"}
+            </Badge>
+          </span>
+          <span className="flex items-center justify-end gap-0.5" onClick={stopRow}>
+            {canEdit ? (
+              <button
+                type="button"
+                title="Editar venda e lead"
+                aria-label="Editar venda e lead"
+                className={actionBtnClass}
+                onClick={() => onEdit(sale)}
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            ) : null}
+
+            <Link
+              to="/leads/$id"
+              params={{ id: sale.lead_id }}
+              title="Ver lead"
+              aria-label={`Ver lead ${sale.lead_name}`}
+              className={actionBtnClass}
+            >
+              <UserRound className="h-4 w-4" />
+            </Link>
+
+            <button
+              type="button"
+              title={
+                !canDelete
+                  ? "Sem permissão para cancelar vendas"
+                  : sale.can_reverse_today
+                    ? "Desfazer venda"
+                    : "Só é possível desfazer vendas registradas hoje"
+              }
+              aria-label="Desfazer venda"
+              disabled={!canDelete || !sale.can_reverse_today}
+              className={cn(
+                actionBtnClass,
+                canDelete &&
+                  sale.can_reverse_today &&
+                  "hover:bg-red-50 hover:text-red-600",
+              )}
+              onClick={() => onCancel(sale)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </span>
+        </button>
+      </AccordionPrimitive.Trigger>
+    </AccordionPrimitive.Header>
+  );
 }
 
 function SortableHeader({
@@ -101,180 +193,6 @@ function SortableHeader({
   );
 }
 
-function SaleRowTrigger({
-  sale,
-  isHighlighted,
-  canEdit,
-  canDelete,
-  onCancel,
-}: {
-  sale: Sale;
-  isHighlighted: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-  onCancel: (sale: Sale) => void;
-}) {
-  const qc = useQueryClient();
-  const [editingDate, setEditingDate] = useState(false);
-  const [dateValue, setDateValue] = useState(toDateInputValue(sale.sold_at));
-  const pending = !sale.boleto_paid;
-
-  useEffect(() => {
-    setDateValue(toDateInputValue(sale.sold_at));
-  }, [sale.sold_at]);
-
-  const updateMutation = useMutation({
-    mutationFn: (patch: { sale_date?: string; boleto_paid?: boolean }) =>
-      updateSale(sale.id, patch),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sales"] });
-      qc.invalidateQueries({ queryKey: ["meta"] });
-      qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
-      setEditingDate(false);
-    },
-  });
-
-  const saveDate = () => {
-    if (dateValue && dateValue !== toDateInputValue(sale.sold_at)) {
-      updateMutation.mutate({ sale_date: dateValue });
-    } else {
-      setEditingDate(false);
-    }
-  };
-
-  const toggleBoleto = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!canEdit || updateMutation.isPending) return;
-    updateMutation.mutate({ boleto_paid: !sale.boleto_paid });
-  };
-
-  const stopRow = (e: React.MouseEvent) => e.stopPropagation();
-
-  return (
-    <AccordionPrimitive.Header className="flex">
-      <AccordionPrimitive.Trigger asChild>
-        <button
-          type="button"
-          className={cn(
-            GRID_COLS,
-            "w-full border-l-[3px] px-4 py-3.5 text-left text-[13px] transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-azul-medio/40 data-[state=open]:bg-slate-50/60",
-            pending ? "border-l-amber-400 bg-amber-50/40" : "border-l-transparent",
-            isHighlighted && "bg-ouro/5",
-          )}
-        >
-          <span
-            className="text-slate-600"
-            onClick={(e) => {
-              if (canEdit) {
-                e.stopPropagation();
-                setEditingDate(true);
-              }
-            }}
-          >
-            {editingDate && canEdit ? (
-              <input
-                type="date"
-                className={inputClass + " h-8 px-2 text-[12px]"}
-                value={dateValue}
-                onClick={stopRow}
-                onChange={(e) => setDateValue(e.target.value)}
-                onBlur={saveDate}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveDate();
-                  }
-                  if (e.key === "Escape") {
-                    setEditingDate(false);
-                    setDateValue(toDateInputValue(sale.sold_at));
-                  }
-                }}
-                autoFocus
-              />
-            ) : (
-              <span className={canEdit ? "cursor-pointer hover:underline" : undefined}>
-                {formatDate(sale.sold_at)}
-              </span>
-            )}
-          </span>
-          <span className="min-w-0 truncate font-medium text-azul-profundo">{sale.lead_name}</span>
-          <span className="min-w-0 truncate text-[12px] text-slate-600">
-            {sale.commercial.responsavel?.name ?? "—"}
-          </span>
-          <span className="font-semibold tabular-nums text-azul-profundo">
-            {formatBRL(sale.sale_value)}
-          </span>
-          <span>
-            {sale.consortium_type ? (
-              <Badge variant="gray">{sale.consortium_type}</Badge>
-            ) : (
-              <span className="text-slate-400">—</span>
-            )}
-          </span>
-          <span onClick={toggleBoleto}>
-            {canEdit ? (
-              <span
-                role="button"
-                tabIndex={0}
-                className="cursor-pointer"
-                onClick={toggleBoleto}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (!updateMutation.isPending) {
-                      updateMutation.mutate({ boleto_paid: !sale.boleto_paid });
-                    }
-                  }
-                }}
-              >
-                <Badge variant={sale.boleto_paid ? "green" : "amber"}>
-                  {sale.boleto_paid ? "Pago" : "Pendente"}
-                </Badge>
-              </span>
-            ) : (
-              <Badge variant={sale.boleto_paid ? "green" : "amber"}>
-                {sale.boleto_paid ? "Pago" : "Pendente"}
-              </Badge>
-            )}
-          </span>
-          <span className="flex items-center justify-end gap-0.5" onClick={stopRow}>
-            <button
-              type="button"
-              title={
-                canDelete && sale.can_reverse_today
-                  ? "Desfazer venda"
-                  : "Só é possível desfazer vendas de hoje"
-              }
-              aria-label="Desfazer venda"
-              disabled={!canDelete || !sale.can_reverse_today}
-              className={cn(
-                actionBtnClass,
-                canDelete &&
-                  sale.can_reverse_today &&
-                  "hover:bg-red-50 hover:text-red-600",
-              )}
-              onClick={() => onCancel(sale)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-
-            <Link
-              to="/leads/$id"
-              params={{ id: sale.lead_id }}
-              title="Ver lead"
-              aria-label={`Ver lead ${sale.lead_name}`}
-              className={actionBtnClass}
-            >
-              <UserRound className="h-4 w-4" />
-            </Link>
-          </span>
-        </button>
-      </AccordionPrimitive.Trigger>
-    </AccordionPrimitive.Header>
-  );
-}
-
 export function SalesAccordionTable({
   sales,
   isLoading,
@@ -294,9 +212,11 @@ export function SalesAccordionTable({
   summary?: { count: number; total: number; volume: number };
   scopeLabel?: string;
 }) {
-  const { can } = usePermissions();
+  const { can, canAny } = usePermissions();
   const canDelete = can("sales.delete");
-  const canEdit = can("sales.create");
+  const canEditSale = can("sales.create");
+  const canEditLead = canAny("leads.edit_all", "leads.edit_own");
+  const canEdit = canEditSale || canEditLead;
 
   const [sort, setSort] = useState<{ column: SaleSortColumn; dir: SortDir }>({
     column: "sold_at",
@@ -304,6 +224,7 @@ export function SalesAccordionTable({
   });
   const [expandedId, setExpandedId] = useState<string | undefined>();
   const [reverseTarget, setReverseTarget] = useState<Sale | null>(null);
+  const [editSale, setEditSale] = useState<Sale | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const highlightedRef = useRef<string | null>(null);
 
@@ -411,6 +332,7 @@ export function SalesAccordionTable({
                   canEdit={canEdit}
                   canDelete={canDelete}
                   onCancel={setReverseTarget}
+                  onEdit={setEditSale}
                 />
                 <AccordionContent className="p-0">
                   <SaleExpandedPanel
@@ -436,6 +358,14 @@ export function SalesAccordionTable({
       </div>
 
       <ReverseSaleDialog sale={reverseTarget} onClose={() => setReverseTarget(null)} />
+
+      <SaleEditDrawer
+        sale={editSale}
+        open={!!editSale}
+        onClose={() => setEditSale(null)}
+        canEditSale={canEditSale}
+        canEditLead={canEditLead}
+      />
     </>
   );
 }

@@ -5,11 +5,13 @@ export function SlideOver({
   onClose,
   title,
   children,
+  maxWidthClass = "max-w-md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  maxWidthClass?: string;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -26,7 +28,9 @@ export function SlideOver({
         className="absolute inset-0 bg-azul-profundo/40 animate-fade-in"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-branco shadow-xl">
+      <div
+        className={`absolute right-0 top-0 flex h-full w-full ${maxWidthClass} flex-col border-l border-slate-200 bg-branco shadow-xl`}
+      >
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-[16px] font-semibold text-azul-profundo">{title}</h2>
           <button
