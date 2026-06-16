@@ -1,8 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchBonusChain, type Sale } from "@/lib/cais-api";
+import { Button } from "./Button";
+import { fetchBonusChain, formatDate, type Sale } from "@/lib/cais-api";
 import { CommercialRolesList, ReferralChainList } from "./ReferralChainList";
 
-export function SaleExpandedPanel({ sale, enabled }: { sale: Sale; enabled: boolean }) {
+export function SaleExpandedPanel({
+  sale,
+  enabled,
+  canDelete,
+  onCancel,
+}: {
+  sale: Sale;
+  enabled: boolean;
+  canDelete?: boolean;
+  onCancel?: () => void;
+}) {
   const chain = useQuery({
     queryKey: ["bonus-chain", sale.lead_id],
     queryFn: () => fetchBonusChain(sale.lead_id),
@@ -11,16 +22,36 @@ export function SaleExpandedPanel({ sale, enabled }: { sale: Sale; enabled: bool
 
   return (
     <div className="grid gap-6 border-t border-slate-100 bg-slate-50/50 px-4 py-5 md:grid-cols-2">
-      <div>
-        <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-          Papéis comerciais da venda
-        </h4>
-        <CommercialRolesList
-          responsavel={sale.commercial.responsavel?.name}
-          coVendedor={sale.commercial.co_vendedor?.name}
-          consortiumType={sale.consortium_type}
-          externalCode={sale.commercial.external_code}
-        />
+      <div className="space-y-4">
+        <div>
+          <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
+            Papéis comerciais da venda
+          </h4>
+          <CommercialRolesList
+            responsavel={sale.commercial.responsavel?.name}
+            coVendedor={sale.commercial.co_vendedor?.name}
+            consortiumType={sale.consortium_type}
+            externalCode={sale.commercial.external_code}
+          />
+        </div>
+        {sale.lead_notes ? (
+          <div>
+            <h4 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
+              Observações do lead
+            </h4>
+            <p className="whitespace-pre-wrap text-[13px] text-slate-700">{sale.lead_notes}</p>
+          </div>
+        ) : null}
+        {sale.lead_created_at ? (
+          <p className="text-[12px] text-slate-500">
+            Lead criado em {formatDate(sale.lead_created_at)}
+          </p>
+        ) : null}
+        {canDelete && onCancel ? (
+          <Button variant="ghost" className="text-red-600 hover:bg-red-50" onClick={onCancel}>
+            Desfazer venda (hoje)
+          </Button>
+        ) : null}
       </div>
       <div>
         <h4 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-slate-500">

@@ -21,6 +21,8 @@ const purchaseInclude = {
       name: true,
       phone: true,
       externalCode: true,
+      createdAt: true,
+      notes: true,
       responsavel: { select: { id: true, name: true } },
       coVendedor: { select: { id: true, name: true } },
     },

@@ -1,172 +1,190 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { useMemo, useState } from "react";
-
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-
+import { Plus } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
-
-import { KPICard } from "@/components/cais/KPICard";
-
-import { SaleRegistrationForm } from "@/components/cais/SaleRegistrationForm";
-
+import { Button } from "@/components/cais/Button";
+import { PendingBoletosPanel } from "@/components/cais/PendingBoletosPanel";
+import { SaleCelebrationModal } from "@/components/cais/SaleCelebrationModal";
+import { SaleRegistrationDrawer } from "@/components/cais/SaleRegistrationDrawer";
 import { SalesAccordionTable } from "@/components/cais/SalesAccordionTable";
-
-import { SectionHeader } from "@/components/cais/Feedback";
-
-import { fetchMetaPeriod, fetchSales, formatBRL, formatDate } from "@/lib/cais-api";
-
-
+import { SalesFiltersBar } from "@/components/cais/SalesFiltersBar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  fetchLookups,
+  fetchMetaPeriod,
+  fetchProfiles,
+  fetchSales,
+  isSaleTodayInBusinessTz,
+} from "@/lib/cais-api";
+import { fetchMe } from "@/lib/api/auth";
+import {
+  defaultSalesFilters,
+  filterSales,
+  useSalesFilterSummary,
+  type SalesFiltersState,
+  type SalesScope,
+} from "@/lib/useSalesFilters";
+import { usePermissions } from "@/lib/use-permissions";
+import type { SaleRegistrationResult } from "@/components/cais/SaleRegistrationForm";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
-
   head: () => ({ meta: [{ title: "Registrar Venda — CAIS" }] }),
-
   component: VendasPage,
-
 });
 
-
-
 function VendasPage() {
+  const { can } = usePermissions();
+  const canViewAll = can("sales.view_all");
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [highlightSaleId, setHighlightSaleId] = useState<string | null>(null);
+  const [celebration, setCelebration] = useState<SaleRegistrationResult | null>(null);
 
-
-
+  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
   const sales = useQuery({ queryKey: ["sales"], queryFn: fetchSales });
-
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
+  const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
+  const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
+  const currentUserId = me.data?.user.id;
 
-
-  const { totalSales, volume, lastSaleLabel } = useMemo(() => {
-
-    const items = sales.data ?? [];
-
-    const total = items.length;
-
-    const vol = items.reduce((s, x) => s + Number(x.sale_value), 0);
-
-    const last = items[0];
-
-    const lastLabel = last
-
-      ? `${formatBRL(last.sale_value)} · ${last.lead_name}`
-
-      : "—";
-
-    return { totalSales: total, volume: vol, lastSaleLabel: lastLabel };
-
-  }, [sales.data]);
-
-
-
-  return (
-
-    <AppLayout>
-
-      <div className="mb-6">
-
-        <h1 className="text-[26px] font-semibold text-azul-profundo">Registrar Venda</h1>
-
-        <p className="text-[14px] text-slate-500">
-
-          Registre uma venda, atualize a meta e visualize a cadeia de indicação.
-
-        </p>
-
-      </div>
-
-
-
-      <div className="mb-8 grid gap-6 lg:grid-cols-[1fr_320px]">
-
-        <div className="rounded-md border border-ouro/20 bg-branco p-6 shadow-sm">
-
-          <SectionHeader>Nova Venda</SectionHeader>
-
-          <SaleRegistrationForm
-
-            onRegistered={(result) => setHighlightSaleId(result.purchaseId)}
-
-          />
-
-        </div>
-
-
-
-        <div className="flex flex-col gap-4">
-
-          <KPICard
-
-            label="Total de Vendas"
-
-            value={totalSales}
-
-            sub="Vendas registradas no sistema"
-
-          />
-
-          <KPICard
-
-            label="Volume Vendido"
-
-            value={formatBRL(volume)}
-
-            sub={meta.data ? `Meta: ${formatBRL(meta.data.target_value)}` : "Soma de todas as vendas"}
-
-          />
-
-          <KPICard
-
-            label="Última Venda"
-
-            value={
-
-              sales.data?.[0] ? formatDate(sales.data[0].sold_at) : "—"
-
-            }
-
-            sub={lastSaleLabel}
-
-            valueClassName="text-[18px]"
-
-          />
-
-        </div>
-
-      </div>
-
-
-
-      <div>
-
-        <div className="mb-4">
-
-          <h2 className="text-[18px] font-semibold text-azul-profundo">Vendas Registradas</h2>
-
-          <p className="text-[13px] text-slate-500">
-
-            Clique em uma venda para ver os papéis comerciais e a cadeia de indicação.
-
-          </p>
-
-        </div>
-
-        <SalesAccordionTable
-
-          highlightSaleId={highlightSaleId}
-
-          onHighlightDone={() => setHighlightSaleId(null)}
-
-        />
-
-      </div>
-
-    </AppLayout>
-
+  const [filters, setFilters] = useState<SalesFiltersState>(() =>
+    defaultSalesFilters(undefined),
   );
 
-}
+  useEffect(() => {
+    if (!currentUserId) return;
+    setFilters((f) =>
+      f.scope === "mine" && f.sellerId !== currentUserId
+        ? { ...f, sellerId: currentUserId }
+        : f,
+    );
+  }, [currentUserId]);
 
+  const handleScopeChange = (scope: SalesScope) => {
+    setFilters((f) => ({
+      ...f,
+      scope,
+      sellerId: scope === "mine" && currentUserId ? currentUserId : "",
+    }));
+  };
+
+  const patchFilters = (patch: Partial<SalesFiltersState>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+  };
+
+  const filteredSales = useMemo(
+    () => filterSales(sales.data ?? [], filters, currentUserId, meta.data),
+    [sales.data, filters, currentUserId, meta.data],
+  );
+
+  const summary = useSalesFilterSummary(sales.data, filteredSales);
+
+  const scopeLabel = filters.scope === "mine" ? "Minhas vendas" : "Todas as vendas";
+
+  const todayHint = useMemo(() => {
+    if (filters.scope !== "mine" || filters.period !== "today" || !currentUserId) return null;
+    const count = (sales.data ?? []).filter(
+      (s) =>
+        s.commercial.responsavel?.id === currentUserId && isSaleTodayInBusinessTz(s.sold_at),
+    ).length;
+    if (count === 0) return null;
+    return `${count} venda${count !== 1 ? "s" : ""} sua${count !== 1 ? "s" : ""} hoje nesta base`;
+  }, [sales.data, filters.scope, filters.period, currentUserId]);
+
+  const handleRegistered = (result: SaleRegistrationResult) => {
+    setCelebration(result);
+    setHighlightSaleId(result.purchaseId);
+  };
+
+  return (
+    <AppLayout>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[26px] font-semibold text-azul-profundo">Vendas</h1>
+          <p className="text-[14px] text-slate-500">
+            Registre vendas, filtre o histórico e acompanhe boletos pendentes.
+          </p>
+          {todayHint ? (
+            <p className="mt-1 text-[12px] text-slate-500">{todayHint}</p>
+          ) : null}
+        </div>
+        <Link
+          to="/dashboard"
+          className="text-[13px] font-medium text-azul-medio hover:text-azul-profundo"
+        >
+          Ver meu desempenho no Dashboard →
+        </Link>
+      </div>
+
+      <PendingBoletosPanel sales={filteredSales} />
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Tabs
+          value={filters.scope}
+          onValueChange={(v) => handleScopeChange(v as SalesScope)}
+        >
+          <TabsList className="h-9">
+            <TabsTrigger value="mine" className="text-[13px]">
+              Minhas vendas
+            </TabsTrigger>
+            {canViewAll ? (
+              <TabsTrigger value="all" className="text-[13px]">
+                Todas as vendas
+              </TabsTrigger>
+            ) : null}
+          </TabsList>
+        </Tabs>
+
+        <Button
+          variant="gold"
+          className="inline-flex items-center gap-2"
+          onClick={() => setDrawerOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
+          Registrar nova venda
+        </Button>
+      </div>
+
+      <div className="mb-4 rounded-md border border-slate-200 bg-branco p-4">
+        <SalesFiltersBar
+          filters={filters}
+          onChange={patchFilters}
+          profiles={profiles.data ?? []}
+          consortiumTypes={lookups.data?.consortiumTypes ?? []}
+          canViewAll={canViewAll}
+        />
+      </div>
+
+      <SalesAccordionTable
+        sales={filteredSales}
+        isLoading={sales.isLoading}
+        isError={sales.isError}
+        onRetry={() => sales.refetch()}
+        highlightSaleId={highlightSaleId}
+        onHighlightDone={() => setHighlightSaleId(null)}
+        summary={{
+          count: summary.count,
+          total: summary.total,
+          volume: summary.volume,
+        }}
+        scopeLabel={scopeLabel}
+      />
+
+      <SaleRegistrationDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onRegistered={handleRegistered}
+      />
+
+      <SaleCelebrationModal
+        open={!!celebration}
+        result={celebration}
+        leadName={celebration?.leadName}
+        saleValue={celebration?.saleValue}
+        onClose={() => setCelebration(null)}
+      />
+    </AppLayout>
+  );
+}

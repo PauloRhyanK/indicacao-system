@@ -107,10 +107,14 @@ export interface Sale {
   lead_id: string;
   lead_name: string;
   lead_phone: string | null;
+  lead_created_at: string | null;
+  lead_notes: string | null;
   sale_value: number;
   consortium_type: string | null;
+  consortium_type_id: string | null;
   sold_at: string;
   boleto_paid: boolean;
+  can_reverse_today: boolean;
   commercial: SaleCommercialRoles;
 }
 
@@ -261,6 +265,8 @@ export interface ApiPurchase {
     name: string;
     phone: string | null;
     externalCode?: string | null;
+    createdAt?: string;
+    notes?: string | null;
     responsavel?: ApiAssignedUser | null;
     coVendedor?: ApiAssignedUser | null;
   } | null;
@@ -441,6 +447,19 @@ function buildLeadsQuery(filters?: LeadsFilters): string {
   return qs ? `?${qs}` : "";
 }
 
+function businessDateKey(date: Date | string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(typeof date === "string" ? new Date(date) : date);
+}
+
+export function isSaleTodayInBusinessTz(soldAt: string): boolean {
+  return businessDateKey(soldAt) === businessDateKey(new Date());
+}
+
 function mapSale(api: ApiPurchase): Sale {
   const lead = api.lead;
   return {
@@ -448,10 +467,14 @@ function mapSale(api: ApiPurchase): Sale {
     lead_id: api.leadId,
     lead_name: lead?.name ?? "—",
     lead_phone: lead?.phone ?? null,
+    lead_created_at: lead?.createdAt ?? null,
+    lead_notes: lead?.notes ?? null,
     sale_value: decimalToNumber(api.amount),
     consortium_type: api.consortiumType?.name ?? null,
+    consortium_type_id: api.consortiumType?.id ?? null,
     sold_at: api.purchaseDate,
     boleto_paid: api.boletoPaid ?? false,
+    can_reverse_today: isSaleTodayInBusinessTz(api.purchaseDate),
     commercial: {
       responsavel: mapUserRef(api.responsavel) ?? mapUserRef(lead?.responsavel),
       co_vendedor: mapUserRef(lead?.coVendedor),

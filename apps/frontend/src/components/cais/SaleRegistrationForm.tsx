@@ -1,18 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "./Button";
-import { CommercialRolesList, ReferralChainList } from "./ReferralChainList";
+import { LeadCombobox } from "./LeadCombobox";
 import { inputClass } from "./SlideOver";
-import {
-  fetchAllLeads,
-  fetchLookups,
-  fetchProfiles,
-  isLeadClosed,
-  registerSale,
-  type Lead,
-  type RegisterSaleResult,
-} from "@/lib/cais-api";
+import { fetchLookups, fetchProfiles, registerSale, type Lead, type RegisterSaleResult } from "@/lib/cais-api";
+import { fetchMe } from "@/lib/api/auth";
 import { fireCelebration } from "@/lib/confetti";
 
 export interface SaleRegistrationResult {
@@ -23,6 +16,20 @@ export interface SaleRegistrationResult {
   responsavel?: string | null;
   coVendedor?: string | null;
   consortiumType?: string | null;
+  saleValue?: number;
+  leadName?: string;
+}
+
+function suggestCoVendedor(lead: Lead, currentUserId: string | undefined): string {
+  if (lead.co_vendedor?.id) return lead.co_vendedor.id;
+  if (
+    lead.responsavel?.id &&
+    currentUserId &&
+    lead.responsavel.id !== currentUserId
+  ) {
+    return lead.responsavel.id;
+  }
+  return "";
 }
 
 export function SaleRegistrationForm({
@@ -33,7 +40,6 @@ export function SaleRegistrationForm({
   onRegistered,
   onCancel,
   showCancel = false,
-  modal = false,
   compact = false,
 }: {
   leadId?: string;
@@ -43,48 +49,44 @@ export function SaleRegistrationForm({
   onRegistered?: (result: SaleRegistrationResult) => void;
   onCancel?: () => void;
   showCancel?: boolean;
-  modal?: boolean;
   compact?: boolean;
 }) {
   const qc = useQueryClient();
   const selectable = !fixedLeadId;
-  const useGrid = !compact && !modal;
 
   const [selectedLeadId, setSelectedLeadId] = useState(fixedLeadId ?? "");
+  const [pickedLead, setPickedLead] = useState<Lead | null>(initialLead ?? null);
   const [value, setValue] = useState("");
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [consortiumTypeId, setConsortiumTypeId] = useState("");
   const [coVendedorId, setCoVendedorId] = useState(initialLead?.co_vendedor?.id ?? "");
-  const [result, setResult] = useState<SaleRegistrationResult | null>(null);
 
-  const leads = useQuery({
-    queryKey: ["leads-all"],
-    queryFn: fetchAllLeads,
-    enabled: selectable,
-  });
+  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
+  const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
+  const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
 
-  const lookups = useQuery({
-    queryKey: ["lookups"],
-    queryFn: fetchLookups,
-  });
-
-  const profiles = useQuery({
-    queryKey: ["profiles"],
-    queryFn: fetchProfiles,
-  });
-
-  const openLeads = (leads.data ?? []).filter((l) => !isLeadClosed(l));
   const activeLeadId = fixedLeadId ?? selectedLeadId;
+  const activeLead = initialLead ?? pickedLead;
   const activeLeadName =
-    fixedLeadName ?? openLeads.find((l) => l.id === selectedLeadId)?.name ?? "";
-  const activeLead = initialLead ?? openLeads.find((l) => l.id === activeLeadId);
+    fixedLeadName ?? activeLead?.name ?? "";
+
+  useEffect(() => {
+    if (initialLead) {
+      setPickedLead(initialLead);
+      setCoVendedorId(initialLead.co_vendedor?.id ?? suggestCoVendedor(initialLead, me.data?.user.id));
+    }
+  }, [initialLead, me.data?.user.id]);
 
   const profileName = (id: string) =>
     (profiles.data ?? []).find((p) => p.id === id)?.name ?? null;
 
   const consortiumTypeName =
-    (lookups.data?.consortiumTypes ?? []).find((t) => t.id === consortiumTypeId)?.name ??
-    null;
+    (lookups.data?.consortiumTypes ?? []).find((t) => t.id === consortiumTypeId)?.name ?? null;
+
+  const handleLeadSelect = (lead: Lead) => {
+    setPickedLead(lead);
+    setCoVendedorId(suggestCoVendedor(lead, me.data?.user.id));
+  };
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -106,11 +108,9 @@ export function SaleRegistrationForm({
         responsavel: activeLead?.responsavel?.name ?? null,
         coVendedor: coVendedorId ? profileName(coVendedorId) : null,
         consortiumType: consortiumTypeName,
+        saleValue: Number(value),
+        leadName: activeLeadName,
       };
-
-      if (modal) {
-        setResult(mapped);
-      }
 
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["bonus-chain", data.leadId] });
@@ -118,39 +118,21 @@ export function SaleRegistrationForm({
       qc.invalidateQueries({ queryKey: ["leads-all"] });
       qc.invalidateQueries({ queryKey: ["meta"] });
       qc.invalidateQueries({ queryKey: ["daily-goal-today"] });
+      qc.invalidateQueries({ queryKey: ["personal-dashboard"] });
 
       setValue("");
       setSaleDate(new Date().toISOString().slice(0, 10));
-      if (!selectable) setConsortiumTypeId("");
+      if (selectable) {
+        setSelectedLeadId("");
+        setPickedLead(null);
+        setConsortiumTypeId("");
+        setCoVendedorId("");
+      }
 
       onSuccess?.(mapped);
       onRegistered?.(mapped);
     },
   });
-
-  if (result && modal) {
-    return (
-      <div className="space-y-4">
-        <CommercialRolesList
-          responsavel={result.responsavel}
-          coVendedor={result.coVendedor}
-          consortiumType={result.consortiumType}
-        />
-        <div>
-          <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-slate-500">
-            Cadeia de indicação
-          </p>
-          <ReferralChainList
-            chain={result.bonusChain}
-            treeTruncated={result.tree_truncated}
-          />
-        </div>
-        <Button variant="gold" onClick={onCancel}>
-          Fechar
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <form
@@ -162,20 +144,16 @@ export function SaleRegistrationForm({
     >
       {selectable ? (
         <div>
-          <label className="mb-1.5 block text-[12px] font-medium text-slate-700">Lead</label>
-          <select
-            required
-            className={inputClass}
+          <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
+            Lead *
+          </label>
+          <LeadCombobox
             value={selectedLeadId}
-            onChange={(e) => setSelectedLeadId(e.target.value)}
-          >
-            <option value="">Selecione um lead</option>
-            {openLeads.map((l: Lead) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
+            selectedLead={pickedLead}
+            onChange={setSelectedLeadId}
+            onLeadSelect={handleLeadSelect}
+            disabled={mutation.isPending}
+          />
         </div>
       ) : (
         <p className="text-[13px] text-slate-500">
@@ -183,10 +161,10 @@ export function SaleRegistrationForm({
         </p>
       )}
 
-      <div className={useGrid ? "grid gap-4 sm:grid-cols-2" : "space-y-4"}>
-        <div>
+      <div className={compact ? "space-y-4" : "grid gap-4 sm:grid-cols-2"}>
+        <div className={compact ? undefined : "sm:col-span-2"}>
           <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-            Valor fechado (R$)
+            Valor fechado (R$) *
           </label>
           <input
             type="number"
@@ -197,12 +175,13 @@ export function SaleRegistrationForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="0,00"
+            autoFocus={!selectable}
           />
         </div>
 
         <div>
           <label className="mb-1.5 block text-[12px] font-medium text-slate-700">
-            Data da venda
+            Data da venda *
           </label>
           <input
             type="date"
