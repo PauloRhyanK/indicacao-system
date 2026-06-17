@@ -111,12 +111,42 @@ export const RJ_REUNIAO_STATUS_PILL_CLASS: Record<RjReuniaoStatus, string> = {
   naocompareceu: "bg-red-50 text-red-800 border-red-200",
 };
 
-/** Cores hex para os eventos do calendário (fundo do evento). */
+export interface RjReuniaoCalendarTheme {
+  bg: string;
+  accent: string;
+  text: string;
+}
+
+/** Tokens do calendário (fundo 10–15%, acento na barra lateral, texto Midnight). */
+export const RJ_REUNIAO_STATUS_CALENDAR_THEME: Record<RjReuniaoStatus, RjReuniaoCalendarTheme> = {
+  agendada: {
+    bg: "rgba(0, 59, 92, 0.1)",
+    accent: "#003b5c",
+    text: "#081421",
+  },
+  realizada: {
+    bg: "rgba(22, 163, 74, 0.15)",
+    accent: "#15803d",
+    text: "#081421",
+  },
+  cancelada: {
+    bg: "rgba(232, 237, 242, 0.65)",
+    accent: "#5c6b7a",
+    text: "#5c6b7a",
+  },
+  naocompareceu: {
+    bg: "rgba(154, 77, 46, 0.12)",
+    accent: "#9a4d2e",
+    text: "#081421",
+  },
+};
+
+/** @deprecated Use RJ_REUNIAO_STATUS_CALENDAR_THEME */
 export const RJ_REUNIAO_STATUS_CALENDAR_COLOR: Record<RjReuniaoStatus, string> = {
-  agendada: "#0284c7",
-  realizada: "#059669",
-  cancelada: "#94a3b8",
-  naocompareceu: "#dc2626",
+  agendada: RJ_REUNIAO_STATUS_CALENDAR_THEME.agendada.accent,
+  realizada: RJ_REUNIAO_STATUS_CALENDAR_THEME.realizada.accent,
+  cancelada: RJ_REUNIAO_STATUS_CALENDAR_THEME.cancelada.accent,
+  naocompareceu: RJ_REUNIAO_STATUS_CALENDAR_THEME.naocompareceu.accent,
 };
 
 export const RJ_ENTITY_TYPE_LABELS: Record<string, string> = {
