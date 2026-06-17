@@ -7,7 +7,6 @@ import {
   History,
   LogOut,
   Settings,
-  UserCog,
   Users,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
@@ -18,12 +17,6 @@ import caisLogo from "@/assets/cais-logo.png";
 const navItems = [
   { to: "/credores", label: "Credores", icon: Users, permission: ["rj.view"] as const },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, permission: ["rj.agenda.view"] as const },
-  {
-    to: "/configuracoes/perfil",
-    label: "Minhas configurações",
-    icon: UserCog,
-    permission: ["rj.view"] as const,
-  },
   { to: "/historico", label: "Histórico", icon: History, adminOnly: true as const },
   { to: "/configuracoes", label: "Configurações", icon: Settings, permission: ["rj.settings"] as const },
 ] as const;

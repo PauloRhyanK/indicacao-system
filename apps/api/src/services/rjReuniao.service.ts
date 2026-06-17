@@ -14,12 +14,6 @@ import type {
   UpdateReuniaoInput,
   UpdateReuniaoStatusInput,
 } from "../schemas/rjReuniao.schema.js";
-import {
-  scheduleGoogleSyncOnCancel,
-  scheduleGoogleSyncOnCreate,
-  scheduleGoogleSyncOnDelete,
-  scheduleGoogleSyncOnUpdate,
-} from "./rjGoogleSync.service.js";
 
 const activeReuniaoWhere = { deletedAt: null } as const;
 
@@ -273,8 +267,6 @@ export async function createReuniao(input: CreateReuniaoInput, actorUserId: stri
 
   const refreshed = await findActiveReuniao(created.id);
 
-  scheduleGoogleSyncOnCreate(created.id);
-
   return {
     reuniao: serializeReuniao(refreshed ?? created),
     sugestaoStatusCredor: null,
@@ -288,8 +280,6 @@ export async function updateReuniao(
 ) {
   const existing = await findActiveReuniao(id);
   if (!existing) throw notFound("Reunião não encontrada");
-
-  const previousParticipantIds = existing.participantes.map((p) => p.userId);
 
   if (input.credorId && input.credorId !== existing.credorId) {
     const credor = await prisma.rjCredor.findFirst({
@@ -345,8 +335,6 @@ export async function updateReuniao(
     });
   }
 
-  scheduleGoogleSyncOnUpdate(updated.id, previousParticipantIds);
-
   return serializeReuniao(updated);
 }
 
@@ -391,10 +379,6 @@ export async function updateReuniaoStatus(
       ? sugerirStatusCredor(updated.credor, "reuniao_realizada")
       : null;
 
-  if (updated.status === "cancelada" && existing.status !== "cancelada") {
-    scheduleGoogleSyncOnCancel(updated.id);
-  }
-
   return {
     reuniao: serializeReuniao(updated),
     sugestaoStatusCredor: sugestao,
@@ -418,11 +402,6 @@ export async function softDeleteReuniao(id: string, actorUserId: string) {
     action: "delete",
     summary: `Reunião excluída: ${existing.titulo}`,
   });
-
-  scheduleGoogleSyncOnDelete(
-    existing.id,
-    existing.participantes.map((p) => p.userId),
-  );
 }
 
 function diffReuniao(before: ReuniaoRow, after: ReuniaoRow): RjAuditChange[] {

@@ -1,15 +1,9 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Badge } from "@/components/cais/Badge";
 import { ChevronRight, Shield, Users } from "lucide-react";
-import { canAccessRjSettings } from "@/lib/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes/")({
   head: () => ({ meta: [{ title: "Configurações — CAIS Confidencial" }] }),
-  beforeLoad: ({ context }) => {
-    if (!canAccessRjSettings(context.permissions, context.user.roles)) {
-      throw redirect({ to: "/credores" });
-    }
-  },
   component: ConfiguracoesPage,
 });
 

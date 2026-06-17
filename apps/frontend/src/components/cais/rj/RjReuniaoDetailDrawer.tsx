@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarPlus, ExternalLink, RefreshCw, Smartphone, Trash2 } from "lucide-react";
+import { CalendarPlus, ExternalLink, Smartphone, Trash2 } from "lucide-react";
 import { Button } from "@/components/cais/Button";
 import { SlideOver, inputClass } from "@/components/cais/SlideOver";
 import { addRjReuniaoToDeviceCalendar, type RjReuniao, type RjReuniaoStatus } from "@/lib/cais-api";
-import { fetchRjGoogleIntegracaoStatus } from "@/lib/cais-api-google";
 import {
   googleCalendarAddUrl,
   openCalendarUrl,
@@ -42,13 +40,6 @@ export function RjReuniaoDetailDrawer({
   const [askResultado, setAskResultado] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [mobileCalendarPending, setMobileCalendarPending] = useState(false);
-
-  const googleStatusQuery = useQuery({
-    queryKey: ["rj-google-integracao"],
-    queryFn: fetchRjGoogleIntegracaoStatus,
-    enabled: open,
-  });
-  const googleSynced = googleStatusQuery.data?.conectado === true;
 
   if (!reuniao) return null;
 
@@ -139,12 +130,6 @@ export function RjReuniaoDetailDrawer({
           <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
             Adicionar ao calendário
           </p>
-          {googleSynced && (
-            <p className="flex items-center gap-1.5 rounded-md border border-emerald-100 bg-emerald-50/80 px-2.5 py-1.5 text-[11px] text-emerald-800">
-              <RefreshCw className="h-3 w-3 shrink-0" />
-              Sincronizado automaticamente com seu Google Calendar (CAIS · RJ)
-            </p>
-          )}
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="ghost"
