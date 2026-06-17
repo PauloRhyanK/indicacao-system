@@ -10,6 +10,11 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default("*"),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
   TV_API_TOKEN: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_OAUTH_REDIRECT_URI: z.string().url().optional(),
+  CONFIDENCIAL_APP_URL: z.string().url().optional(),
+  RJ_GOOGLE_TOKEN_ENCRYPTION_KEY: z.string().min(32).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

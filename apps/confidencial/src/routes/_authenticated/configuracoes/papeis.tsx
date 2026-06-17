@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -6,6 +6,7 @@ import { Button } from "@/components/cais/Button";
 import { PageLoader } from "@/components/cais/Feedback";
 import { inputClass } from "@/components/cais/SlideOver";
 import { ConfirmDeleteDialog } from "../../../components/ConfirmDeleteDialog";
+import { canAccessRjSettings } from "@/lib/use-permissions";
 import {
   createRjRole,
   deleteRjRole,
@@ -19,6 +20,11 @@ import {
 
 export const Route = createFileRoute("/_authenticated/configuracoes/papeis")({
   head: () => ({ meta: [{ title: "Papéis — CAIS Confidencial" }] }),
+  beforeLoad: ({ context }) => {
+    if (!canAccessRjSettings(context.permissions, context.user.roles)) {
+      throw redirect({ to: "/credores" });
+    }
+  },
   component: PapeisPage,
 });
 

@@ -23,6 +23,7 @@ import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
 import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
+import { Route as AuthenticatedConfiguracoesPerfilRouteImport } from './routes/_authenticated/configuracoes/perfil'
 import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 
 const PrimeiroAcessoRoute = PrimeiroAcessoRouteImport.update({
@@ -97,6 +98,12 @@ const AuthenticatedConfiguracoesUsuariosRoute =
     path: '/usuarios',
     getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
   } as any)
+const AuthenticatedConfiguracoesPerfilRoute =
+  AuthenticatedConfiguracoesPerfilRouteImport.update({
+    id: '/perfil',
+    path: '/perfil',
+    getParentRoute: () => AuthenticatedConfiguracoesRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesPapeisRoute =
   AuthenticatedConfiguracoesPapeisRouteImport.update({
     id: '/papeis',
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/configuracoes/perfil': typeof AuthenticatedConfiguracoesPerfilRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
   '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/configuracoes/perfil': typeof AuthenticatedConfiguracoesPerfilRoute
   '/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
 }
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/_authenticated/configuracoes/perfil': typeof AuthenticatedConfiguracoesPerfilRoute
   '/_authenticated/configuracoes/usuarios': typeof AuthenticatedConfiguracoesUsuariosRoute
   '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
 }
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/usuarios'
     | '/configuracoes/papeis'
+    | '/configuracoes/perfil'
     | '/configuracoes/usuarios'
     | '/configuracoes/'
   fileRoutesByTo: FileRoutesByTo
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/usuarios'
     | '/configuracoes/papeis'
+    | '/configuracoes/perfil'
     | '/configuracoes/usuarios'
     | '/configuracoes'
   id:
@@ -200,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/usuarios'
     | '/_authenticated/configuracoes/papeis'
+    | '/_authenticated/configuracoes/perfil'
     | '/_authenticated/configuracoes/usuarios'
     | '/_authenticated/configuracoes/'
   fileRoutesById: FileRoutesById
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesUsuariosRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
     }
+    '/_authenticated/configuracoes/perfil': {
+      id: '/_authenticated/configuracoes/perfil'
+      path: '/perfil'
+      fullPath: '/configuracoes/perfil'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesPerfilRouteImport
+      parentRoute: typeof AuthenticatedConfiguracoesRouteRoute
+    }
     '/_authenticated/configuracoes/papeis': {
       id: '/_authenticated/configuracoes/papeis'
       path: '/papeis'
@@ -325,6 +345,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedConfiguracoesRouteRouteChildren {
   AuthenticatedConfiguracoesPapeisRoute: typeof AuthenticatedConfiguracoesPapeisRoute
+  AuthenticatedConfiguracoesPerfilRoute: typeof AuthenticatedConfiguracoesPerfilRoute
   AuthenticatedConfiguracoesUsuariosRoute: typeof AuthenticatedConfiguracoesUsuariosRoute
   AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
 }
@@ -333,6 +354,8 @@ const AuthenticatedConfiguracoesRouteRouteChildren: AuthenticatedConfiguracoesRo
   {
     AuthenticatedConfiguracoesPapeisRoute:
       AuthenticatedConfiguracoesPapeisRoute,
+    AuthenticatedConfiguracoesPerfilRoute:
+      AuthenticatedConfiguracoesPerfilRoute,
     AuthenticatedConfiguracoesUsuariosRoute:
       AuthenticatedConfiguracoesUsuariosRoute,
     AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
