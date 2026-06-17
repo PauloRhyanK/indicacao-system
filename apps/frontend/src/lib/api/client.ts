@@ -1,3 +1,5 @@
+import { humanizeErrorMessage } from "../humanize-error";
+
 const TOKEN_KEY = "cais_token";
 
 export class ApiError extends Error {
@@ -74,11 +76,12 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     if (res.status === 401 && auth) handleUnauthorized();
-    const message =
+    const raw =
       (payload as { message?: string })?.message ??
       (payload as { error?: string })?.error ??
       `Erro HTTP ${res.status}`;
-    throw new ApiError(res.status, message, payload);
+    const friendly = humanizeErrorMessage(new Error(raw)) ?? raw;
+    throw new ApiError(res.status, friendly, payload);
   }
 
   return payload as T;

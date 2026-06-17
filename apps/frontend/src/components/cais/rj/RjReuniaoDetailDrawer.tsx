@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { CalendarPlus, ExternalLink, Trash2 } from "lucide-react";
+import { CalendarPlus, ExternalLink, Smartphone, Trash2 } from "lucide-react";
 import { Button } from "@/components/cais/Button";
 import { SlideOver, inputClass } from "@/components/cais/SlideOver";
-import type { RjReuniao, RjReuniaoStatus } from "@/lib/cais-api";
+import { addRjReuniaoToDeviceCalendar, type RjReuniao, type RjReuniaoStatus } from "@/lib/cais-api";
 import {
   googleCalendarAddUrl,
   openCalendarUrl,
@@ -13,6 +13,7 @@ import {
   RJ_REUNIAO_STATUS_PILL_CLASS,
 } from "@/lib/rj-constants";
 import { formatRjDateTime } from "@/lib/rj-format";
+import { humanizeErrorMessage } from "@/lib/humanize-error";
 
 export function RjReuniaoDetailDrawer({
   open,
@@ -37,6 +38,8 @@ export function RjReuniaoDetailDrawer({
 }) {
   const [resultado, setResultado] = useState("");
   const [askResultado, setAskResultado] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [mobileCalendarPending, setMobileCalendarPending] = useState(false);
 
   if (!reuniao) return null;
 
@@ -59,6 +62,19 @@ export function RjReuniaoDetailDrawer({
       return;
     }
     onDelete(reuniao);
+  };
+
+  const handleMobileCalendar = async () => {
+    setCalendarError(null);
+    setMobileCalendarPending(true);
+    try {
+      await addRjReuniaoToDeviceCalendar(reuniao.id, reuniao.titulo);
+    } catch (e) {
+      const msg = humanizeErrorMessage(e, "calendar");
+      if (msg) setCalendarError(msg);
+    } finally {
+      setMobileCalendarPending(false);
+    }
   };
 
   return (
@@ -130,6 +146,21 @@ export function RjReuniaoDetailDrawer({
               <CalendarPlus className="h-4 w-4" /> Outlook
             </Button>
           </div>
+          <Button
+            variant="ghost"
+            className="w-full text-[12px]"
+            disabled={mobileCalendarPending}
+            onClick={() => void handleMobileCalendar()}
+          >
+            <Smartphone className="h-4 w-4" />
+            {mobileCalendarPending ? "Abrindo…" : "Calendário do celular"}
+          </Button>
+          <p className="text-[11px] leading-relaxed text-slate-500">
+            No celular, abre o app Calendário ou o menu Compartilhar para escolher onde salvar.
+          </p>
+          {calendarError && (
+            <p className="text-[11px] text-red-600">{calendarError}</p>
+          )}
         </div>
 
         {canManage && (

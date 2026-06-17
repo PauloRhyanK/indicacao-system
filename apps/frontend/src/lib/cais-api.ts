@@ -1,4 +1,5 @@
 import { apiFetch, getApiBaseUrl, getToken } from "@/lib/api/client";
+import { humanizeErrorMessage } from "@/lib/humanize-error";
 
 export interface LookupItem {
   id: string;
@@ -1844,21 +1845,72 @@ export async function fetchRjCredorReunioes(credorId: string): Promise<RjReuniao
   return res.data;
 }
 
-export async function downloadRjReuniaoIcs(id: string, titulo: string): Promise<void> {
+function reuniaoIcsFilename(titulo: string): string {
+  const safe = titulo.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  return `${safe || "reuniao"}.ics`;
+}
+
+async function fetchReuniaoIcsText(id: string): Promise<string> {
   const token = getToken();
   const res = await fetch(`${getApiBaseUrl()}/rj/reunioes/${id}/ics`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {
-    throw new Error(`Erro HTTP ${res.status}`);
+    let message = `Erro HTTP ${res.status}`;
+    try {
+      const payload = (await res.json()) as { message?: string };
+      if (payload.message) message = payload.message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
   }
-  const blob = await res.blob();
+  return res.text();
+}
+
+export async function downloadRjReuniaoIcs(id: string, titulo: string): Promise<void> {
+  const text = await fetchReuniaoIcsText(id);
+  const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const safe = titulo.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase();
-  a.download = `${safe || "reuniao"}.ics`;
+  a.download = reuniaoIcsFilename(titulo);
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Celular: menu Compartilhar → Calendário, ou abre o app nativo (iOS/Android). */
+export async function addRjReuniaoToDeviceCalendar(id: string, titulo: string): Promise<void> {
+  const text = await fetchReuniaoIcsText(id);
+  const filename = reuniaoIcsFilename(titulo);
+  const file = new File([text], filename, { type: "text/calendar;charset=utf-8" });
+
+  if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: titulo });
+      return;
+    } catch (err) {
+      const msg = humanizeErrorMessage(err, "calendar");
+      if (!msg) return;
+      throw new Error(msg);
+    }
+  }
+
+  const blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    // iOS/Android: sem download força abrir no app de calendário.
+    a.removeAttribute("download");
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+  }
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 

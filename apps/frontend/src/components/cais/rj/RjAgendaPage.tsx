@@ -31,6 +31,7 @@ import {
 } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
 import { loadRjAgendaPrefs, saveRjAgendaPrefs } from "@/lib/rj-agenda-prefs";
+import { humanizeErrorMessage } from "@/lib/humanize-error";
 
 type Mode = "calendar" | "list";
 type Scope = "mine" | "all";
@@ -108,7 +109,10 @@ export function RjAgendaPage() {
       setEditing(null);
       setFeedback({ type: "ok", msg: "Reunião agendada. Status do credor atualizado." });
     },
-    onError: (e: Error) => setFeedback({ type: "err", msg: e.message }),
+    onError: (e: Error) => {
+      const msg = humanizeErrorMessage(e);
+      if (msg) setFeedback({ type: "err", msg });
+    },
   });
 
   const updateMutation = useMutation({
@@ -120,7 +124,10 @@ export function RjAgendaPage() {
       setEditing(null);
       setFeedback({ type: "ok", msg: "Reunião atualizada." });
     },
-    onError: (e: Error) => setFeedback({ type: "err", msg: e.message }),
+    onError: (e: Error) => {
+      const msg = humanizeErrorMessage(e);
+      if (msg) setFeedback({ type: "err", msg });
+    },
   });
 
   const statusMutation = useMutation({
@@ -139,7 +146,10 @@ export function RjAgendaPage() {
       setFeedback({ type: "ok", msg: "Status da reunião atualizado." });
       if (res.sugestaoStatusCredor) setSugestao(res.sugestaoStatusCredor);
     },
-    onError: (e: Error) => setFeedback({ type: "err", msg: e.message }),
+    onError: (e: Error) => {
+      const msg = humanizeErrorMessage(e);
+      if (msg) setFeedback({ type: "err", msg });
+    },
   });
 
   const credorStatusMutation = useMutation({
@@ -150,7 +160,10 @@ export function RjAgendaPage() {
       setSugestao(null);
       setFeedback({ type: "ok", msg: "Status do credor atualizado." });
     },
-    onError: (e: Error) => setFeedback({ type: "err", msg: e.message }),
+    onError: (e: Error) => {
+      const msg = humanizeErrorMessage(e);
+      if (msg) setFeedback({ type: "err", msg });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -160,7 +173,10 @@ export function RjAgendaPage() {
       setDetail(null);
       setFeedback({ type: "ok", msg: "Reunião excluída." });
     },
-    onError: (e: Error) => setFeedback({ type: "err", msg: e.message }),
+    onError: (e: Error) => {
+      const msg = humanizeErrorMessage(e);
+      if (msg) setFeedback({ type: "err", msg });
+    },
   });
 
   const handleSave = async (input: RjReuniaoInput | RjReuniaoUpdateInput, id?: string) => {
