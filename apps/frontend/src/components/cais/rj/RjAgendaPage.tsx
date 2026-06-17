@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, List, Plus } from "lucide-react";
 import {
@@ -30,6 +30,7 @@ import {
   type RjSugestaoStatusCredor,
 } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
+import { loadRjAgendaPrefs, saveRjAgendaPrefs } from "@/lib/rj-agenda-prefs";
 
 type Mode = "calendar" | "list";
 type Scope = "mine" | "all";
@@ -53,10 +54,22 @@ export function RjAgendaPage() {
   const canViewAll = canRjAgendaViewAll();
   const queryClient = useQueryClient();
 
-  const [mode, setMode] = useState<Mode>("calendar");
-  const [scope, setScope] = useState<Scope>("mine");
-  const [calView, setCalView] = useState<View>("month");
+  const savedPrefs = useMemo(() => loadRjAgendaPrefs(), []);
+
+  const [mode, setMode] = useState<Mode>(savedPrefs.mode);
+  const [scope, setScope] = useState<Scope>(
+    savedPrefs.scope === "all" && !canViewAll ? "mine" : savedPrefs.scope,
+  );
+  const [calView, setCalView] = useState<View>(savedPrefs.calView);
   const [calDate, setCalDate] = useState(new Date());
+
+  useEffect(() => {
+    saveRjAgendaPrefs({ mode, calView, scope });
+  }, [mode, calView, scope]);
+
+  useEffect(() => {
+    if (!canViewAll && scope === "all") setScope("mine");
+  }, [canViewAll, scope]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<RjReuniao | null>(null);
