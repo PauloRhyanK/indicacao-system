@@ -53,17 +53,57 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
     description: "Usuários, papéis e permissões do ambiente confidencial",
     groupName: "Recuperacao Judicial",
   },
+  {
+    key: "rj.agenda.view",
+    label: "Ver agenda de reuniões",
+    description: "Consultar reuniões em que participa",
+    groupName: "Recuperacao Judicial",
+  },
+  {
+    key: "rj.agenda.view_all",
+    label: "Ver agenda de toda a equipe",
+    description: "Visão gerencial das reuniões de todos os usuários",
+    groupName: "Recuperacao Judicial",
+  },
+  {
+    key: "rj.agenda.manage",
+    label: "Gerenciar reuniões",
+    description: "Criar, editar, cancelar e excluir reuniões",
+    groupName: "Recuperacao Judicial",
+  },
 ];
 
-/** Papel padrão ao convidar alguém: opera credores, sem configurações. */
-export const CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view", "rj.manage"] as const;
+/** Papel padrão ao convidar alguém: opera credores e sua agenda, sem configurações. */
+export const CONFIDENCIAL_ROLE_PERMISSION_KEYS = [
+  "rj.view",
+  "rj.manage",
+  "rj.agenda.view",
+  "rj.agenda.manage",
+] as const;
 
-/** Somente consulta nos credores. */
-export const CONSULTA_CONFIDENCIAL_ROLE_PERMISSION_KEYS = ["rj.view"] as const;
+/** Somente consulta nos credores e na agenda. */
+export const CONSULTA_CONFIDENCIAL_ROLE_PERMISSION_KEYS = [
+  "rj.view",
+  "rj.agenda.view",
+] as const;
 
-export const ADMIN_RJ_ROLE_PERMISSION_KEYS = ["rj.view", "rj.manage", "rj.settings"] as const;
+export const ADMIN_RJ_ROLE_PERMISSION_KEYS = [
+  "rj.view",
+  "rj.manage",
+  "rj.settings",
+  "rj.agenda.view",
+  "rj.agenda.view_all",
+  "rj.agenda.manage",
+] as const;
 
-export const RJ_PERMISSION_KEYS = ["rj.view", "rj.manage", "rj.settings"] as const;
+export const RJ_PERMISSION_KEYS = [
+  "rj.view",
+  "rj.manage",
+  "rj.settings",
+  "rj.agenda.view",
+  "rj.agenda.view_all",
+  "rj.agenda.manage",
+] as const;
 
 export const RJ_GROUP_NAME = "Recuperacao Judicial";
 
@@ -96,6 +136,13 @@ export function applyRjPermissionCompat(perms: Set<string>, roleNames: string[])
     !perms.has("rj.settings")
   ) {
     perms.add("rj.settings");
+  }
+
+  // Compat agenda: papéis criados antes das permissões de agenda continuam operando.
+  if (perms.has("rj.view")) perms.add("rj.agenda.view");
+  if (perms.has("rj.manage")) perms.add("rj.agenda.manage");
+  if (roleNames.includes(ROLE_ADMIN_RJ_NAME) && perms.has("rj.settings")) {
+    perms.add("rj.agenda.view_all");
   }
 }
 

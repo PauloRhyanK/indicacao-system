@@ -19,6 +19,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedCredoresRouteImport } from './routes/_authenticated/credores'
+import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
 import { Route as AuthenticatedConfiguracoesUsuariosRouteImport } from './routes/_authenticated/configuracoes/usuarios'
@@ -73,6 +74,11 @@ const AuthenticatedCredoresRoute = AuthenticatedCredoresRouteImport.update({
   path: '/credores',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedConfiguracoesRouteRoute =
   AuthenticatedConfiguracoesRouteRouteImport.update({
     id: '/configuracoes',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
+  '/agenda': typeof AuthenticatedAgendaRoute
   '/credores': typeof AuthenticatedCredoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
   '/credores': typeof AuthenticatedCredoresRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
+  '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/credores': typeof AuthenticatedCredoresRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/primeiro-acesso'
     | '/configuracoes'
+    | '/agenda'
     | '/credores'
     | '/historico'
     | '/painel'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/aguardando-aprovacao'
     | '/login'
     | '/primeiro-acesso'
+    | '/agenda'
     | '/credores'
     | '/historico'
     | '/painel'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/primeiro-acesso'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/agenda'
     | '/_authenticated/credores'
     | '/_authenticated/historico'
     | '/_authenticated/painel'
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCredoresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agenda': {
+      id: '/_authenticated/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes': {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
@@ -326,6 +345,7 @@ const AuthenticatedConfiguracoesRouteRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRouteRoute: typeof AuthenticatedConfiguracoesRouteRouteWithChildren
+  AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedCredoresRoute: typeof AuthenticatedCredoresRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
@@ -335,6 +355,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRouteRoute:
     AuthenticatedConfiguracoesRouteRouteWithChildren,
+  AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedCredoresRoute: AuthenticatedCredoresRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,

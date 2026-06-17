@@ -1363,6 +1363,7 @@ export async function requireUserPasswordSetup(
 
 export type RjStatus =
   | "confirmado"
+  | "agendado"
   | "juridico"
   | "negociacao"
   | "semcontato"
@@ -1502,7 +1503,7 @@ export async function updateRjConfig(passivo: number): Promise<RjConfig> {
   return res.data;
 }
 
-export type RjAuditEntityType = "credor" | "config" | "usuario" | "papel";
+export type RjAuditEntityType = "credor" | "config" | "usuario" | "papel" | "reuniao";
 export type RjAuditAction =
   | "create"
   | "update"
@@ -1713,5 +1714,151 @@ export async function updateConfidencialUserRoles(
     body: JSON.stringify({ roleIds }),
   });
   return res.data;
+}
+
+export type RjReuniaoStatus = "agendada" | "realizada" | "cancelada" | "naocompareceu";
+
+export interface RjReuniaoParticipante {
+  userId: string;
+  nome: string;
+  email: string;
+  confirmado: boolean;
+}
+
+export interface RjReuniao {
+  id: string;
+  credorId: string;
+  titulo: string;
+  dataHoraInicio: string;
+  dataHoraFim: string | null;
+  local: string | null;
+  linkOnline: string | null;
+  status: RjReuniaoStatus;
+  pauta: string | null;
+  resultado: string | null;
+  criadoPorId: string;
+  createdAt: string;
+  updatedAt: string;
+  credor: { id: string; nome: string; status: RjStatus };
+  participantes: RjReuniaoParticipante[];
+}
+
+export interface RjSugestaoStatusCredor {
+  credorId: string;
+  status: RjStatus;
+  label: string;
+}
+
+export interface RjReuniaoInput {
+  credorId: string;
+  titulo?: string;
+  dataHoraInicio: string;
+  dataHoraFim?: string | null;
+  local?: string | null;
+  linkOnline?: string | null;
+  pauta?: string | null;
+  participantesIds?: string[];
+}
+
+export interface RjReuniaoUpdateInput extends Partial<RjReuniaoInput> {
+  resultado?: string | null;
+  status?: RjReuniaoStatus;
+}
+
+export interface RjReuniaoFilters {
+  de?: string;
+  ate?: string;
+  credorId?: string;
+  userId?: string;
+  status?: RjReuniaoStatus;
+}
+
+export interface RjReuniaoParticipanteOpcao {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+export async function fetchRjReunioes(filters: RjReuniaoFilters = {}): Promise<RjReuniao[]> {
+  const params = new URLSearchParams();
+  if (filters.de) params.set("de", filters.de);
+  if (filters.ate) params.set("ate", filters.ate);
+  if (filters.credorId) params.set("credorId", filters.credorId);
+  if (filters.userId) params.set("userId", filters.userId);
+  if (filters.status) params.set("status", filters.status);
+  const qs = params.toString();
+  const res = await apiFetch<{ data: RjReuniao[] }>(`/rj/reunioes${qs ? `?${qs}` : ""}`);
+  return res.data;
+}
+
+export async function fetchRjReuniaoParticipantesOpcoes(): Promise<RjReuniaoParticipanteOpcao[]> {
+  const res = await apiFetch<{ data: RjReuniaoParticipanteOpcao[] }>(
+    "/rj/reunioes/participantes-opcoes",
+  );
+  return res.data;
+}
+
+export async function createRjReuniao(
+  input: RjReuniaoInput,
+): Promise<{ reuniao: RjReuniao; sugestaoStatusCredor: RjSugestaoStatusCredor | null }> {
+  const res = await apiFetch<{
+    data: { reuniao: RjReuniao; sugestaoStatusCredor: RjSugestaoStatusCredor | null };
+  }>("/rj/reunioes", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function updateRjReuniao(
+  id: string,
+  input: RjReuniaoUpdateInput,
+): Promise<RjReuniao> {
+  const res = await apiFetch<{ data: RjReuniao }>(`/rj/reunioes/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return res.data;
+}
+
+export async function updateRjReuniaoStatus(
+  id: string,
+  status: RjReuniaoStatus,
+  resultado?: string | null,
+): Promise<{ reuniao: RjReuniao; sugestaoStatusCredor: RjSugestaoStatusCredor | null }> {
+  const res = await apiFetch<{
+    data: { reuniao: RjReuniao; sugestaoStatusCredor: RjSugestaoStatusCredor | null };
+  }>(`/rj/reunioes/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, resultado }),
+  });
+  return res.data;
+}
+
+export async function deleteRjReuniao(id: string): Promise<void> {
+  await apiFetch(`/rj/reunioes/${id}`, { method: "DELETE" });
+}
+
+export async function fetchRjCredorReunioes(credorId: string): Promise<RjReuniao[]> {
+  const res = await apiFetch<{ data: RjReuniao[] }>(`/rj/credores/${credorId}/reunioes`);
+  return res.data;
+}
+
+export async function downloadRjReuniaoIcs(id: string, titulo: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${getApiBaseUrl()}/rj/reunioes/${id}/ics`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    throw new Error(`Erro HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const safe = titulo.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  a.download = `${safe || "reuniao"}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 

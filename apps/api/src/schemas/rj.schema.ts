@@ -78,7 +78,7 @@ export const updateConfigSchema = z.object({
 export const listRjHistoricoQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
-  entityType: z.enum(["credor", "config", "usuario", "papel"]).optional(),
+  entityType: z.enum(["credor", "config", "usuario", "papel", "reuniao"]).optional(),
   entityId: z.string().optional(),
   actorId: z.string().uuid().optional(),
   from: z.string().optional(),

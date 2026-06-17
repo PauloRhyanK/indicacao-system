@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/cais/Button";
 import { Field, SlideOver, inputClass } from "@/components/cais/SlideOver";
+import { RjCredorReunioesSection } from "@/components/cais/rj/RjCredorReunioesSection";
 import type { RjCredor, RjCredorInput, RjStatus } from "@/lib/cais-api";
 import {
   RJ_CLASSE_VALUES,
@@ -222,6 +223,8 @@ export function RjCredorDrawer({
           placeholder="Histórico, condições, ressalvas..."
         />
       </Field>
+
+      {credor?.id && <RjCredorReunioesSection credorId={credor.id} />}
     </SlideOver>
   );
 }

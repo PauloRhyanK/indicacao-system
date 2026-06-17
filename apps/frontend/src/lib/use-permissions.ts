@@ -19,6 +19,9 @@ export function usePermissions() {
     can: (key: string) => set.has(key),
     canAny: (...keys: string[]) => keys.some((k) => set.has(k)),
     canRjSettings: () => canAccessRjSettings(permissions, me.data.user.roles),
+    canRjAgendaView: () => set.has("rj.agenda.view"),
+    canRjAgendaViewAll: () => set.has("rj.agenda.view_all"),
+    canRjAgendaManage: () => set.has("rj.agenda.manage"),
   };
 }
 

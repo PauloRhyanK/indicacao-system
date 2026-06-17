@@ -1,6 +1,7 @@
 import { Link, useRouterState, useNavigate, useRouteContext } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   History,
@@ -15,6 +16,7 @@ import caisLogo from "@/assets/cais-logo.png";
 
 const navItems = [
   { to: "/credores", label: "Credores", icon: Users, permission: ["rj.view"] as const },
+  { to: "/agenda", label: "Agenda", icon: CalendarDays, permission: ["rj.agenda.view"] as const },
   { to: "/historico", label: "Histórico", icon: History, adminOnly: true as const },
   { to: "/configuracoes", label: "Configurações", icon: Settings, permission: ["rj.settings"] as const },
 ] as const;

@@ -61,6 +61,7 @@ export function RjFilterBar({
 function countByFilter(credores: RjCredor[]): Record<RjFilterKey, number> {
   const sc = {
     confirmado: 0,
+    agendado: 0,
     juridico: 0,
     negociacao: 0,
     semcontato: 0,

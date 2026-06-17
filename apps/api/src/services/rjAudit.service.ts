@@ -11,7 +11,7 @@ import {
 } from "../constants/rj.js";
 import { PERMISSIONS_CATALOG } from "../constants/permissions.js";
 
-export type RjAuditEntityType = "credor" | "config" | "usuario" | "papel";
+export type RjAuditEntityType = "credor" | "config" | "usuario" | "papel" | "reuniao";
 export type RjAuditAction =
   | "create"
   | "update"

@@ -1,5 +1,6 @@
 export const RJ_STATUS_VALUES = [
   "confirmado",
+  "agendado",
   "juridico",
   "negociacao",
   "semcontato",
@@ -23,6 +24,7 @@ export type RjMotivo = (typeof RJ_MOTIVO_VALUES)[number];
 
 export const RJ_STATUS_LABELS: Record<RjStatus, string> = {
   confirmado: "Confirmado",
+  agendado: "Reunião agendada",
   juridico: "Aguardando jurídico",
   negociacao: "Em negociação",
   semcontato: "Sem contato",
@@ -54,10 +56,11 @@ export const RJ_MOTIVO_LABELS: Record<RjMotivo, string> = {
 
 export const RJ_STATUS_ORDER: Record<RjStatus, number> = {
   confirmado: 0,
-  negociacao: 1,
-  juridico: 2,
-  semcontato: 3,
-  recusou: 4,
+  agendado: 1,
+  negociacao: 2,
+  juridico: 3,
+  semcontato: 4,
+  recusou: 5,
 };
 
 export type RjFilterKey =
@@ -68,6 +71,7 @@ export type RjFilterKey =
 export const RJ_FILTER_CHIPS: { key: RjFilterKey; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "confirmado", label: "Confirmados" },
+  { key: "agendado", label: "Reunião agendada" },
   { key: "juridico", label: "No jurídico" },
   { key: "negociacao", label: "Negociando" },
   { key: "semcontato", label: "Sem contato" },
@@ -77,10 +81,42 @@ export const RJ_FILTER_CHIPS: { key: RjFilterKey; label: string }[] = [
 
 export const RJ_STATUS_PILL_CLASS: Record<RjStatus, string> = {
   confirmado: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  agendado: "bg-violet-50 text-violet-800 border-violet-200",
   juridico: "bg-sky-50 text-sky-800 border-sky-200",
   negociacao: "bg-amber-50 text-amber-900 border-amber-200",
   semcontato: "bg-slate-100 text-slate-600 border-slate-200",
   recusou: "bg-red-50 text-red-800 border-red-200",
+};
+
+export const RJ_REUNIAO_STATUS_VALUES = [
+  "agendada",
+  "realizada",
+  "cancelada",
+  "naocompareceu",
+] as const;
+
+export type RjReuniaoStatus = (typeof RJ_REUNIAO_STATUS_VALUES)[number];
+
+export const RJ_REUNIAO_STATUS_LABELS: Record<RjReuniaoStatus, string> = {
+  agendada: "Agendada",
+  realizada: "Realizada",
+  cancelada: "Cancelada",
+  naocompareceu: "Não compareceu",
+};
+
+export const RJ_REUNIAO_STATUS_PILL_CLASS: Record<RjReuniaoStatus, string> = {
+  agendada: "bg-sky-50 text-sky-800 border-sky-200",
+  realizada: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  cancelada: "bg-slate-100 text-slate-500 border-slate-200 line-through",
+  naocompareceu: "bg-red-50 text-red-800 border-red-200",
+};
+
+/** Cores hex para os eventos do calendário (fundo do evento). */
+export const RJ_REUNIAO_STATUS_CALENDAR_COLOR: Record<RjReuniaoStatus, string> = {
+  agendada: "#0284c7",
+  realizada: "#059669",
+  cancelada: "#94a3b8",
+  naocompareceu: "#dc2626",
 };
 
 export const RJ_ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -88,6 +124,7 @@ export const RJ_ENTITY_TYPE_LABELS: Record<string, string> = {
   config: "Configuração",
   usuario: "Usuário",
   papel: "Papel",
+  reuniao: "Reunião",
 };
 
 export const RJ_ACTION_LABELS: Record<string, string> = {

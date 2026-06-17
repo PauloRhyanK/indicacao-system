@@ -67,6 +67,8 @@ model User {
   campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
   userRoles              UserRole[]
   aliases            UserAlias[]
+  rjReunioesCriadas       RjReuniao[]              @relation("RjReuniaoCriador")
+  rjParticipacoesReuniao  RjReuniaoParticipante[]
 
   @@index([deletedAt])
   @@map("users")
@@ -299,10 +301,56 @@ model RjCredor {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
+  reunioes  RjReuniao[]
+
   @@index([deletedAt])
   @@index([status])
   @@index([sujeito])
   @@map("rj_credores")
+}
+
+model RjReuniao {
+  id             String    @id @default(uuid()) @db.Uuid
+  credorId       String    @map("credor_id") @db.Uuid
+  credor         RjCredor  @relation(fields: [credorId], references: [id])
+
+  titulo         String
+  dataHoraInicio DateTime  @map("data_hora_inicio")
+  dataHoraFim    DateTime? @map("data_hora_fim")
+  local          String?
+  linkOnline     String?   @map("link_online")
+
+  status         String    @default("agendada")
+  pauta          String?
+  resultado      String?
+
+  criadoPorId    String    @map("criado_por_id") @db.Uuid
+  criador        User      @relation("RjReuniaoCriador", fields: [criadoPorId], references: [id])
+
+  participantes  RjReuniaoParticipante[]
+
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([credorId])
+  @@index([dataHoraInicio])
+  @@index([deletedAt])
+  @@map("rj_reunioes")
+}
+
+model RjReuniaoParticipante {
+  id         String    @id @default(uuid()) @db.Uuid
+  reuniaoId  String    @map("reuniao_id") @db.Uuid
+  reuniao    RjReuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id])
+  confirmado Boolean   @default(true)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@unique([reuniaoId, userId])
+  @@index([userId])
+  @@map("rj_reuniao_participantes")
 }
 
 model RjConfig {
