@@ -5,6 +5,7 @@ import {
   getRjCredorHistorico,
   getRjCredores,
   getRjCredoresCsv,
+  getRjCredoresXlsx,
   getRjHistorico,
   patchRjCredor,
   patchRjCredorStatus,
@@ -42,6 +43,7 @@ export async function rjRoutes(app: FastifyInstance) {
   app.get("/rj/credores", { preHandler: [...rjView] }, getRjCredores);
 
   app.get("/rj/credores/export/csv", { preHandler: [...rjView] }, getRjCredoresCsv);
+  app.get("/rj/credores/export/xlsx", { preHandler: [...rjView] }, getRjCredoresXlsx);
 
   app.post("/rj/credores", { preHandler: [...rjManage] }, postRjCredor);
 

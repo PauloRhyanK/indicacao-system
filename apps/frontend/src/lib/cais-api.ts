@@ -1613,6 +1613,31 @@ export async function downloadRjCredoresCsv(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+export async function downloadRjCredoresXlsx(): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${getApiBaseUrl()}/rj/credores/export/xlsx`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = `Erro HTTP ${res.status}`;
+    try {
+      const payload = JSON.parse(text) as { message?: string };
+      if (payload.message) message = payload.message;
+    } catch {
+      if (text) message = text;
+    }
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "condominio_credores_mg2.xlsx";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export interface ConfidencialUser {
   id: string;
   name: string;

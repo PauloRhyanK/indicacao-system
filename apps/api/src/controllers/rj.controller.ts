@@ -9,6 +9,7 @@ import {
 import {
   createCredor,
   exportCredoresCsv,
+  exportCredoresXlsx,
   listCredores,
   softDeleteCredor,
   updateCredor,
@@ -32,6 +33,14 @@ export async function getRjCredoresCsv(_request: FastifyRequest, reply: FastifyR
     .header("Content-Type", "text/csv; charset=utf-8")
     .header("Content-Disposition", 'attachment; filename="condominio_credores_mg2.csv"')
     .send(`\ufeff${csv}`);
+}
+
+export async function getRjCredoresXlsx(_request: FastifyRequest, reply: FastifyReply) {
+  const buffer = await exportCredoresXlsx();
+  return reply
+    .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    .header("Content-Disposition", 'attachment; filename="condominio_credores_mg2.xlsx"')
+    .send(buffer);
 }
 
 export async function postRjCredor(request: FastifyRequest, reply: FastifyReply) {

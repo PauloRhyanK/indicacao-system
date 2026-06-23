@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus } from "lucide-react";
+import { ChevronDown, Download, FileSpreadsheet, FileText, Plus, Printer } from "lucide-react";
 import { Button } from "@/components/cais/Button";
 import { RjClassesPanel } from "@/components/cais/rj/RjClassesPanel";
 import { RjCredorDrawer } from "@/components/cais/rj/RjCredorDrawer";
@@ -12,6 +12,7 @@ import {
   createRjCredor,
   deleteRjCredor,
   downloadRjCredoresCsv,
+  downloadRjCredoresXlsx,
   fetchRjCredores,
   updateRjConfig,
   updateRjCredor,
@@ -35,6 +36,7 @@ export function RjCredoresPage() {
   const [editing, setEditing] = useState<RjCredor | null>(null);
   const [passivoInput, setPassivoInput] = useState("");
   const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const passivoDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const passivoInitialized = useRef(false);
 
@@ -143,11 +145,19 @@ export function RjCredoresPage() {
     return rows;
   }, [query.data?.credores, filter, search]);
 
-  const handleExport = async () => {
+  const handleExportCsv = async () => {
     try {
       await downloadRjCredoresCsv();
     } catch (e) {
-      setFeedback({ type: "err", msg: e instanceof Error ? e.message : "Erro ao exportar" });
+      setFeedback({ type: "err", msg: e instanceof Error ? e.message : "Erro ao exportar CSV" });
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      await downloadRjCredoresXlsx();
+    } catch (e) {
+      setFeedback({ type: "err", msg: e instanceof Error ? e.message : "Erro ao exportar Excel" });
     }
   };
 
@@ -192,10 +202,67 @@ export function RjCredoresPage() {
             Coordenação de credores para a Recuperação Judicial · CAIS Investimentos
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" className="text-[13px]" onClick={() => void handleExport()}>
-            <Download className="h-4 w-4" /> Exportar CSV
-          </Button>
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              className="text-[13px] flex items-center gap-1.5"
+              onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+            >
+              <Download className="h-4 w-4" />
+              <span>Exportar</span>
+              <ChevronDown className="h-3 w-3 opacity-60" />
+            </Button>
+            {exportDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setExportDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-1 w-64 origin-top-right rounded-md border border-slate-200 bg-white p-1.5 shadow-lg ring-1 ring-black/5 z-20 animate-fade-in">
+                  <button
+                    onClick={() => {
+                      setExportDropdownOpen(false);
+                      void handleExportExcel();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-slate-700 hover:bg-slate-50 hover:text-azul-profundo transition-colors cursor-pointer"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-[#107c41] shrink-0" />
+                    <div>
+                      <div className="font-semibold text-slate-800">Planilha Excel (.xlsx)</div>
+                      <div className="text-[10px] text-slate-400">Dados formatados e KPIs</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExportDropdownOpen(false);
+                      void handleExportCsv();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-slate-700 hover:bg-slate-50 hover:text-azul-profundo transition-colors border-t border-slate-100 cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4 text-slate-500 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-slate-800">Arquivo CSV (.csv)</div>
+                      <div className="text-[10px] text-slate-400">Dados puros separados por vírgula</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExportDropdownOpen(false);
+                      window.open("/credores-relatorio", "_blank");
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-slate-700 hover:bg-slate-50 hover:text-azul-profundo transition-colors border-t border-slate-100 cursor-pointer"
+                  >
+                    <Printer className="h-4 w-4 text-azul-corporativo shrink-0" />
+                    <div>
+                      <div className="font-semibold text-slate-800">Relatório PDF / Imprimir</div>
+                      <div className="text-[10px] text-slate-400">Layout formal para impressão</div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           {canManage && (
             <Button
               variant="gold"

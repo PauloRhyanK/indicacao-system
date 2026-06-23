@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PrimeiroAcessoRouteImport } from './routes/primeiro-acesso'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as CredoresRelatorioRouteImport } from './routes/credores-relatorio'
 import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as AcessoNegadoRouteImport } from './routes/acesso-negado'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -33,6 +34,11 @@ const PrimeiroAcessoRoute = PrimeiroAcessoRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredoresRelatorioRoute = CredoresRelatorioRouteImport.update({
+  id: '/credores-relatorio',
+  path: '/credores-relatorio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acesso-negado': typeof AcessoNegadoRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
+  '/credores-relatorio': typeof CredoresRelatorioRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acesso-negado': typeof AcessoNegadoRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
+  '/credores-relatorio': typeof CredoresRelatorioRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/agenda': typeof AuthenticatedAgendaRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/acesso-negado': typeof AcessoNegadoRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
+  '/credores-relatorio': typeof CredoresRelatorioRoute
   '/login': typeof LoginRoute
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acesso-negado'
     | '/aguardando-aprovacao'
+    | '/credores-relatorio'
     | '/login'
     | '/primeiro-acesso'
     | '/configuracoes'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/'
     | '/acesso-negado'
     | '/aguardando-aprovacao'
+    | '/credores-relatorio'
     | '/login'
     | '/primeiro-acesso'
     | '/agenda'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/acesso-negado'
     | '/aguardando-aprovacao'
+    | '/credores-relatorio'
     | '/login'
     | '/primeiro-acesso'
     | '/_authenticated/configuracoes'
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AcessoNegadoRoute: typeof AcessoNegadoRoute
   AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
+  CredoresRelatorioRoute: typeof CredoresRelatorioRoute
   LoginRoute: typeof LoginRoute
   PrimeiroAcessoRoute: typeof PrimeiroAcessoRoute
 }
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credores-relatorio': {
+      id: '/credores-relatorio'
+      path: '/credores-relatorio'
+      fullPath: '/credores-relatorio'
+      preLoaderRoute: typeof CredoresRelatorioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aguardando-aprovacao': {
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcessoNegadoRoute: AcessoNegadoRoute,
   AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
+  CredoresRelatorioRoute: CredoresRelatorioRoute,
   LoginRoute: LoginRoute,
   PrimeiroAcessoRoute: PrimeiroAcessoRoute,
 }

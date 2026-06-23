@@ -1,6 +1,7 @@
+import * as XLSX from "xlsx";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
-import { RJ_STATUS_LABELS, type RjStatus } from "../constants/rj.js";
+import { RJ_STATUS_LABELS, RJ_MOTIVO_LABELS, type RjStatus } from "../constants/rj.js";
 import { notFound } from "../utils/httpError.js";
 import {
   buildStatusChangeSummary,
@@ -193,4 +194,73 @@ export async function softDeleteCredor(id: string, actorUserId?: string) {
 export async function exportCredoresCsv() {
   const credores = sortCredores(await listActiveCredores());
   return buildCredoresCsv(credores);
+}
+
+export async function exportCredoresXlsx(): Promise<Buffer> {
+  const credores = sortCredores(await listActiveCredores());
+  const kpis = computeKpis(credores);
+
+  const headers = [
+    "Credor",
+    "Situação",
+    "Classe / Motivo",
+    "Valor",
+    "Status",
+    "Contato",
+    "Próximo Passo",
+    "Retorno",
+    "Observações",
+  ];
+
+  const dataRows = credores.map((c) => {
+    const sitLabel = c.sujeito ? "Sujeito a RJ (vota)" : "Fora da RJ (não vota)";
+    const cmLabel = c.sujeito
+      ? `Classe ${c.classe ?? ""}`
+      : (c.motivo ? RJ_MOTIVO_LABELS[c.motivo as keyof typeof RJ_MOTIVO_LABELS] : "") ?? "";
+    const valNum = c.valor ? Number(c.valor) : 0;
+    const statusLabel = RJ_STATUS_LABELS[c.status as RjStatus] ?? c.status;
+    const retornoStr = c.retorno ? c.retorno.toISOString().slice(0, 10) : "";
+
+    return [
+      c.nome,
+      sitLabel,
+      cmLabel,
+      valNum,
+      statusLabel,
+      c.contato,
+      c.passo,
+      retornoStr,
+      c.obs,
+    ];
+  });
+
+  // Create worksheet data
+  const aoa = [
+    headers,
+    ...dataRows,
+    [], // empty spacer row
+    ["", "VALOR COM VOTO (sujeitos)", "", kpis.votoTotal],
+    ["", "VALOR CONFIRMADO QUE VOTA", "", "", "", kpis.votoConf],
+    ["", "VALOR FORA DA RJ", "", "", "", kpis.foraTotal],
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Auto-fit column widths
+  ws["!cols"] = [
+    { wch: 30 }, // Credor
+    { wch: 22 }, // Situação
+    { wch: 18 }, // Classe / Motivo
+    { wch: 16 }, // Valor
+    { wch: 18 }, // Status
+    { wch: 25 }, // Contato
+    { wch: 30 }, // Próximo Passo
+    { wch: 12 }, // Retorno
+    { wch: 30 }, // Observações
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Credores MG2");
+
+  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }
