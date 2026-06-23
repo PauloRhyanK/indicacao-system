@@ -1,3 +1,4 @@
+import { Video, ExternalLink } from "lucide-react";
 import type { RjReuniao } from "@/lib/cais-api";
 import {
   RJ_REUNIAO_STATUS_LABELS,
@@ -49,7 +50,27 @@ export function RjAgendaList({
                   ? `${r.participantes.length} pessoa(s)`
                   : "—"}
               </td>
-              <td className="px-4 py-3 text-slate-600">{r.local || "—"}</td>
+              <td className="px-4 py-3 text-slate-600">
+                <div className="flex flex-col gap-1 items-start">
+                  <span>{r.local || "—"}</span>
+                  {r.linkOnline && (
+                    <a
+                      href={r.linkOnline}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors ${
+                        r.linkOnline.includes("meet.google.com")
+                          ? "bg-[#e8f0fe] text-[#1a73e8] hover:bg-[#d2e3fc]"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      <Video className="h-3.5 w-3.5 shrink-0" />
+                      <span>{r.linkOnline.includes("meet.google.com") ? "Google Meet" : "Chamada"}</span>
+                    </a>
+                  )}
+                </div>
+              </td>
               <td className="px-4 py-3">
                 <span
                   className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${RJ_REUNIAO_STATUS_PILL_CLASS[r.status]}`}

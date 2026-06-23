@@ -8,6 +8,7 @@ import {
 import { notFound } from "../utils/httpError.js";
 import { recordRjAudit, type RjAuditChange } from "./rjAudit.service.js";
 import { updateCredorStatus } from "./rjCredor.service.js";
+import { generateGoogleMeetLink } from "./googleMeet.service.js";
 import type {
   CreateReuniaoInput,
   ListReunioesQuery,
@@ -226,14 +227,28 @@ export async function createReuniao(input: CreateReuniaoInput, actorUserId: stri
 
   const participantesIds = await resolveParticipantesIds(input.participantesIds, actorUserId);
 
+  let linkOnline = normalizeLink(input.linkOnline);
+  let local = normalizeLink(input.local);
+
+  if (input.gerarGoogleMeet) {
+    linkOnline = await generateGoogleMeetLink({
+      titulo: input.titulo?.trim() || defaultTitulo(credor.nome),
+      dataHoraInicio: inicio,
+      dataHoraFim: fim,
+    });
+    if (!local) {
+      local = "Google Meet";
+    }
+  }
+
   const created = await prisma.rjReuniao.create({
     data: {
       credorId: credor.id,
       titulo: input.titulo?.trim() || defaultTitulo(credor.nome),
       dataHoraInicio: inicio,
       dataHoraFim: fim,
-      local: normalizeLink(input.local),
-      linkOnline: normalizeLink(input.linkOnline),
+      local,
+      linkOnline,
       pauta: input.pauta?.trim() || null,
       status: "agendada",
       criadoPorId: actorUserId,
@@ -296,8 +311,31 @@ export async function updateReuniao(
   if (input.dataHoraFim !== undefined) {
     data.dataHoraFim = input.dataHoraFim ? new Date(input.dataHoraFim) : null;
   }
-  if (input.local !== undefined) data.local = normalizeLink(input.local);
-  if (input.linkOnline !== undefined) data.linkOnline = normalizeLink(input.linkOnline);
+
+  if (input.gerarGoogleMeet) {
+    const meetTitle = input.titulo !== undefined ? input.titulo.trim() : existing.titulo;
+    const meetInicio = input.dataHoraInicio !== undefined ? new Date(input.dataHoraInicio) : existing.dataHoraInicio;
+    const meetFim = input.dataHoraFim !== undefined
+      ? (input.dataHoraFim ? new Date(input.dataHoraFim) : new Date(meetInicio.getTime() + 60 * 60 * 1000))
+      : (existing.dataHoraFim ? existing.dataHoraFim : new Date(meetInicio.getTime() + 60 * 60 * 1000));
+
+    const linkGenerated = await generateGoogleMeetLink({
+      titulo: meetTitle,
+      dataHoraInicio: meetInicio,
+      dataHoraFim: meetFim,
+    });
+    data.linkOnline = linkGenerated;
+
+    let local = input.local !== undefined ? normalizeLink(input.local) : existing.local;
+    if (!local || local === "") {
+      local = "Google Meet";
+    }
+    data.local = local;
+  } else {
+    if (input.local !== undefined) data.local = normalizeLink(input.local);
+    if (input.linkOnline !== undefined) data.linkOnline = normalizeLink(input.linkOnline);
+  }
+
   if (input.pauta !== undefined) data.pauta = input.pauta?.trim() || null;
   if (input.resultado !== undefined) data.resultado = input.resultado?.trim() || null;
   if (input.status !== undefined) data.status = input.status;

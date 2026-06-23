@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarPlus, ExternalLink, Smartphone, Trash2 } from "lucide-react";
+import { CalendarPlus, ExternalLink, Smartphone, Trash2, Video } from "lucide-react";
 import { Button } from "@/components/cais/Button";
 import { SlideOver, inputClass } from "@/components/cais/SlideOver";
 import { addRjReuniaoToDeviceCalendar, type RjReuniao, type RjReuniaoStatus } from "@/lib/cais-api";
@@ -94,17 +94,30 @@ export function RjReuniaoDetailDrawer({
         {reuniao.local && <DetailRow label="Local" value={reuniao.local} />}
         {reuniao.linkOnline && (
           <div>
-            <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">
-              Link
+            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-slate-400">
+              Link da Chamada
             </span>
-            <a
-              href={reuniao.linkOnline}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-azul-corporativo hover:text-ouro-escuro"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Abrir chamada
-            </a>
+            {reuniao.linkOnline.includes("meet.google.com") ? (
+              <a
+                href={reuniao.linkOnline}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-[#e8f0fe] border border-[#d2e3fc] px-3.5 py-2 text-[13px] font-medium text-[#1a73e8] hover:bg-[#d2e3fc] hover:text-[#174ea6] transition-colors shadow-sm"
+              >
+                <Video className="h-4 w-4 shrink-0" />
+                <span>Entrar no Google Meet</span>
+                <ExternalLink className="h-3 w-3 shrink-0 opacity-70" />
+              </a>
+            ) : (
+              <a
+                href={reuniao.linkOnline}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-azul-corporativo hover:text-ouro-escuro font-medium"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Abrir chamada
+              </a>
+            )}
           </div>
         )}
         {reuniao.pauta && <DetailRow label="Pauta" value={reuniao.pauta} multiline />}

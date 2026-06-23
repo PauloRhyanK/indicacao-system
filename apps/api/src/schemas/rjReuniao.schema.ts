@@ -18,6 +18,7 @@ export const createReuniaoSchema = z.object({
   linkOnline: z.string().trim().url().nullable().optional().or(z.literal("")),
   pauta: z.string().trim().nullable().optional(),
   participantesIds: z.array(z.string().uuid()).optional(),
+  gerarGoogleMeet: z.boolean().optional(),
 });
 
 export const updateReuniaoSchema = z.object({
@@ -31,6 +32,7 @@ export const updateReuniaoSchema = z.object({
   resultado: z.string().trim().nullable().optional(),
   status: z.enum(RJ_REUNIAO_STATUS_VALUES).optional(),
   participantesIds: z.array(z.string().uuid()).optional(),
+  gerarGoogleMeet: z.boolean().optional(),
 });
 
 export const updateReuniaoStatusSchema = z.object({

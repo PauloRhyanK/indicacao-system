@@ -8,7 +8,7 @@ import {
 } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, isSameDay, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, Video } from "lucide-react";
 import type { RjReuniao } from "@/lib/cais-api";
 import {
   RJ_REUNIAO_STATUS_CALENDAR_THEME,
@@ -124,21 +124,29 @@ function RjCalendarEvent({ event }: EventProps<CalendarEvent>) {
         )}
         <span className="shrink-0 tabular-nums">{timeLabel}</span>
         <span className="text-slate-400">·</span>
-        <span className={`min-w-0 truncate font-medium ${cancelled ? "line-through" : ""}`}>
+        <span className={`min-w-0 truncate font-medium flex-1 ${cancelled ? "line-through" : ""}`}>
           {reuniao.credor.nome}
         </span>
+        {reuniao.linkOnline && (
+          <Video className="h-2.5 w-2.5 shrink-0 opacity-60" style={{ color: theme.accent }} aria-hidden />
+        )}
       </div>
 
       {/* Visão semana/dia */}
       <div className="rj-cal-event-time hidden min-w-0 flex-col gap-0.5 text-[11px] leading-snug">
-        <div className="flex items-center gap-1 tabular-nums text-slate-500">
-          {status === "realizada" && (
-            <Check className="h-3 w-3 shrink-0" style={{ color: theme.accent }} aria-hidden />
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1 tabular-nums text-slate-500">
+            {status === "realizada" && (
+              <Check className="h-3 w-3 shrink-0" style={{ color: theme.accent }} aria-hidden />
+            )}
+            {status === "naocompareceu" && (
+              <AlertTriangle className="h-3 w-3 shrink-0" style={{ color: theme.accent }} aria-hidden />
+            )}
+            <span>{formatTimeRange(event.start, event.end)}</span>
+          </div>
+          {reuniao.linkOnline && (
+            <Video className="h-3 w-3 shrink-0 opacity-60" style={{ color: theme.accent }} aria-hidden />
           )}
-          {status === "naocompareceu" && (
-            <AlertTriangle className="h-3 w-3 shrink-0" style={{ color: theme.accent }} aria-hidden />
-          )}
-          <span>{formatTimeRange(event.start, event.end)}</span>
         </div>
         <span className={`truncate font-semibold ${cancelled ? "line-through" : ""}`}>
           {reuniao.credor.nome}

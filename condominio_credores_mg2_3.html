@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Condomínio de Credores — MG2 | CAIS</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f5f7;--surface:#ffffff;--surface-2:#fafbfc;
+    --navy:#081421;--ink:#0c1d30;--ink-soft:#4a5b6b;--ink-mute:#8b9aa8;
+    --gold:#d9bd7e;--gold-num:#b0913f;--gold-deep:#c4a868;
+    --b900:#002B49;--b800:#003b5c;--b600:#346f93;--b400:#7ba7bc;
+    --line:#e6eaee;--line-strong:#d6dde3;
+    --ok:#2f8f5b;--ok-bg:#e6f4ec;--amber:#a9842b;--amber-bg:#faf2dd;
+    --blue:#346f93;--blue-bg:#e7f0f5;--mute:#7a8a98;--mute-bg:#eceff2;
+    --red:#bd5440;--red-bg:#fbe9e5;
+    --shadow:0 1px 2px rgba(8,20,33,.04),0 6px 20px rgba(8,20,33,.05);
+    --shadow-lg:0 12px 40px rgba(8,20,33,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'General Sans',-apple-system,'Segoe UI',sans-serif;
+    background:radial-gradient(900px 480px at 88% -8%,rgba(123,167,188,.13),transparent 60%),radial-gradient(700px 420px at 2% 0%,rgba(217,189,126,.10),transparent 58%),var(--bg);
+    background-attachment:fixed;color:var(--ink);min-height:100vh;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  .num{font-family:'JetBrains Mono',monospace;font-feature-settings:"tnum"}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px 80px}
+
+  header.top{padding:26px 0 22px;margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:16px}
+  .compass{width:48px;height:48px;flex:0 0 auto}
+  .brand h1{font-size:22px;font-weight:600;letter-spacing:-.015em;color:var(--navy)}
+  .brand .sub{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .brand .tag{display:inline-block;margin-top:8px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold-num);border:1px solid var(--line-strong);padding:3px 9px;border-radius:3px;font-weight:600}
+  .top-right{display:flex;flex-direction:column;align-items:flex-end;gap:11px}
+  .top-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+
+  button{font-family:inherit;cursor:pointer;border:none;transition:.16s}
+  .btn{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:9px 15px;border-radius:8px}
+  .btn-gold{background:var(--navy);color:#fff}.btn-gold:hover{background:#13283e}
+  .btn-ghost{background:var(--surface);color:var(--ink-soft);border:1px solid var(--line-strong);box-shadow:var(--shadow)}
+  .btn-ghost:hover{border-color:var(--gold-deep);color:var(--navy)}
+  .btn-sm{padding:7px 12px;font-size:12px;border-radius:7px}
+  .icon-btn{background:transparent;color:var(--ink-mute);padding:5px;border-radius:6px;line-height:0}
+  .icon-btn:hover{color:var(--navy);background:rgba(217,189,126,.18)}
+  .icon-btn.del:hover{color:var(--red);background:var(--red-bg)}
+
+  .collab{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 12px;box-shadow:var(--shadow);font-size:12px}
+  .sync{display:flex;align-items:center;gap:7px;font-weight:600;white-space:nowrap}
+  .sync .led{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .sync.live .led{background:var(--ok);animation:pulse 2s infinite}.sync.live{color:var(--ok)}
+  .sync.local .led{background:var(--ink-mute)}.sync.local{color:var(--ink-mute)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,143,91,.45)}70%{box-shadow:0 0 0 6px rgba(47,143,91,0)}100%{box-shadow:0 0 0 0 rgba(47,143,91,0)}}
+  .collab .divider{width:1px;height:16px;background:var(--line-strong)}
+  .collab .who{color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+  .collab .who input{border:none;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:var(--navy);width:96px;border-bottom:1px dashed var(--line-strong);padding:1px 2px}
+  .collab .who input:focus{outline:none;border-bottom-color:var(--gold-deep)}
+  .collab .updated{color:var(--ink-mute);white-space:nowrap}
+  .collab .updated b{color:var(--ink-soft);font-weight:600}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:17px 19px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .kpi::before{content:"";position:absolute;top:0;left:19px;width:30px;height:3px;background:var(--gold);border-radius:0 0 2px 2px}
+  .kpi .label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);font-weight:600}
+  .kpi .value{font-size:27px;font-weight:600;color:var(--navy);margin-top:8px;letter-spacing:-.02em}
+  .kpi .value.money{color:var(--gold-num)}
+  .kpi .foot{font-size:11.5px;color:var(--ink-mute);margin-top:4px}
+  .kpi.accent::before{background:var(--ok)}.kpi.accent .value{color:var(--ok)}
+
+  .rep-row{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:26px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:18px 20px;box-shadow:var(--shadow)}
+  .panel h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-num);font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+  .passivo-input{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+  .passivo-input label{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+  .passivo-input input{background:var(--surface-2);border:1px solid var(--line-strong);color:var(--navy);padding:7px 10px;border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:13px;width:100%}
+  .passivo-input input:focus{outline:none;border-color:var(--gold-deep)}
+  .repbar{height:30px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;display:flex}
+  .repbar .fill-conf{background:var(--ok);height:100%;transition:width .5s ease}
+  .repbar .fill-pend{background:repeating-linear-gradient(45deg,var(--gold-deep),var(--gold-deep) 6px,var(--gold) 6px,var(--gold) 12px);height:100%;transition:width .5s ease}
+  .rep-legend{display:flex;gap:18px;margin-top:11px;font-size:11.5px;color:var(--ink-soft);flex-wrap:wrap}
+  .rep-legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .hint{font-size:11px;color:var(--ink-mute);margin-top:13px;line-height:1.5}.hint strong{color:var(--ink-soft)}
+
+  .classes{display:flex;flex-direction:column;gap:11px}
+  .cls-row{display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center}
+  .cls-tag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#fff;background:var(--b600);width:26px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:5px}
+  .cls-tag.fora{background:var(--mute);font-size:9px;width:auto;padding:0 6px}
+  .cls-meta{min-width:0}
+  .cls-meta .nm{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cls-meta .nm .vm{color:var(--ink-mute);font-size:11px;font-weight:400}
+  .cls-track{height:5px;background:var(--surface-2);border:1px solid var(--line);border-radius:3px;margin-top:5px;overflow:hidden}
+  .cls-track .f{height:100%;background:linear-gradient(90deg,var(--b600),var(--gold));border-radius:3px;transition:width .4s}
+  .cls-track .f.fora{background:var(--mute)}
+  .cls-val{text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold-num);white-space:nowrap;font-weight:500}
+  .cls-val.fora{color:var(--ink-mute)}
+  .cls-val small{display:block;color:var(--ink-mute);font-size:10.5px;font-weight:400}
+  .cls-divider{height:1px;background:var(--line);margin:3px 0}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .pipeline{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--line-strong);cursor:pointer;user-select:none;transition:.15s;background:var(--surface);color:var(--ink-soft);box-shadow:var(--shadow)}
+  .chip .ct{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11.5px}
+  .chip:hover{border-color:var(--gold-deep)}
+  .chip.active{border-color:currentColor;font-weight:600}
+  .chip[data-s="all"].active{color:var(--navy);background:#eef1f4}
+  .chip[data-s="confirmado"]{color:var(--ok)}.chip[data-s="confirmado"].active{background:var(--ok-bg)}
+  .chip[data-s="juridico"]{color:var(--amber)}.chip[data-s="juridico"].active{background:var(--amber-bg)}
+  .chip[data-s="negociacao"]{color:var(--blue)}.chip[data-s="negociacao"].active{background:var(--blue-bg)}
+  .chip[data-s="semcontato"]{color:var(--mute)}.chip[data-s="semcontato"].active{background:var(--mute-bg)}
+  .chip[data-s="recusou"]{color:var(--red)}.chip[data-s="recusou"].active{background:var(--red-bg)}
+  .chip[data-s="fora"]{color:var(--ink-soft)}.chip[data-s="fora"].active{background:#eef1f4}
+  .search{position:relative}
+  .search input{background:var(--surface);border:1px solid var(--line-strong);color:var(--ink);padding:8px 12px 8px 32px;border-radius:8px;font-size:13px;font-family:inherit;width:210px;box-shadow:var(--shadow)}
+  .search input:focus{outline:none;border-color:var(--gold-deep)}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-mute)}
+
+  .table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;padding:13px 16px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+  thead th.r{text-align:right}
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#f7f9fb}
+  tbody tr.naovota{background:#fbfbfc}
+  tbody tr.naovota:hover{background:#f6f7f9}
+  tbody tr.naovota td:first-child{box-shadow:inset 3px 0 0 var(--mute)}
+  .c-nome{font-weight:600;color:var(--navy);display:flex;align-items:center;gap:7px}
+  .tag-nv{font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);background:var(--mute-bg);border:1px solid var(--line-strong);padding:1px 6px;border-radius:4px;font-weight:600;white-space:nowrap}
+  .c-contato{font-size:11.5px;color:var(--ink-mute);margin-top:2px}
+  .c-valor{font-family:'JetBrains Mono',monospace;text-align:right;color:var(--gold-num);font-weight:500;white-space:nowrap}
+  .c-valor.zero{color:var(--ink-mute);font-style:italic;font-family:inherit;font-size:12px}
+  .c-valor.nv{color:var(--ink-mute)}
+  .cls-pill{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--blue-bg);color:var(--b600);border:1px solid #d6e4ec}
+  .cls-pill.fora{background:var(--mute-bg);color:var(--ink-soft);border-color:var(--line-strong);font-family:inherit;font-size:10.5px}
+  .cls-sub{font-size:10.5px;color:var(--ink-mute);margin-top:3px}
+  .status-pill{appearance:none;font-family:inherit;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:20px;border:1px solid currentColor;cursor:pointer;background-position:right 7px center;background-repeat:no-repeat;padding-right:24px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238b9aa8' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")}
+  .status-pill.confirmado{color:var(--ok);background-color:var(--ok-bg)}
+  .status-pill.juridico{color:var(--amber);background-color:var(--amber-bg)}
+  .status-pill.negociacao{color:var(--blue);background-color:var(--blue-bg)}
+  .status-pill.semcontato{color:var(--mute);background-color:var(--mute-bg)}
+  .status-pill.recusou{color:var(--red);background-color:var(--red-bg)}
+  .status-pill option{background:#fff;color:var(--ink)}
+  .c-passo{font-size:12.5px;color:var(--ink-soft);max-width:260px}
+  .c-retorno{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap}
+  .c-retorno.soon{color:var(--gold-num);font-weight:600}
+  .c-acoes{white-space:nowrap;text-align:right}
+  .empty{padding:48px;text-align:center;color:var(--ink-mute)}
+  .empty strong{display:block;color:var(--ink-soft);margin-bottom:6px;font-size:15px}
+
+  .overlay{position:fixed;inset:0;background:rgba(12,29,48,.42);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 20px;overflow-y:auto}
+  .overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:15px;width:100%;max-width:560px;padding:26px 28px 24px;position:relative;box-shadow:var(--shadow-lg)}
+  .modal h2{font-size:18px;color:var(--navy);font-weight:600;margin-bottom:3px}
+  .modal .msub{font-size:12.5px;color:var(--ink-mute);margin-bottom:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{margin-bottom:14px}.field.full{grid-column:1/-1}
+  .field label{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:6px}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface-2);border:1px solid var(--line-strong);color:var(--navy);padding:9px 11px;border-radius:8px;font-family:inherit;font-size:13.5px}
+  .field input.num,.field input[type="date"]{font-family:'JetBrains Mono',monospace}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--gold-deep)}
+  .field textarea{resize:vertical;min-height:60px}
+  .helpbox{background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:11.5px;color:var(--ink-soft);line-height:1.6;margin-bottom:14px}
+  .helpbox strong{color:var(--navy)}
+  .helpbox .ttl{display:block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--gold-num);font-weight:600;margin-bottom:4px}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+  .close-x{position:absolute;top:18px;right:18px;color:var(--ink-mute);background:none;line-height:0;padding:4px}
+  .close-x:hover{color:var(--navy)}
+
+  .legal{margin-top:22px;font-size:11.5px;color:var(--ink-mute);line-height:1.6;border-top:1px solid var(--line);padding-top:16px}
+  .legal strong{color:var(--ink-soft)}
+  .diamond{display:inline-block;width:8px;height:8px;transform:rotate(45deg);border:1px solid var(--gold-deep);margin:0 3px;vertical-align:middle}
+  .diamond.f{background:var(--gold)}
+
+  @media(max-width:920px){.kpis{grid-template-columns:repeat(2,1fr)}.rep-row{grid-template-columns:1fr}.c-passo,.c-contato{display:none}}
+  @media(max-width:600px){.wrap{padding:0 14px 60px}.grid2{grid-template-columns:1fr}thead th.hide-m,tbody td.hide-m{display:none}.top-right{align-items:flex-start;width:100%}}
+  @media print{body{background:#fff}.top-actions,.collab,.toolbar .search,.c-acoes,.status-pill{display:none!important}.kpi,.panel,.table-wrap{box-shadow:none;border-color:#ccc}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <svg class="compass" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="45.5" fill="none" stroke="#d9bd7e" stroke-width="1.3" opacity=".55"/>
+        <circle cx="50" cy="50" r="34" fill="none" stroke="#d9bd7e" stroke-width="1" opacity=".3"/>
+        <path d="M50 50 L73 27 L60 46 Z" fill="#d9bd7e" opacity=".45"/>
+        <path d="M50 50 L27 73 L40 54 Z" fill="#d9bd7e" opacity=".45"/>
+        <path d="M50 50 L27 27 L46 40 Z" fill="#d9bd7e" opacity=".45"/>
+        <path d="M50 50 L73 73 L54 60 Z" fill="#d9bd7e" opacity=".45"/>
+        <path d="M50 6 L57 44 L50 50 L43 44 Z" fill="#d9bd7e"/>
+        <path d="M50 94 L43 56 L50 50 L57 56 Z" fill="#c4a868"/>
+        <path d="M94 50 L56 43 L50 50 L56 57 Z" fill="#c4a868"/>
+        <path d="M6 50 L44 57 L50 50 L44 43 Z" fill="#d9bd7e"/>
+        <circle cx="50" cy="50" r="3.2" fill="#fff" stroke="#c4a868" stroke-width="1"/>
+      </svg>
+      <div>
+        <h1>Condomínio de Credores — MG2</h1>
+        <div class="sub">Coordenação de credores para a Recuperação Judicial · CAIS Investimentos</div>
+        <span class="tag">Controle Interno · Confidencial</span>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="collab">
+        <div class="sync local" id="syncBadge"><span class="led"></span><span id="syncText">Verificando…</span></div>
+        <div class="divider"></div>
+        <div class="who">Você: <input id="editorName" type="text" maxlength="24" placeholder="seu nome" oninput="onName()"></div>
+        <div class="divider"></div>
+        <div class="updated" id="updatedLabel">—</div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-ghost btn-sm" onclick="window.print()">⎙ PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ CSV</button>
+        <button class="btn btn-gold" onclick="openModal()">+ Cadastrar credor</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi"><div class="label">Credores cadastrados</div><div class="value num" id="kCount">0</div><div class="foot" id="kCountFoot">—</div></div>
+    <div class="kpi accent"><div class="label">Confirmados (dentro)</div><div class="value num" id="kConf">0</div><div class="foot" id="kConfFoot">—</div></div>
+    <div class="kpi"><div class="label">Valor com direito a voto</div><div class="value money num" id="kVoto">R$ 0</div><div class="foot" id="kVotoFoot">créditos sujeitos à RJ</div></div>
+    <div class="kpi accent"><div class="label">Valor confirmado que vota</div><div class="value money num" id="kVotoConf" style="color:var(--ok)">R$ 0</div><div class="foot">já comprometido e elegível</div></div>
+  </section>
+
+  <section class="rep-row">
+    <div class="panel">
+      <h3>Representatividade na massa de crédito</h3>
+      <div class="passivo-input">
+        <label for="passivo">Passivo concursal estimado da MG2 (R$)</label>
+        <input class="num" id="passivo" type="text" inputmode="numeric" placeholder="ex.: 79.900.000" oninput="onPassivo()">
+      </div>
+      <div class="repbar"><div class="fill-conf" id="repConf" style="width:0%"></div><div class="fill-pend" id="repPend" style="width:0%"></div></div>
+      <div class="rep-legend">
+        <span><i class="dot" style="background:var(--ok)"></i> Confirmado <strong class="num" id="repConfPct" style="color:var(--ok)">0%</strong></span>
+        <span><i class="dot" style="background:var(--gold)"></i> Em negociação <strong class="num" id="repPendPct" style="color:var(--gold-num)">0%</strong></span>
+        <span><i class="dot" style="background:var(--surface-2);border:1px solid var(--line-strong)"></i> Restante</span>
+      </div>
+      <p class="hint">Considera apenas <strong>créditos sujeitos à RJ</strong> (os que votam). Na <strong>Classe III</strong>, a aprovação exige maioria <em>por cabeça</em> e mais da metade do <em>valor</em> dos presentes — por isso valor que está fora da RJ não conta como força de voto.</p>
+    </div>
+    <div class="panel">
+      <h3>Por classe <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-mute);font-size:11px">Lei 11.101/05 · art. 41</span></h3>
+      <div class="classes" id="classBreakdown"></div>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="pipeline" id="pipeline"></div>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input id="searchBox" type="text" placeholder="Buscar credor..." oninput="render()">
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Credor</th><th>Classe / Situação</th><th class="r">Valor do crédito</th><th>Status</th>
+        <th class="hide-m">Próximo passo</th><th class="hide-m">Retorno</th><th class="r"></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="legal">
+    <strong>Como classificar:</strong> <strong>Sujeitos à RJ (votam)</strong> nas 4 classes — I Trabalhista · II Garantia real · III Quirografário (fornecedores em geral) · IV ME/EPP. <strong>Fora da RJ (não votam)</strong>: alienação fiduciária, leasing, reserva de domínio, ACC e extraconcursais (art. 49 §3º e art. 84). A classificação definitiva sai da relação do administrador judicial (art. 7º) — valide com o jurídico.
+    <span style="display:block;margin-top:8px"><span class="diamond f"></span><span class="diamond"></span> CAIS Investimentos · uso restrito · <span id="modeNote">—</span></span>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <h2 id="modalTitle">Cadastrar credor</h2>
+    <div class="msub">Preencha o que tiver — valor e classe podem ser completados depois.</div>
+    <input type="hidden" id="fId">
+    <div class="grid2">
+      <div class="field full"><label>Nome do credor / fornecedor</label><input id="fNome" type="text" placeholder="ex.: Husqvarna"></div>
+
+      <div class="helpbox" style="grid-column:1/-1">
+        <span class="ttl">Antes de classificar</span>
+        <strong>Sujeito à RJ → vota</strong> em uma das 4 classes (a maioria dos fornecedores é Classe III, quirografário).<br>
+        <strong>Fora da RJ → não vota</strong>: crédito com alienação fiduciária, leasing, reserva de domínio, ACC ou extraconcursal.
+      </div>
+
+      <div class="field"><label>Situação do crédito</label>
+        <select id="fSujeito" onchange="onSituacao()">
+          <option value="sim" selected>Sujeito à RJ — vota</option>
+          <option value="nao">Fora da RJ — não vota</option>
+        </select>
+      </div>
+      <div class="field" id="classeField"><label>Classe (votação)</label>
+        <select id="fClasse"><option value="I">I — Trabalhista</option><option value="II">II — Garantia real</option><option value="III" selected>III — Quirografário</option><option value="IV">IV — ME / EPP</option></select>
+      </div>
+      <div class="field" id="motivoField" style="display:none"><label>Motivo (fora da RJ)</label>
+        <select id="fMotivo"><option value="fiduciaria">Alienação fiduciária</option><option value="leasing">Arrendamento (leasing)</option><option value="reserva">Reserva de domínio</option><option value="acc">Adiantamento de câmbio (ACC)</option><option value="extra">Extraconcursal (art. 84)</option><option value="outro">Outro</option></select>
+      </div>
+
+      <div class="field"><label>Valor do crédito (R$)</label><input class="num" id="fValor" type="text" inputmode="numeric" placeholder="0,00"></div>
+      <div class="field"><label>Status</label>
+        <select id="fStatus"><option value="confirmado">Confirmado (dentro)</option><option value="juridico" selected>Aguardando jurídico</option><option value="negociacao">Em negociação</option><option value="semcontato">Sem contato</option><option value="recusou">Recusou / fora</option></select>
+      </div>
+      <div class="field"><label>Data de retorno</label><input id="fRetorno" type="date"></div>
+      <div class="field"><label>Contato (pessoa / telefone)</label><input id="fContato" type="text" placeholder="ex.: João — (27) 9..."></div>
+      <div class="field full"><label>Próximo passo</label><input id="fPasso" type="text" placeholder="ex.: Diretor retorna amanhã após falar com o jurídico"></div>
+      <div class="field full"><label>Observações</label><textarea id="fObs" placeholder="Histórico, condições, ressalvas..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveCreditor()">Salvar credor</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHARED_KEY='cais_condominio_mg2_v1';
+const CLASSES={I:'I — Trabalhista',II:'II — Garantia real',III:'III — Quirografário',IV:'IV — ME / EPP'};
+const CLS_VOTE={I:'voto por cabeça',II:'cabeça + valor',III:'cabeça + valor',IV:'voto por cabeça'};
+const STATUS={confirmado:'Confirmado',juridico:'Aguardando jurídico',negociacao:'Em negociação',semcontato:'Sem contato',recusou:'Recusou / fora'};
+const MOTIVOS={fiduciaria:'Alienação fiduciária',leasing:'Arrendamento (leasing)',reserva:'Reserva de domínio',acc:'Adiantamento de câmbio (ACC)',extra:'Extraconcursal (art. 84)',outro:'Outro'};
+const SEED=[
+  {nome:'Husqvarna',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Diretoria vai falar com o jurídico; diretor retorna amanhã',retorno:'',obs:''},
+  {nome:'Changsha',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Aguardando alinhamento com o jurídico deles',retorno:'',obs:''},
+  {nome:'AF Transporte',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Retorna amanhã após conversar com o jurídico',retorno:'',obs:''},
+  {nome:'Transvegas',classe:'III',sujeito:true,motivo:'',valor:0,status:'confirmado',contato:'',passo:'Confirmado — está dentro do bloco',retorno:'',obs:''},
+  {nome:'Grupo Armando Pneus',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Vão conversar com o jurídico',retorno:'',obs:''},
+  {nome:'Arogran',classe:'III',sujeito:true,motivo:'',valor:0,status:'semcontato',contato:'',passo:'Ainda não consegui contato',retorno:'',obs:''},
+  {nome:'Maroto',classe:'III',sujeito:true,motivo:'',valor:0,status:'semcontato',contato:'',passo:'Ainda não consegui contato',retorno:'',obs:''},
+  {nome:'Toolstar',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Gerente vai conversar com o pessoal do jurídico',retorno:'',obs:''},
+  {nome:'Gracol / Gray',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Reunião com o jurídico amanhã; vai ligar quando conversarem',retorno:'',obs:''},
+  {nome:'Guidoni',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Vão conversar com o jurídico',retorno:'',obs:''},
+  {nome:'Toledo',classe:'III',sujeito:true,motivo:'',valor:0,status:'juridico',contato:'',passo:'Vão conversar com o jurídico',retorno:'',obs:''},
+];
+
+const Store={
+  mode:'local',
+  async init(){ if(typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function'){this.mode='shared';} },
+  async read(){
+    if(this.mode==='shared'){try{const r=await window.storage.get(SHARED_KEY,true);return r&&r.value?JSON.parse(r.value):null;}catch(e){return null;}}
+    try{const raw=localStorage.getItem(SHARED_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}
+  },
+  async write(payload){
+    const s=JSON.stringify(payload);
+    if(this.mode==='shared'){try{await window.storage.set(SHARED_KEY,s,true);}catch(e){console.error('sync',e);}}
+    else{try{localStorage.setItem(SHARED_KEY,s);}catch(e){}}
+  }
+};
+
+let state={creditors:[],passivo:0,_ts:0,_by:''};
+let filter='all';
+let modalOpen=false;
+let editorName=sessionStorage.getItem('cais_editor')||'';
+
+function isSuj(c){return c.sujeito!==false;}
+function fmt(n){return n?'R$ '+n.toLocaleString('pt-BR',{maximumFractionDigits:0}):'R$ 0';}
+function fmtCompact(n){if(!n)return 'R$ 0';if(n>=1e6)return 'R$ '+(n/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' MM';if(n>=1e3)return 'R$ '+(n/1e3).toLocaleString('pt-BR',{maximumFractionDigits:0})+' mil';return fmt(n);}
+function fmtPlain(n){return n.toLocaleString('pt-BR',{maximumFractionDigits:0});}
+function parseNum(s){if(typeof s==='number')return s;if(!s)return 0;s=(''+s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.');return parseFloat(s)||0;}
+function fmtDate(d){if(!d)return '';const p=d.split('-');return p[2]+'/'+p[1];}
+function isSoon(d){if(!d)return false;const t=new Date();t.setHours(0,0,0,0);const dt=new Date(d+'T00:00:00');const diff=(dt-t)/86400000;return diff>=0&&diff<=2;}
+function esc(s){return(s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+
+async function commit(){state._ts=Date.now();state._by=editorName||'—';await Store.write(state);render();updatedLabel();}
+
+function totals(){
+  let votoTotal=0,votoConf=0,votoConfCount=0,foraTotal=0,foraCount=0,confCount=0,votam=0;
+  state.creditors.forEach(c=>{
+    const suj=isSuj(c);
+    if(c.status==='confirmado')confCount++;
+    if(suj){votam++;votoTotal+=c.valor;if(c.status==='confirmado'){votoConf+=c.valor;votoConfCount++;}}
+    else{foraCount++;foraTotal+=c.valor;}
+  });
+  return {votoTotal,votoConf,votoConfCount,foraTotal,foraCount,confCount,votam,count:state.creditors.length};
+}
+
+function render(){
+  const t=totals();
+  document.getElementById('kCount').textContent=t.count;
+  document.getElementById('kCountFoot').textContent=t.votam+' votam · '+t.foraCount+' fora da RJ';
+  document.getElementById('kConf').textContent=t.confCount;
+  document.getElementById('kConfFoot').textContent=t.count?Math.round(t.confCount/t.count*100)+'% do total':'—';
+  document.getElementById('kVoto').textContent=fmtCompact(t.votoTotal);
+  document.getElementById('kVotoFoot').textContent=t.votam+' credores elegíveis';
+  document.getElementById('kVotoConf').textContent=fmtCompact(t.votoConf);
+  renderRep(t);renderClasses(t);renderPipeline();renderTable();
+}
+function renderRep(t){
+  const p=state.passivo;
+  const confPct=p?Math.min(t.votoConf/p*100,100):0;
+  const pendPct=p?Math.min((t.votoTotal-t.votoConf)/p*100,100-confPct):0;
+  document.getElementById('repConf').style.width=confPct+'%';
+  document.getElementById('repPend').style.width=pendPct+'%';
+  document.getElementById('repConfPct').textContent=p?confPct.toFixed(1)+'%':'—';
+  document.getElementById('repPendPct').textContent=p?pendPct.toFixed(1)+'%':'—';
+}
+function renderClasses(t){
+  const agg={I:{v:0,n:0},II:{v:0,n:0},III:{v:0,n:0},IV:{v:0,n:0}};let max=0;
+  state.creditors.forEach(c=>{if(isSuj(c)&&agg[c.classe]){agg[c.classe].v+=c.valor;agg[c.classe].n++;}});
+  Object.values(agg).forEach(a=>max=Math.max(max,a.v));
+  let html=Object.keys(CLASSES).map(k=>{
+    const a=agg[k];const w=max?Math.max(a.v/max*100,a.n?3:0):0;
+    return '<div class="cls-row"><span class="cls-tag">'+k+'</span><div class="cls-meta"><div class="nm">'+CLASSES[k].split('— ')[1]+' <span class="vm">· '+CLS_VOTE[k]+'</span></div><div class="cls-track"><div class="f" style="width:'+w+'%"></div></div></div><div class="cls-val">'+fmtCompact(a.v)+'<small>'+a.n+' credor'+(a.n===1?'':'es')+'</small></div></div>';
+  }).join('');
+  html+='<div class="cls-divider"></div>';
+  const fw=max?Math.max(t.foraTotal/max*100,t.foraCount?3:0):0;
+  html+='<div class="cls-row"><span class="cls-tag fora">FORA</span><div class="cls-meta"><div class="nm">Fora da RJ <span class="vm">· não vota</span></div><div class="cls-track"><div class="f fora" style="width:'+Math.min(fw,100)+'%"></div></div></div><div class="cls-val fora">'+fmtCompact(t.foraTotal)+'<small>'+t.foraCount+' credor'+(t.foraCount===1?'':'es')+'</small></div></div>';
+  document.getElementById('classBreakdown').innerHTML=html;
+}
+function renderPipeline(){
+  const sc={confirmado:0,juridico:0,negociacao:0,semcontato:0,recusou:0,fora:0};
+  state.creditors.forEach(c=>{sc[c.status]++;if(!isSuj(c))sc.fora++;});
+  const items=[['all','Todos',state.creditors.length],['confirmado','Confirmados',sc.confirmado],['juridico','No jurídico',sc.juridico],['negociacao','Negociando',sc.negociacao],['semcontato','Sem contato',sc.semcontato],['recusou','Fora (recusou)',sc.recusou],['fora','Não vota',sc.fora]];
+  document.getElementById('pipeline').innerHTML=items.map(it=>'<span class="chip '+(filter===it[0]?'active':'')+'" data-s="'+it[0]+'" onclick="setFilter(\''+it[0]+'\')">'+it[1]+' <span class="ct">'+it[2]+'</span></span>').join('');
+}
+function setFilter(s){filter=s;render();}
+function renderTable(){
+  const q=document.getElementById('searchBox').value.toLowerCase().trim();
+  let rows=state.creditors.filter(c=>{
+    if(filter==='fora'){if(isSuj(c))return false;}
+    else if(filter!=='all'&&c.status!==filter)return false;
+    if(q&&!(c.nome.toLowerCase().includes(q)||(c.passo||'').toLowerCase().includes(q)||(c.contato||'').toLowerCase().includes(q)))return false;
+    return true;
+  });
+  const order={confirmado:0,negociacao:1,juridico:2,semcontato:3,recusou:4};
+  rows.sort((a,b)=>(isSuj(b)-isSuj(a))||(order[a.status]-order[b.status])||(b.valor-a.valor)||a.nome.localeCompare(b.nome));
+  const tb=document.getElementById('tbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7"><div class="empty"><strong>Nenhum credor neste filtro</strong>Cadastre um novo ou ajuste a busca.</div></td></tr>';return;}
+  tb.innerHTML=rows.map(c=>{
+    const suj=isSuj(c);
+    const opts=Object.keys(STATUS).map(s=>'<option value="'+s+'" '+(c.status===s?'selected':'')+'>'+STATUS[s]+'</option>').join('');
+    const clsCell=suj
+      ? '<span class="cls-pill">Classe '+c.classe+'</span>'
+      : '<span class="cls-pill fora">Fora da RJ</span>'+(c.motivo?'<div class="cls-sub">'+(MOTIVOS[c.motivo]||'')+'</div>':'');
+    return '<tr class="'+(suj?'':'naovota')+'">'+
+      '<td><div class="c-nome">'+esc(c.nome)+(suj?'':'<span class="tag-nv">não vota</span>')+'</div>'+(c.contato?'<div class="c-contato">'+esc(c.contato)+'</div>':'')+'</td>'+
+      '<td>'+clsCell+'</td>'+
+      '<td class="c-valor '+(c.valor?(suj?'':'nv'):'zero')+'">'+(c.valor?fmt(c.valor):'a definir')+'</td>'+
+      '<td><select class="status-pill '+c.status+'" onchange="quickStatus(\''+c.id+'\',this.value)">'+opts+'</select></td>'+
+      '<td class="hide-m"><div class="c-passo">'+esc(c.passo||'—')+'</div></td>'+
+      '<td class="hide-m"><span class="c-retorno '+(isSoon(c.retorno)?'soon':'')+'">'+(c.retorno?fmtDate(c.retorno):'—')+'</span></td>'+
+      '<td class="c-acoes">'+
+        '<button class="icon-btn" title="Editar" onclick="openModal(\''+c.id+'\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>'+
+        '<button class="icon-btn del" title="Excluir" onclick="delCreditor(\''+c.id+'\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>'+
+      '</td></tr>';
+  }).join('');
+}
+
+async function quickStatus(id,val){const c=state.creditors.find(x=>x.id===id);if(c){c.status=val;await commit();}}
+async function delCreditor(id){const c=state.creditors.find(x=>x.id===id);if(confirm('Excluir "'+(c?c.nome:'')+'" do condomínio?')){state.creditors=state.creditors.filter(x=>x.id!==id);await commit();}}
+function onSituacao(){
+  const s=document.getElementById('fSujeito').value;
+  document.getElementById('classeField').style.display=(s==='sim')?'':'none';
+  document.getElementById('motivoField').style.display=(s==='nao')?'':'none';
+}
+function openModal(id){
+  modalOpen=true;document.getElementById('overlay').classList.add('open');
+  if(id){const c=state.creditors.find(x=>x.id===id);
+    document.getElementById('modalTitle').textContent='Editar credor';
+    document.getElementById('fId').value=c.id;document.getElementById('fNome').value=c.nome;
+    document.getElementById('fSujeito').value=isSuj(c)?'sim':'nao';
+    document.getElementById('fClasse').value=c.classe||'III';
+    document.getElementById('fMotivo').value=c.motivo||'fiduciaria';
+    document.getElementById('fValor').value=c.valor?fmtPlain(c.valor):'';
+    document.getElementById('fStatus').value=c.status;document.getElementById('fRetorno').value=c.retorno||'';
+    document.getElementById('fContato').value=c.contato||'';document.getElementById('fPasso').value=c.passo||'';
+    document.getElementById('fObs').value=c.obs||'';
+  }else{
+    document.getElementById('modalTitle').textContent='Cadastrar credor';
+    ['fId','fNome','fValor','fRetorno','fContato','fPasso','fObs'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('fSujeito').value='sim';document.getElementById('fClasse').value='III';
+    document.getElementById('fMotivo').value='fiduciaria';document.getElementById('fStatus').value='juridico';
+  }
+  onSituacao();
+  setTimeout(()=>document.getElementById('fNome').focus(),50);
+}
+function closeModal(){modalOpen=false;document.getElementById('overlay').classList.remove('open');}
+async function saveCreditor(){
+  const nome=document.getElementById('fNome').value.trim();
+  if(!nome){document.getElementById('fNome').focus();return;}
+  const suj=document.getElementById('fSujeito').value==='sim';
+  const obj={nome:nome,sujeito:suj,classe:suj?document.getElementById('fClasse').value:'',motivo:suj?'':document.getElementById('fMotivo').value,
+    valor:parseNum(document.getElementById('fValor').value),status:document.getElementById('fStatus').value,
+    retorno:document.getElementById('fRetorno').value,contato:document.getElementById('fContato').value.trim(),
+    passo:document.getElementById('fPasso').value.trim(),obs:document.getElementById('fObs').value.trim()};
+  const id=document.getElementById('fId').value;
+  if(id){const c=state.creditors.find(x=>x.id===id);Object.assign(c,obj);}
+  else{obj.id='c'+Date.now()+Math.floor(Math.random()*999);state.creditors.push(obj);}
+  closeModal();await commit();
+}
+async function onPassivo(){state.passivo=parseNum(document.getElementById('passivo').value);renderRep(totals());clearTimeout(window._pt);window._pt=setTimeout(commit,600);}
+function onName(){editorName=document.getElementById('editorName').value.trim();sessionStorage.setItem('cais_editor',editorName);}
+function exportCSV(){
+  const head=['Credor','Situacao','Classe/Motivo','Valor','Status','Contato','Proximo passo','Retorno','Observacoes'];
+  const rows=state.creditors.map(c=>{
+    const suj=isSuj(c);
+    const cm=suj?('Classe '+c.classe):(MOTIVOS[c.motivo]||'');
+    return [c.nome,suj?'Sujeito a RJ (vota)':'Fora da RJ (nao vota)',cm,c.valor,STATUS[c.status],c.contato,c.passo,c.retorno,c.obs].map(v=>'"'+(''+(v==null?'':v)).replace(/"/g,'""')+'"').join(',');
+  });
+  const t=totals();
+  rows.push('','"VALOR COM VOTO (sujeitos)","","'+t.votoTotal+'"','"VALOR CONFIRMADO QUE VOTA","","'+t.votoConf+'"','"VALOR FORA DA RJ","","'+t.foraTotal+'"');
+  const blob=new Blob(['\ufeff'+head.join(',')+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='condominio_credores_mg2.csv';a.click();
+}
+
+function updatedLabel(){
+  const el=document.getElementById('updatedLabel');
+  if(!state._ts){el.textContent='—';return;}
+  const secs=Math.max(0,Math.floor((Date.now()-state._ts)/1000));
+  const ago=secs<5?'agora':secs<60?'há '+secs+'s':secs<3600?'há '+Math.floor(secs/60)+'min':'há '+Math.floor(secs/3600)+'h';
+  el.innerHTML='atualizado <b>'+ago+'</b>'+((state._by&&state._by!=='—')?' · por <b>'+esc(state._by)+'</b>':'');
+}
+function setBadge(){
+  const b=document.getElementById('syncBadge'),t=document.getElementById('syncText'),m=document.getElementById('modeNote');
+  if(Store.mode==='shared'){b.className='sync live';t.textContent='Colaborativo · ao vivo';m.textContent='modo colaborativo (sincroniza entre todos pelo link)';}
+  else{b.className='sync local';t.textContent='Somente neste dispositivo';m.textContent='modo local (sem sincronização)';}
+}
+
+async function boot(){
+  await Store.init();setBadge();
+  document.getElementById('editorName').value=editorName;
+  let p=await Store.read();
+  if(!p||!Array.isArray(p.creditors)||!p.creditors.length){
+    p={creditors:SEED.map((c,i)=>Object.assign({},c,{id:'c'+(Date.now()+i)})),passivo:0,_ts:Date.now(),_by:''};
+    state=p;await Store.write(state);
+  }else{
+    p.creditors.forEach(c=>{if(c.sujeito===undefined)c.sujeito=true;if(c.motivo===undefined)c.motivo='';});
+    state=p;
+  }
+  if(state.passivo)document.getElementById('passivo').value=fmtPlain(state.passivo);
+  render();updatedLabel();
+  if(Store.mode==='shared'){
+    setInterval(async()=>{
+      if(modalOpen)return;
+      const remote=await Store.read();
+      if(remote&&remote._ts&&remote._ts!==state._ts){
+        remote.creditors.forEach(c=>{if(c.sujeito===undefined)c.sujeito=true;});
+        const pf=document.activeElement&&document.activeElement.id==='passivo';
+        state=remote;
+        if(!pf&&state.passivo)document.getElementById('passivo').value=fmtPlain(state.passivo);
+        render();
+      }
+      updatedLabel();
+    },4000);
+  }
+  setInterval(updatedLabel,15000);
+}
+
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+boot();
+</script>
+</body>
+</html>

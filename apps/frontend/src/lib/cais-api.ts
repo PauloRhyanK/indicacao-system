@@ -1759,6 +1759,7 @@ export interface RjReuniaoInput {
   linkOnline?: string | null;
   pauta?: string | null;
   participantesIds?: string[];
+  gerarGoogleMeet?: boolean;
 }
 
 export interface RjReuniaoUpdateInput extends Partial<RjReuniaoInput> {

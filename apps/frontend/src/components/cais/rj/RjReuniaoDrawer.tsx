@@ -69,6 +69,7 @@ export function RjReuniaoDrawer({
 }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [gerarGoogleMeet, setGerarGoogleMeet] = useState(false);
 
   const credoresQuery = useQuery({
     queryKey: ["rj-credores"],
@@ -87,6 +88,7 @@ export function RjReuniaoDrawer({
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setGerarGoogleMeet(false);
     if (reuniao) {
       const inicio = splitIsoDateTime(reuniao.dataHoraInicio);
       const fim = splitIsoDateTime(reuniao.dataHoraFim);
@@ -177,9 +179,10 @@ export function RjReuniaoDrawer({
       dataHoraInicio,
       dataHoraFim,
       local: form.local.trim() || null,
-      linkOnline: form.linkOnline.trim() || null,
+      linkOnline: gerarGoogleMeet ? null : (form.linkOnline.trim() || null),
       pauta: form.pauta.trim() || null,
       participantesIds: form.participantesIds,
+      gerarGoogleMeet: gerarGoogleMeet || undefined,
     } satisfies RjReuniaoInput;
 
     await onSave(base, reuniao?.id);
@@ -307,11 +310,32 @@ export function RjReuniaoDrawer({
         />
       </Field>
 
+      <div className="mb-4">
+        <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[13px]">
+          <input
+            type="checkbox"
+            checked={gerarGoogleMeet}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setGerarGoogleMeet(checked);
+              if (checked) {
+                patch({ linkOnline: "" });
+              }
+            }}
+            className="rounded border-slate-300 text-azul-profundo focus:ring-azul-profundo"
+          />
+          <span className="font-medium text-slate-700">
+            {reuniao ? "Gerar novo link do Google Meet" : "Gerar link do Google Meet"}
+          </span>
+        </label>
+      </div>
+
       <Field label="Link da chamada">
         <input
-          className={inputClass}
-          value={form.linkOnline}
-          placeholder="https://meet.google.com/…"
+          className={`${inputClass} ${gerarGoogleMeet ? "bg-slate-50 text-slate-400 select-none cursor-not-allowed border-slate-200" : ""}`}
+          value={gerarGoogleMeet ? "" : form.linkOnline}
+          placeholder={gerarGoogleMeet ? "O link do Google Meet será gerado automaticamente ao salvar..." : "https://meet.google.com/…"}
+          disabled={gerarGoogleMeet}
           onChange={(e) => patch({ linkOnline: e.target.value })}
         />
       </Field>
