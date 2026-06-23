@@ -70,27 +70,41 @@ function RjCredoresRelatorioPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 p-6 md:p-10 font-sans print:p-0">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans print:bg-white print:p-0">
       <style>{`
         @media print {
+          @page {
+            margin: 1.2cm 1.5cm;
+            size: A4 portrait;
+          }
           body {
             background-color: white !important;
-            color: black !important;
+            color: #0f172a !important; /* slate-900 */
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .no-print {
             display: none !important;
           }
+          .print-break-avoid {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          thead {
+            display: table-header-group;
+          }
           tr {
             page-break-inside: avoid !important;
           }
-          @page {
-            margin: 1.5cm;
+          /* Custom scrollbar hide for print */
+          ::-webkit-scrollbar {
+            display: none;
           }
         }
       `}</style>
 
-      {/* Floating Toolbar */}
-      <div className="no-print mb-8 flex items-center justify-between border-b border-slate-200 pb-4">
+      {/* Floating Toolbar (Screen Only) */}
+      <div className="no-print sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
         <Link
           to="/credores"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-600 hover:text-azul-profundo transition-colors"
@@ -100,215 +114,245 @@ function RjCredoresRelatorioPage() {
         <button
           type="button"
           onClick={handlePrint}
-          className="inline-flex items-center gap-1.5 rounded-md bg-azul-profundo px-4 py-2 text-[13px] font-medium text-branco hover:bg-azul-marinho transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-md bg-azul-profundo px-5 py-2.5 text-[13px] font-semibold text-branco shadow hover:bg-azul-marinho transition-all active:scale-95 cursor-pointer"
         >
           <Printer className="h-4 w-4" /> Imprimir / Salvar PDF
         </button>
       </div>
 
-      {/* Report Header */}
-      <div className="border-b-2 border-slate-900 pb-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="max-w-[21cm] mx-auto bg-white print:max-w-none print:shadow-none p-8 md:p-12 shadow-sm my-8 print:my-0 print:p-0">
+        
+        {/* Report Header - Premium Look */}
+        <div className="border-b-2 border-slate-900 pb-8 mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 print:border-slate-800">
           <div>
-            <div className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase mb-1">
+            <div className="inline-block px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold tracking-widest uppercase mb-4 rounded-sm print:bg-slate-800">
               CAIS Investimentos · Controle Interno
             </div>
-            <h1 className="text-[26px] font-bold text-slate-950 uppercase tracking-tight">
-              Relatório de Credores · Condomínio MG2
+            <h1 className="text-[32px] font-extrabold text-slate-900 uppercase tracking-tight leading-tight print:text-[28px]">
+              Relatório Executivo
+              <span className="block text-[22px] font-medium text-slate-500 mt-1 print:text-[18px]">
+                Condomínio de Credores MG2
+              </span>
             </h1>
-            <p className="text-[13px] text-slate-600 mt-0.5">
-              Posição consolidada da Recuperação Judicial
-            </p>
           </div>
-          <div className="text-right md:text-right text-[11px] text-slate-500">
-            <div>Gerado em: <span className="font-semibold text-slate-800">{formattedDate}</span></div>
-            <div>Total de Credores: <span className="font-semibold text-slate-800">{kpis.count}</span></div>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="border border-slate-200 rounded-md p-3.5 bg-slate-50">
-          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-            Voto Confirmado (Confirmados)
-          </div>
-          <div className="text-[18px] font-bold text-slate-950 mt-1 tabular-nums">
-            {formatRjCurrency(kpis.votoConf)}
-          </div>
-          {representatividade.confPct !== null && (
-            <div className="text-[11px] text-emerald-700 font-semibold mt-0.5">
-              {representatividade.confPct.toFixed(1)}% do Passivo Geral
+          <div className="text-right text-[12px] text-slate-500 flex flex-col gap-1.5">
+            <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 print:border-none print:bg-transparent print:p-0">
+              <div className="uppercase tracking-wider text-[9px] font-bold text-slate-400 mb-0.5">Gerado em</div>
+              <div className="font-semibold text-slate-800 text-[13px]">{formattedDate}</div>
             </div>
-          )}
-        </div>
-
-        <div className="border border-slate-200 rounded-md p-3.5 bg-slate-50">
-          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-            Voto Total (Sujeitos a RJ)
-          </div>
-          <div className="text-[18px] font-bold text-slate-950 mt-1 tabular-nums">
-            {formatRjCurrency(kpis.votoTotal)}
-          </div>
-          {representatividade.confPct !== null && representatividade.pendPct !== null && (
-            <div className="text-[11px] text-slate-600 mt-0.5">
-              {((kpis.votoTotal / config.passivo) * 100).toFixed(1)}% do Passivo Geral
+            <div className="bg-slate-50 px-3 py-2 rounded border border-slate-100 print:border-none print:bg-transparent print:p-0">
+              <div className="uppercase tracking-wider text-[9px] font-bold text-slate-400 mb-0.5">Total de Credores</div>
+              <div className="font-semibold text-slate-800 text-[13px]">{kpis.count} registros</div>
             </div>
-          )}
-        </div>
-
-        <div className="border border-slate-200 rounded-md p-3.5 bg-slate-50">
-          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-            Fora da RJ (Não Vota)
-          </div>
-          <div className="text-[18px] font-bold text-slate-950 mt-1 tabular-nums">
-            {formatRjCurrency(kpis.foraTotal)}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
-            {kpis.foraCount} credor(es)
           </div>
         </div>
 
-        <div className="border border-slate-200 rounded-md p-3.5 bg-slate-50">
-          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-            Passivo Geral Declarado
+        {/* KPI Section - Premium Dashboard Style */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 print-break-avoid">
+          <div className="relative overflow-hidden border border-slate-200 rounded-lg p-5 bg-gradient-to-b from-white to-slate-50 shadow-sm print:shadow-none print:border-slate-300">
+            <div className="absolute top-0 left-0 w-1 h-full bg-azul-profundo"></div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+              Voto Confirmado
+            </div>
+            <div className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-none mb-1.5">
+              {formatRjCurrency(kpis.votoConf)}
+            </div>
+            {representatividade.confPct !== null && (
+              <div className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                {representatividade.confPct.toFixed(1)}% do Passivo Geral
+              </div>
+            )}
           </div>
-          <div className="text-[18px] font-bold text-slate-950 mt-1 tabular-nums">
-            {config.passivo ? formatRjCurrency(config.passivo) : "—"}
+
+          <div className="relative overflow-hidden border border-slate-200 rounded-lg p-5 bg-gradient-to-b from-white to-slate-50 shadow-sm print:shadow-none print:border-slate-300">
+            <div className="absolute top-0 left-0 w-1 h-full bg-slate-400"></div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+              Voto Sujeito (Total)
+            </div>
+            <div className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-none mb-1.5">
+              {formatRjCurrency(kpis.votoTotal)}
+            </div>
+            {representatividade.confPct !== null && representatividade.pendPct !== null && (
+              <div className="text-[11px] font-medium text-slate-500">
+                {((kpis.votoTotal / config.passivo) * 100).toFixed(1)}% do Passivo Geral
+              </div>
+            )}
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5">
-            Valor de referência
+
+          <div className="relative overflow-hidden border border-slate-200 rounded-lg p-5 bg-gradient-to-b from-white to-slate-50 shadow-sm print:shadow-none print:border-slate-300">
+            <div className="absolute top-0 left-0 w-1 h-full bg-slate-300"></div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+              Fora da RJ
+            </div>
+            <div className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-none mb-1.5">
+              {formatRjCurrency(kpis.foraTotal)}
+            </div>
+            <div className="text-[11px] font-medium text-slate-500">
+              {kpis.foraCount} credor(es) sem voto
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden border border-slate-200 rounded-lg p-5 bg-slate-900 text-white shadow-sm print:shadow-none print:bg-slate-100 print:text-slate-900 print:border-slate-300">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 print:text-slate-500">
+              Passivo Declarado
+            </div>
+            <div className="text-[22px] font-extrabold tabular-nums leading-none mb-1.5">
+              {config.passivo ? formatRjCurrency(config.passivo) : "—"}
+            </div>
+            <div className="text-[11px] font-medium text-slate-400 print:text-slate-500">
+              Valor de Referência Oficial
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Class Breakdown Section */}
-      <div className="mb-8">
-        <h2 className="text-[14px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b border-slate-200 pb-1.5">
-          Resumo por Classe de Credores
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-[12px] border-collapse">
-            <thead>
-              <tr className="border-b border-slate-300 text-slate-600 font-semibold bg-slate-50">
-                <th className="py-2 px-3">Classe</th>
-                <th className="py-2 px-3 text-right">Quantidade</th>
-                <th className="py-2 px-3 text-right">Valor Total</th>
-                <th className="py-2 px-3 text-right">% do Voto Sujeito</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-200">
-                <td className="py-2 px-3 font-medium">Classe I — Trabalhista</td>
-                <td className="py-2 px-3 text-right tabular-nums">{classes.I.count}</td>
-                <td className="py-2 px-3 text-right tabular-nums font-semibold">{formatRjCurrency(classes.I.valor)}</td>
-                <td className="py-2 px-3 text-right tabular-nums">
-                  {kpis.votoTotal ? `${((classes.I.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-200">
-                <td className="py-2 px-3 font-medium">Classe II — Garantia real</td>
-                <td className="py-2 px-3 text-right tabular-nums">{classes.II.count}</td>
-                <td className="py-2 px-3 text-right tabular-nums font-semibold">{formatRjCurrency(classes.II.valor)}</td>
-                <td className="py-2 px-3 text-right tabular-nums">
-                  {kpis.votoTotal ? `${((classes.II.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-200">
-                <td className="py-2 px-3 font-medium">Classe III — Quirografário</td>
-                <td className="py-2 px-3 text-right tabular-nums">{classes.III.count}</td>
-                <td className="py-2 px-3 text-right tabular-nums font-semibold">{formatRjCurrency(classes.III.valor)}</td>
-                <td className="py-2 px-3 text-right tabular-nums">
-                  {kpis.votoTotal ? `${((classes.III.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-200">
-                <td className="py-2 px-3 font-medium">Classe IV — ME / EPP</td>
-                <td className="py-2 px-3 text-right tabular-nums">{classes.IV.count}</td>
-                <td className="py-2 px-3 text-right tabular-nums font-semibold">{formatRjCurrency(classes.IV.valor)}</td>
-                <td className="py-2 px-3 text-right tabular-nums">
-                  {kpis.votoTotal ? `${((classes.IV.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
-                </td>
-              </tr>
-              <tr className="border-b border-slate-200 bg-slate-50/50">
-                <td className="py-2 px-3 font-medium text-slate-500">Fora da RJ (Sem direito a voto)</td>
-                <td className="py-2 px-3 text-right tabular-nums text-slate-600">{classes.fora.count}</td>
-                <td className="py-2 px-3 text-right tabular-nums font-semibold text-slate-600">{formatRjCurrency(classes.fora.valor)}</td>
-                <td className="py-2 px-3 text-right tabular-nums text-slate-400">—</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Detailed Creditors Section */}
-      <div>
-        <h2 className="text-[14px] font-bold uppercase tracking-wider text-slate-800 mb-3 border-b border-slate-200 pb-1.5">
-          Listagem Geral de Credores (Ordem de Relevância)
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-[11px] border-collapse">
-            <thead>
-              <tr className="border-b border-slate-300 text-slate-600 font-semibold bg-slate-50 uppercase tracking-wider text-[10px]">
-                <th className="py-2 px-2.5">Credor</th>
-                <th className="py-2 px-2.5">Situação / Classe</th>
-                <th className="py-2 px-2.5 text-right">Valor</th>
-                <th className="py-2 px-2.5">Status</th>
-                <th className="py-2 px-2.5">Próximo Passo</th>
-                <th className="py-2 px-2.5">Retorno</th>
-                <th className="py-2 px-2.5">Contato</th>
-              </tr>
-            </thead>
-            <tbody>
-              {credores.map((c: RjCredor) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-slate-200 hover:bg-slate-50 print:hover:bg-white"
-                >
-                  <td className="py-2 px-2.5 font-semibold text-slate-900">
-                    {c.nome}
-                    {!c.sujeito && (
-                      <span className="ml-1.5 rounded bg-slate-100 border border-slate-200 px-1 py-0.5 text-[9px] font-medium text-slate-500 uppercase">
-                        não vota
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2 px-2.5">
-                    {c.sujeito ? (
-                      <span>Classe {c.classe}</span>
-                    ) : (
-                      <span className="text-slate-500">
-                        Fora ({c.motivo ? RJ_MOTIVO_LABELS[c.motivo as keyof typeof RJ_MOTIVO_LABELS] : "Outro"})
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2 px-2.5 text-right font-medium tabular-nums text-slate-900">
-                    {c.valor ? formatRjCurrency(c.valor) : "a definir"}
-                  </td>
-                  <td className="py-2 px-2.5">
-                    <span className="font-semibold text-slate-800">
-                      {RJ_STATUS_LABELS[c.status as keyof typeof RJ_STATUS_LABELS] ?? c.status}
-                    </span>
-                  </td>
-                  <td className="py-2 px-2.5 max-w-[180px] truncate text-slate-700">
-                    {c.passo || "—"}
-                  </td>
-                  <td className="py-2 px-2.5 tabular-nums text-slate-700">
-                    {c.retorno ? c.retorno.split("-").reverse().slice(0, 2).join("/") : "—"}
-                  </td>
-                  <td className="py-2 px-2.5 text-slate-600 max-w-[140px] truncate">
-                    {c.contato || "—"}
+        {/* Class Breakdown Section */}
+        <div className="mb-10 print-break-avoid">
+          <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-3">
+            <span className="w-4 h-px bg-slate-300"></span>
+            Resumo Analítico por Classe
+            <span className="flex-1 h-px bg-slate-100 print:bg-slate-200"></span>
+          </h2>
+          <div className="border border-slate-200 rounded-lg overflow-hidden print:border-slate-300">
+            <table className="w-full text-left text-[12px] border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200 print:bg-slate-100">
+                  <th className="py-3 px-4 w-[40%]">Classe Estrutural</th>
+                  <th className="py-3 px-4 text-center">Quantidade</th>
+                  <th className="py-3 px-4 text-right">Valor Consolidado</th>
+                  <th className="py-3 px-4 text-right">Participação (%)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 print:divide-slate-200">
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3 px-4 font-semibold text-slate-800">Classe I — Trabalhista</td>
+                  <td className="py-3 px-4 text-center tabular-nums text-slate-600">{classes.I.count}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-bold text-slate-900">{formatRjCurrency(classes.I.valor)}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-medium text-slate-600">
+                    {kpis.votoTotal ? `${((classes.I.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3 px-4 font-semibold text-slate-800">Classe II — Garantia Real</td>
+                  <td className="py-3 px-4 text-center tabular-nums text-slate-600">{classes.II.count}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-bold text-slate-900">{formatRjCurrency(classes.II.valor)}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-medium text-slate-600">
+                    {kpis.votoTotal ? `${((classes.II.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3 px-4 font-semibold text-slate-800">Classe III — Quirografário</td>
+                  <td className="py-3 px-4 text-center tabular-nums text-slate-600">{classes.III.count}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-bold text-slate-900">{formatRjCurrency(classes.III.valor)}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-medium text-slate-600">
+                    {kpis.votoTotal ? `${((classes.III.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
+                  </td>
+                </tr>
+                <tr className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3 px-4 font-semibold text-slate-800">Classe IV — ME / EPP</td>
+                  <td className="py-3 px-4 text-center tabular-nums text-slate-600">{classes.IV.count}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-bold text-slate-900">{formatRjCurrency(classes.IV.valor)}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-medium text-slate-600">
+                    {kpis.votoTotal ? `${((classes.IV.valor / kpis.votoTotal) * 100).toFixed(1)}%` : "0%"}
+                  </td>
+                </tr>
+                <tr className="bg-slate-50/80 print:bg-slate-50">
+                  <td className="py-3 px-4 font-medium text-slate-500 italic">Fora da RJ (Sem direito a voto)</td>
+                  <td className="py-3 px-4 text-center tabular-nums text-slate-500">{classes.fora.count}</td>
+                  <td className="py-3 px-4 text-right tabular-nums font-semibold text-slate-500">{formatRjCurrency(classes.fora.valor)}</td>
+                  <td className="py-3 px-4 text-right tabular-nums text-slate-400">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-      
-      {/* Report Footer */}
-      <div className="mt-12 pt-4 border-t border-slate-200 text-center text-[10px] text-slate-400">
-        CAIS Investimentos · Relatório Gerencial Confidencial · Uso Interno Exclusivo
+
+        {/* Detailed Creditors Section */}
+        <div>
+          <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-3">
+            <span className="w-4 h-px bg-slate-300"></span>
+            Detalhamento de Credores
+            <span className="flex-1 h-px bg-slate-100 print:bg-slate-200"></span>
+          </h2>
+          <div className="border border-slate-200 rounded-lg overflow-hidden print:border-slate-300">
+            <table className="w-full text-left text-[11px] border-collapse">
+              <thead>
+                <tr className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[9px] print:bg-slate-100 print:text-slate-800 print:border-b print:border-slate-300">
+                  <th className="py-3 px-3 w-[25%]">Nome do Credor</th>
+                  <th className="py-3 px-3">Enquadramento</th>
+                  <th className="py-3 px-3 text-right">Valor R$</th>
+                  <th className="py-3 px-3">Status Interno</th>
+                  <th className="py-3 px-3">Próxima Ação</th>
+                  <th className="py-3 px-3">Contato</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 print:divide-slate-200">
+                {credores.map((c: RjCredor) => (
+                  <tr
+                    key={c.id}
+                    className="hover:bg-slate-50 transition-colors print:hover:bg-transparent"
+                  >
+                    <td className="py-3 px-3 font-bold text-slate-800">
+                      <div className="line-clamp-2 leading-tight">
+                        {c.nome}
+                      </div>
+                      {!c.sujeito && (
+                        <span className="inline-block mt-1 rounded bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-[8px] font-bold text-slate-500 uppercase tracking-widest">
+                          Não Vota
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 align-top">
+                      <div className="font-medium text-slate-700">
+                        {c.sujeito ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-azul-profundo print:bg-slate-500"></span>
+                            Classe {c.classe}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-slate-500">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                            {c.motivo ? RJ_MOTIVO_LABELS[c.motivo as keyof typeof RJ_MOTIVO_LABELS] : "Outro"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-right align-top font-bold tabular-nums text-slate-900">
+                      {c.valor ? formatRjCurrency(c.valor) : <span className="text-slate-400 font-normal italic">A definir</span>}
+                    </td>
+                    <td className="py-3 px-3 align-top">
+                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700 ring-1 ring-inset ring-slate-200/50 print:bg-transparent print:ring-0 print:p-0 print:text-[11px]">
+                        {RJ_STATUS_LABELS[c.status as keyof typeof RJ_STATUS_LABELS] ?? c.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 align-top">
+                      <div className="text-slate-700 font-medium line-clamp-2 text-[10px] leading-relaxed">
+                        {c.passo || <span className="text-slate-400 italic font-normal">Nenhum registro</span>}
+                      </div>
+                      {c.retorno && (
+                        <div className="mt-1 text-[9px] font-bold text-azul-profundo uppercase tracking-wider print:text-slate-600">
+                          Retorno: {c.retorno.split("-").reverse().slice(0, 2).join("/")}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 align-top text-slate-600 text-[10px] leading-relaxed break-all">
+                      {c.contato || <span className="text-slate-400 italic">N/A</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        {/* Report Footer */}
+        <div className="mt-16 pt-6 border-t-2 border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4 print:border-slate-800">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            CAIS Investimentos · Relatório Gerencial
+          </div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Uso Interno Exclusivo · Confidencial
+          </div>
+        </div>
       </div>
     </div>
   );
