@@ -45,6 +45,8 @@ export function SalesRankingPanel({
   entries: SalesRankingEntry[];
   className?: string;
 }) {
+  const isParticipation = title.toLowerCase().includes("participa");
+
   return (
     <div
       className={cn(
@@ -65,6 +67,7 @@ export function SalesRankingPanel({
         ) : (
           entries.map((entry) => {
             const pendingTotal = entry.pendingTotal ?? 0;
+            const pendingCount = entry.pendingCount ?? 0;
             const highlighted = entry.position <= 3;
             return (
               <div
@@ -84,24 +87,34 @@ export function SalesRankingPanel({
                     <p className="truncate text-[14px] font-semibold text-azul-profundo">
                       {entry.name}
                     </p>
-                    <p className="text-[11px] text-slate-500">
-                      {entry.count} paga{entry.count !== 1 ? "s" : ""}
-                      {pendingTotal > 0 && (
-                        <span className="text-slate-400">
-                          {" "}
-                          · {(entry.pendingCount ?? 0)} pendente{(entry.pendingCount ?? 0) !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </p>
+                    {!isParticipation && (
+                      <p className="text-[11px] text-slate-500">
+                        {entry.count} paga{entry.count !== 1 ? "s" : ""}
+                        {pendingTotal > 0 && (
+                          <span className="text-slate-400">
+                            {" "}
+                            · {pendingCount} pendente{pendingCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-[15px] font-bold tabular-nums text-azul-profundo">
-                      {formatBRL(entry.total)}
+                      {isParticipation ? `${entry.count} ${entry.count === 1 ? "venda" : "vendas"}` : formatBRL(entry.total)}
                     </p>
-                    {pendingTotal > 0 && (
-                      <p className="text-[11px] tabular-nums text-slate-400">
-                        +{formatBRL(pendingTotal)} pend.
-                      </p>
+                    {isParticipation ? (
+                      pendingCount > 0 && (
+                        <p className="text-[11px] tabular-nums text-slate-400">
+                          +{pendingCount} pend.
+                        </p>
+                      )
+                    ) : (
+                      pendingTotal > 0 && (
+                        <p className="text-[11px] tabular-nums text-slate-400">
+                          +{formatBRL(pendingTotal)} pend.
+                        </p>
+                      )
                     )}
                   </div>
                 </div>

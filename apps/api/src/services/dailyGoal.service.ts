@@ -305,6 +305,208 @@ async function getPeriodSalesRanking(start: Date, end: Date) {
     }));
 }
 
+async function getPeriodCoVendedorRanking(start: Date, end: Date) {
+  const { start: periodStart, end: periodEnd } = periodBoundsBusiness(start, end);
+
+  const purchases = await prisma.purchase.findMany({
+    where: {
+      deletedAt: null,
+      lead: {
+        deletedAt: null,
+        coVendedorId: { not: null },
+        coVendedor: activeUserWhere,
+      },
+      purchaseDate: { gte: periodStart, lt: periodEnd },
+    },
+    select: {
+      amount: true,
+      boletoPaid: true,
+      lead: {
+        select: {
+          coVendedorId: true,
+          coVendedor: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+
+  const totals = new Map<
+    string,
+    {
+      userId: string;
+      name: string;
+      total: number;
+      pendingTotal: number;
+      count: number;
+      pendingCount: number;
+    }
+  >();
+
+  for (const p of purchases) {
+    const coSeller = p.lead?.coVendedor;
+    const coSellerId = p.lead?.coVendedorId;
+    if (!coSeller || !coSellerId) continue;
+
+    const entry = totals.get(coSellerId) ?? {
+      userId: coSeller.id,
+      name: coSeller.name,
+      total: 0,
+      pendingTotal: 0,
+      count: 0,
+      pendingCount: 0,
+    };
+    const amt = decimalToNumber(p.amount);
+    if (p.boletoPaid) {
+      entry.total += amt;
+      entry.count += 1;
+    } else {
+      entry.pendingTotal += amt;
+      entry.pendingCount += 1;
+    }
+    totals.set(coSellerId, entry);
+  }
+
+  return [...totals.values()]
+    .sort((a, b) => b.total - a.total || b.pendingTotal - a.pendingTotal || b.count - a.count)
+    .map((row, index) => ({
+      position: index + 1,
+      userId: row.userId,
+      name: row.name,
+      total: row.total,
+      pendingTotal: row.pendingTotal,
+      count: row.count,
+      pendingCount: row.pendingCount,
+    }));
+}
+
+async function getPeriodParticipacoesRanking(start: Date, end: Date) {
+  const { start: periodStart, end: periodEnd } = periodBoundsBusiness(start, end);
+
+  const purchases = await prisma.purchase.findMany({
+    where: {
+      deletedAt: null,
+      lead: { deletedAt: null },
+      purchaseDate: { gte: periodStart, lt: periodEnd },
+    },
+    select: {
+      amount: true,
+      boletoPaid: true,
+      responsavelId: true,
+      responsavel: { select: { id: true, name: true, deletedAt: true } },
+      lead: {
+        select: {
+          coVendedorId: true,
+          coVendedor: { select: { id: true, name: true, deletedAt: true } },
+          firstContactId: true,
+          firstContact: { select: { id: true, name: true, deletedAt: true } },
+        },
+      },
+    },
+  });
+
+  const totals = new Map<
+    string,
+    {
+      userId: string;
+      name: string;
+      total: number;
+      pendingTotal: number;
+      count: number;
+      pendingCount: number;
+      vendedorCount: number;
+      covendedorCount: number;
+      firstContactCount: number;
+      pendingVendedorCount: number;
+      pendingCovendedorCount: number;
+      pendingFirstContactCount: number;
+    }
+  >();
+
+  for (const p of purchases) {
+    const amt = decimalToNumber(p.amount);
+    const isPaid = p.boletoPaid;
+
+    const candidates: Array<{
+      user: { id: string; name: string; deletedAt: Date | null };
+      roleWeight: number; // 3 = vendedor, 2 = covendedor, 1 = primeiro contato
+    }> = [];
+
+    if (p.responsavelId && p.responsavel && p.responsavel.deletedAt === null) {
+      candidates.push({ user: p.responsavel, roleWeight: 3 });
+    }
+    if (p.lead?.coVendedorId && p.lead?.coVendedor && p.lead.coVendedor.deletedAt === null) {
+      candidates.push({ user: p.lead.coVendedor, roleWeight: 2 });
+    }
+    if (p.lead?.firstContactId && p.lead?.firstContact && p.lead.firstContact.deletedAt === null) {
+      candidates.push({ user: p.lead.firstContact, roleWeight: 1 });
+    }
+
+    const uniqueCandidates = new Map<string, { user: typeof candidates[0]['user']; roleWeight: number }>();
+    for (const c of candidates) {
+      const existing = uniqueCandidates.get(c.user.id);
+      if (!existing || c.roleWeight > existing.roleWeight) {
+        uniqueCandidates.set(c.user.id, c);
+      }
+    }
+
+    for (const { user, roleWeight } of uniqueCandidates.values()) {
+      const entry = totals.get(user.id) ?? {
+        userId: user.id,
+        name: user.name,
+        total: 0,
+        pendingTotal: 0,
+        count: 0,
+        pendingCount: 0,
+        vendedorCount: 0,
+        covendedorCount: 0,
+        firstContactCount: 0,
+        pendingVendedorCount: 0,
+        pendingCovendedorCount: 0,
+        pendingFirstContactCount: 0,
+      };
+
+      if (isPaid) {
+        entry.total += amt;
+        entry.count += 1;
+        if (roleWeight === 3) entry.vendedorCount += 1;
+        else if (roleWeight === 2) entry.covendedorCount += 1;
+        else if (roleWeight === 1) entry.firstContactCount += 1;
+      } else {
+        entry.pendingTotal += amt;
+        entry.pendingCount += 1;
+        if (roleWeight === 3) entry.pendingVendedorCount += 1;
+        else if (roleWeight === 2) entry.pendingCovendedorCount += 1;
+        else if (roleWeight === 1) entry.pendingFirstContactCount += 1;
+      }
+
+      totals.set(user.id, entry);
+    }
+  }
+
+  return [...totals.values()]
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      if (b.vendedorCount !== a.vendedorCount) return b.vendedorCount - a.vendedorCount;
+      if (b.covendedorCount !== a.covendedorCount) return b.covendedorCount - a.covendedorCount;
+      if (b.firstContactCount !== a.firstContactCount) return b.firstContactCount - a.firstContactCount;
+      if (b.pendingCount !== a.pendingCount) return b.pendingCount - a.pendingCount;
+      if (b.pendingVendedorCount !== a.pendingVendedorCount) return b.pendingVendedorCount - a.pendingVendedorCount;
+      if (b.pendingCovendedorCount !== a.pendingCovendedorCount) return b.pendingCovendedorCount - a.pendingCovendedorCount;
+      if (b.pendingFirstContactCount !== a.pendingFirstContactCount) return b.pendingFirstContactCount - a.pendingFirstContactCount;
+      if (b.total !== a.total) return b.total - a.total;
+      return b.pendingTotal - a.pendingTotal;
+    })
+    .map((row, index) => ({
+      position: index + 1,
+      userId: row.userId,
+      name: row.name,
+      total: row.total,
+      pendingTotal: row.pendingTotal,
+      count: row.count,
+      pendingCount: row.pendingCount,
+    }));
+}
+
 export async function getDailyTodaySummary() {
   const today = new Date();
   const resolved = await resolveDailyTarget(today);
@@ -339,9 +541,35 @@ export async function getDailyTodaySummary() {
     ? await getPeriodSalesRanking(periodGoal.startDate, periodGoal.endDate)
     : [];
 
+  const coVendedorRanking = periodGoal
+    ? await getPeriodCoVendedorRanking(periodGoal.startDate, periodGoal.endDate)
+    : [];
+
+  const participacoesRanking = periodGoal
+    ? await getPeriodParticipacoesRanking(periodGoal.startDate, periodGoal.endDate)
+    : [];
+
   const periodSplit = periodGoal
     ? await getPeriodProgressSplit(periodGoal.startDate, periodGoal.endDate)
     : null;
+
+  let maxSaleAmount = 0;
+  if (periodGoal) {
+    const { start: pStart, end: pEnd } = periodBoundsBusiness(periodGoal.startDate, periodGoal.endDate);
+    const maxPurchase = await prisma.purchase.findFirst({
+      where: {
+        deletedAt: null,
+        lead: { deletedAt: null },
+        purchaseDate: { gte: pStart, lt: pEnd },
+        boletoPaid: true,
+      },
+      orderBy: { amount: "desc" },
+      select: { amount: true },
+    });
+    if (maxPurchase) {
+      maxSaleAmount = decimalToNumber(maxPurchase.amount);
+    }
+  }
 
   const period = periodGoal
     ? {
@@ -349,6 +577,9 @@ export async function getDailyTodaySummary() {
         targetAmount: decimalToNumber(periodGoal.targetAmount),
         currentAmount: periodSplit?.paid ?? 0,
         currentPending: periodSplit?.pending ?? 0,
+        paidCount: periodSplit?.paidCount ?? 0,
+        pendingCount: periodSplit?.pendingCount ?? 0,
+        maxSaleAmount: maxSaleAmount,
         startDate: periodGoal.startDate.toISOString(),
         endDate: periodGoal.endDate.toISOString(),
       }
@@ -371,6 +602,8 @@ export async function getDailyTodaySummary() {
       boletoPaid: p.boletoPaid,
     })),
     salesRanking,
+    coVendedorRanking,
+    participacoesRanking,
     presets: DAILY_PRESET_SLUGS.map((slug) => ({
       slug,
       label: DAILY_PRESETS[slug].label,

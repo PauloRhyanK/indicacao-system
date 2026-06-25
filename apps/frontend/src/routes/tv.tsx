@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, Fragment } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
@@ -110,7 +110,7 @@ function ProgressBar({ paid, pending = 0, total, animated }: ProgressBarProps) {
   const pendingColor = "rgba(255,255,255,0.28)";
 
   return (
-    <div style={{ position: "relative", height: 10, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
+    <div style={{ position: "relative", height: 6, background: TV_THEME.progressTrack, borderRadius: 999, overflow: "hidden" }}>
       <div style={{ display: "flex", height: "100%" }}>
         {paidW > 0 && (
           <div
@@ -164,8 +164,8 @@ function MetaCard({ label, sublabel, value, pendingValue = 0, total, icon, accen
     <div style={{
       background: TV_THEME.card,
       border: accent ? "1px solid rgba(232,200,130,0.55)" : `1px solid ${TV_THEME.cardBorder}`,
-      borderRadius: 16,
-      padding: "28px 32px",
+      borderRadius: 12,
+      padding: "12px 20px",
       flex: 1,
       position: "relative",
       overflow: "hidden",
@@ -176,35 +176,35 @@ function MetaCard({ label, sublabel, value, pendingValue = 0, total, icon, accen
           background: "linear-gradient(90deg,transparent,#d9bd7e,transparent)",
         }} />
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <div>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "1.4px", color: TV_THEME.textMuted, fontWeight: 500, marginBottom: 6 }}>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textMuted, fontWeight: 500, marginBottom: 2 }}>
             {label}
           </div>
-          <div style={{ fontSize: 13, color: TV_THEME.textSoft }}>{sublabel}</div>
+          <div style={{ fontSize: 11, color: TV_THEME.textSoft }}>{sublabel}</div>
         </div>
-        <div style={{ fontSize: 28, opacity: 0.7 }}>{icon}</div>
+        <div style={{ fontSize: 20, opacity: 0.7 }}>{icon}</div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16 }}>
-        <div style={{ fontSize: 42, fontWeight: 600, color: TV_THEME.text, lineHeight: 1, letterSpacing: "-0.02em" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 28, fontWeight: 600, color: TV_THEME.text, lineHeight: 1, letterSpacing: "-0.02em" }}>
           {fmt(value)}
         </div>
         {hasTarget && (
-          <div style={{ fontSize: 16, color: TV_THEME.textSoft }}>/ {fmt(total)}</div>
+          <div style={{ fontSize: 14, color: TV_THEME.textSoft }}>/ {fmt(total)}</div>
         )}
       </div>
 
       {hasTarget ? (
         <>
           <ProgressBar paid={value} pending={pendingValue} total={total} animated={mounted} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
             <div style={{
-              fontSize: 13, color: p >= 100 ? "#22c55e" : "#d9bd7e", fontWeight: 500,
-              display: "flex", alignItems: "center", gap: 6,
+              fontSize: 11, color: p >= 100 ? "#22c55e" : "#d9bd7e", fontWeight: 500,
+              display: "flex", alignItems: "center", gap: 5,
             }}>
               <span style={{
-                display: "inline-block", width: 7, height: 7, borderRadius: "50%",
+                display: "inline-block", width: 6, height: 6, borderRadius: "50%",
                 background: p >= 100 ? "#22c55e" : "#d9bd7e",
                 boxShadow: `0 0 8px ${p >= 100 ? "#22c55e" : "#d9bd7e"}`,
               }} />
@@ -215,13 +215,13 @@ function MetaCard({ label, sublabel, value, pendingValue = 0, total, icon, accen
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 13, color: TV_THEME.accentWarm }}>
+            <div style={{ fontSize: 11, color: TV_THEME.accentWarm }}>
               faltam {fmt(Math.max(0, total - value))}
             </div>
           </div>
         </>
       ) : (
-        <div style={{ marginTop: 4, fontSize: 13, color: value > 0 || pendingValue > 0 ? TV_THEME.accent : TV_THEME.textSoft, fontWeight: 500 }}>
+        <div style={{ marginTop: 2, fontSize: 11, color: value > 0 || pendingValue > 0 ? TV_THEME.accent : TV_THEME.textSoft, fontWeight: 500 }}>
           {value > 0 || pendingValue > 0 ? (
             <>
               {value > 0 ? `${fmt(value)} confirmado` : null}
@@ -252,7 +252,9 @@ interface RankingEntry {
   pendingCount: number;
 }
 
-function SalesRanking({ entries }: { entries: RankingEntry[] }) {
+function SalesRanking({ title = "Ranking da Meta", entries }: { title?: string; entries: RankingEntry[] }) {
+  const isParticipation = title.toLowerCase().includes("participa");
+
   return (
     <div style={{
       display: "flex", flexDirection: "column",
@@ -261,61 +263,73 @@ function SalesRanking({ entries }: { entries: RankingEntry[] }) {
       borderRadius: 16, overflow: "hidden", minHeight: 0,
     }}>
       <div style={{
-        padding: "16px 20px 14px",
+        padding: "12px 14px 10px",
         borderBottom: `1px solid ${TV_THEME.cardBorder}`,
       }}>
         <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.4px", color: TV_THEME.accent, fontWeight: 600 }}>
-          Ranking da Meta
+          {title}
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
+      <div style={{ flex: 1, overflow: "hidden", padding: "8px" }}>
         {entries.length === 0 ? (
           <div style={{ padding: 20, textAlign: "center", color: TV_THEME.textSoft, fontSize: 13 }}>
             Nenhuma venda no período
           </div>
         ) : (
-          entries.map((entry) => (
+          entries.slice(0, 10).map((entry) => (
               <div
                 key={`${entry.position}-${entry.name}`}
                 style={{
-                  padding: "12px 10px",
+                  padding: "6px 10px",
                   borderRadius: 10,
-                  marginBottom: 8,
+                  marginBottom: 5,
                   background: entry.position <= 3 ? "rgba(232,200,130,0.12)" : TV_THEME.cardSubtle,
                   border: entry.position <= 3 ? "1px solid rgba(232,200,130,0.28)" : `1px solid ${TV_THEME.cardBorder}`,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* Position Badge */}
                   <div style={{
-                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                    background: "rgba(255,255,255,0.16)",
-                    border: `1px solid ${TV_THEME.cardBorder}`,
+                    width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                    background: entry.position <= 3 ? "rgba(217,189,126,0.2)" : "rgba(255,255,255,0.06)",
+                    border: `1px solid ${entry.position <= 3 ? "rgba(217,189,126,0.4)" : TV_THEME.cardBorder}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 12, fontWeight: 700, color: TV_THEME.accent,
+                    fontSize: 11, fontWeight: 700,
+                    color: entry.position <= 3 ? TV_THEME.accent : TV_THEME.textSoft,
                   }}>
-                    {initials(entry.name)}
+                    {entry.position}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: TV_THEME.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: TV_THEME.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {entry.name}
                     </div>
-                    <div style={{ fontSize: 11, color: TV_THEME.textSoft }}>
-                      {entry.count} paga{entry.count !== 1 ? "s" : ""}
-                      {entry.pendingCount > 0 && (
-                        <span style={{ color: "rgba(255,255,255,0.35)" }}>
-                          {" "}· {entry.pendingCount} pendente{entry.pendingCount !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: TV_THEME.accent }}>
-                      {fmt(entry.total)}
-                    </div>
-                    {entry.pendingTotal > 0 && (
-                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", marginTop: 2 }}>
-                        +{fmt(entry.pendingTotal)} pend.
+                    {!isParticipation && (
+                      <div style={{ fontSize: 11, color: TV_THEME.textSoft }}>
+                        {entry.count} paga{entry.count !== 1 ? "s" : ""}
+                        {entry.pendingCount > 0 && (
+                          <span style={{ color: "rgba(255,255,255,0.35)" }}>
+                            {" "}· {entry.pendingCount} pendente{entry.pendingCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
                       </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: TV_THEME.accent }}>
+                      {isParticipation ? `${entry.count} ${entry.count === 1 ? "venda" : "vendas"}` : fmt(entry.total)}
+                    </div>
+                    {isParticipation ? (
+                      entry.pendingCount > 0 && (
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", marginTop: 1 }}>
+                          +{entry.pendingCount} pend.
+                        </div>
+                      )
+                    ) : (
+                      entry.pendingTotal > 0 && (
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.38)", marginTop: 1 }}>
+                          +{fmt(entry.pendingTotal)} pend.
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
@@ -331,60 +345,56 @@ function SaleRow({ sale, isNew }: SaleRowProps) {
   const paid = sale.boletoPaid !== false;
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 16, padding: "14px 20px",
+      display: "flex", alignItems: "center", gap: 10, padding: "6px 12px",
       borderRadius: 10,
       background: isNew ? "rgba(217,189,126,0.08)" : "transparent",
       border: isNew ? "1px solid rgba(217,189,126,0.2)" : "1px solid transparent",
       animation: isNew ? "slideIn 0.5s cubic-bezier(0.22,1,0.36,1)" : "none",
       transition: "all 0.3s ease",
       opacity: paid ? 1 : 0.62,
+      marginBottom: 4,
     }}>
-      {/* Avatar */}
+      {/* Sleek left dot indicator instead of avatar */}
       <div style={{
-        width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-        background: isNew ? "rgba(217,189,126,0.15)" : paid ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
-        border: `1.5px solid ${isNew ? "rgba(217,189,126,0.4)" : paid ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)"}`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 14, fontWeight: 600,
-        color: isNew ? "#d9bd7e" : paid ? TV_THEME.accentWarm : TV_THEME.textSoft,
-      }}>
-        {initials(sale.clientName)}
-      </div>
+        width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+        background: isNew ? "#d9bd7e" : paid ? "#22c55e" : "rgba(255,255,255,0.2)",
+        boxShadow: isNew ? "0 0 6px #d9bd7e" : paid ? "0 0 6px #22c55e" : "none",
+      }} />
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: paid ? TV_THEME.text : TV_THEME.textSoft, marginBottom: 2 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: paid ? TV_THEME.text : TV_THEME.textSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 2 }}>
           {sale.clientName}
           {isNew && (
             <span style={{
-              marginLeft: 8, fontSize: 10, background: "rgba(217,189,126,0.15)",
+              marginLeft: 6, fontSize: 9, background: "rgba(217,189,126,0.15)",
               color: "#d9bd7e", border: "1px solid rgba(217,189,126,0.3)",
-              padding: "2px 8px", borderRadius: 999, letterSpacing: "0.06em",
+              padding: "1px 6px", borderRadius: 999, letterSpacing: "0.06em",
               textTransform: "uppercase", fontWeight: 600, verticalAlign: "middle",
             }}>
-              nova venda
+              nova
             </span>
           )}
           {!paid && (
             <span style={{
-              marginLeft: 8, fontSize: 10, color: "rgba(255,255,255,0.35)",
+              marginLeft: 6, fontSize: 9, color: "rgba(255,255,255,0.35)",
               letterSpacing: "0.04em", fontWeight: 500,
             }}>
               pendente
             </span>
           )}
         </div>
-        <div style={{ fontSize: 12, color: TV_THEME.textSoft }}>
+        <div style={{ fontSize: 11, color: TV_THEME.textSoft, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           por <span style={{ color: paid ? TV_THEME.accentWarm : "rgba(255,255,255,0.35)" }}>{sale.sellerName}</span>
         </div>
       </div>
 
       {/* Value */}
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: isNew ? TV_THEME.accent : paid ? TV_THEME.text : TV_THEME.textSoft, letterSpacing: "-0.01em" }}>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: isNew ? TV_THEME.accent : paid ? TV_THEME.text : TV_THEME.textSoft, letterSpacing: "-0.01em" }}>
           {fmt(sale.value)}
         </div>
-        <div style={{ fontSize: 11, color: TV_THEME.textSoft, marginTop: 2 }}>{relTime(sale.soldAt)}</div>
+        <div style={{ fontSize: 10, color: TV_THEME.textSoft, marginTop: 1 }}>{relTime(sale.soldAt)}</div>
       </div>
     </div>
   );
@@ -554,6 +564,32 @@ function TVDashboard() {
     [data?.salesRanking],
   );
 
+  const coVendedorRanking: RankingEntry[] = useMemo(
+    () =>
+      (data?.coVendedorRanking ?? []).map((r) => ({
+        position: r.position,
+        name: r.name,
+        total: r.total,
+        pendingTotal: r.pendingTotal,
+        count: r.count,
+        pendingCount: r.pendingCount,
+      })),
+    [data?.coVendedorRanking],
+  );
+
+  const participacoesRanking: RankingEntry[] = useMemo(
+    () =>
+      (data?.participacoesRanking ?? []).map((r) => ({
+        position: r.position,
+        name: r.name,
+        total: r.total,
+        pendingTotal: r.pendingTotal,
+        count: r.count,
+        pendingCount: r.pendingCount,
+      })),
+    [data?.participacoesRanking],
+  );
+
   const ticketMedio = todayPaidCount > 0 ? dailyCurrent / todayPaidCount : 0;
   const maiorVenda = sales.length ? Math.max(...sales.map((s) => s.value)) : 0;
   const dismissCelebration = useCallback(() => setCelebration(null), []);
@@ -647,10 +683,10 @@ function TVDashboard() {
         pointerEvents: "none",
       }} />
 
-      <div style={{ position: "relative", zIndex: 1, height: "100vh", display: "flex", flexDirection: "column", padding: "28px 36px", gap: 24 }}>
+      <div style={{ position: "relative", zIndex: 1, height: "100vh", display: "flex", flexDirection: "column", padding: "20px 28px", gap: 16 }}>
 
         {/* ── Header ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{
@@ -680,6 +716,29 @@ function TVDashboard() {
               </span>
             </div>
           </div>
+
+          {/* Sleek Horizontal Header KPIs (Period-wide General metrics) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20, background: "rgba(255,255,255,0.03)", border: `1px solid ${TV_THEME.cardBorder}`, borderRadius: 12, padding: "8px 16px" }}>
+            {[
+              { label: "Vendas Período", value: data?.periodGoal ? data.periodGoal.paidCount.toString() : "0" },
+              { label: "Ticket Médio",  value: data?.periodGoal && data.periodGoal.paidCount > 0 ? fmt(data.periodGoal.currentAmount / data.periodGoal.paidCount) : "R$ 0" },
+              { label: "Total Confirmado", value: data?.periodGoal ? fmt(data.periodGoal.currentAmount) : "R$ 0" },
+              { label: "Maior Venda",   value: data?.periodGoal ? fmt(data.periodGoal.maxSaleAmount) : "R$ 0" },
+            ].map((k, idx) => (
+              <Fragment key={k.label}>
+                {idx > 0 && <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)" }} />}
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <span style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: "0.8px", color: TV_THEME.textSoft, fontWeight: 500 }}>
+                    {k.label}
+                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: TV_THEME.text, letterSpacing: "-0.01em" }}>
+                    {k.value}
+                  </span>
+                </div>
+              </Fragment>
+            ))}
+          </div>
+
           <Clock />
         </div>
 
@@ -707,48 +766,28 @@ function TVDashboard() {
           />
         </div>
 
-        {/* ── Bottom row: KPIs + Ranking + Feed ── */}
-        <div style={{ display: "flex", gap: 20, flex: 1, minHeight: 0 }}>
-
-          {/* Left: KPIs rápidos */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, width: 220, flexShrink: 0 }}>
-            {[
-              { label: "Vendas Hoje",   value: todayCount.toString(),     sub: "conversões" },
-              { label: "Ticket Médio",  value: fmt(ticketMedio), sub: "hoje" },
-              { label: "Total Vendas",  value: sales.length.toString(),           sub: "recentes" },
-              { label: "Maior Venda",   value: fmt(maiorVenda), sub: "recentes" },
-            ].map((k) => (
-              <div key={k.label} style={{
-                background: TV_THEME.card,
-                border: `1px solid ${TV_THEME.cardBorder}`,
-                borderRadius: 12, padding: "16px 20px",
-                display: "flex", flexDirection: "column", gap: 4,
-              }}>
-                <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "1.2px", color: TV_THEME.textSoft, fontWeight: 500 }}>
-                  {k.label}
-                </div>
-                <div style={{ fontSize: 26, fontWeight: 600, color: TV_THEME.text, letterSpacing: "-0.02em" }}>
-                  {k.value}
-                </div>
-                <div style={{ fontSize: 11, color: TV_THEME.accentWarm }}>{k.sub}</div>
-              </div>
-            ))}
+        {/* ── Bottom row: Rankings + Feed ── */}
+        <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+            <SalesRanking title="Ranking Vendedores" entries={salesRanking} />
           </div>
 
-          {/* Ranking + Últimas vendas (50/50) */}
-          <div style={{ flex: 1, display: "flex", gap: 20, minHeight: 0, minWidth: 0 }}>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
-              <SalesRanking entries={salesRanking} />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+            <SalesRanking title="Ranking Co-Vendedores" entries={coVendedorRanking} />
+          </div>
 
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+            <SalesRanking title="Ranking Participações" entries={participacoesRanking} />
+          </div>
+
+          <div style={{
+            flex: 1.4, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0,
+            background: TV_THEME.card,
+            border: `1px solid ${TV_THEME.cardBorder}`,
+            borderRadius: 16, overflow: "hidden",
+          }}>
             <div style={{
-              flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0,
-              background: TV_THEME.card,
-              border: `1px solid ${TV_THEME.cardBorder}`,
-              borderRadius: 16, overflow: "hidden",
-            }}>
-            <div style={{
-              padding: "16px 20px 14px",
+              padding: "12px 14px 10px",
               borderBottom: `1px solid ${TV_THEME.cardBorder}`,
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
@@ -759,17 +798,16 @@ function TVDashboard() {
                 {sales.length} recentes
               </div>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: "8px 8px" }}>
+            <div style={{ flex: 1, overflow: "hidden", padding: "6px" }}>
               {sales.length === 0 ? (
                 <div style={{ padding: 24, textAlign: "center", color: TV_THEME.textSoft, fontSize: 13 }}>
                   Nenhuma venda registrada ainda
                 </div>
               ) : (
-                sales.map((sale) => (
+                sales.slice(0, 10).map((sale) => (
                   <SaleRow key={sale.id} sale={sale} isNew={sale.isNew} />
                 ))
               )}
-            </div>
             </div>
           </div>
         </div>

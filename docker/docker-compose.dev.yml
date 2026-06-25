@@ -6,13 +6,13 @@ services:
     ports:
       - "5436:5432"
     environment:
-      POSTGRES_USER: cais
-      POSTGRES_PASSWORD: cais_dev
-      POSTGRES_DB: cais_indicacoes
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cais -d cais_indicacoes"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -164,6 +164,9 @@ export interface DailyGoalToday {
     targetAmount: number;
     currentAmount: number;
     currentPending: number;
+    paidCount: number;
+    pendingCount: number;
+    maxSaleAmount: number;
     startDate: string;
     endDate: string;
   } | null;
@@ -179,6 +182,24 @@ export interface DailyGoalToday {
     boletoPaid: boolean;
   }[];
   salesRanking: {
+    position: number;
+    userId: string;
+    name: string;
+    total: number;
+    pendingTotal: number;
+    count: number;
+    pendingCount: number;
+  }[];
+  coVendedorRanking: {
+    position: number;
+    userId: string;
+    name: string;
+    total: number;
+    pendingTotal: number;
+    count: number;
+    pendingCount: number;
+  }[];
+  participacoesRanking: {
     position: number;
     userId: string;
     name: string;

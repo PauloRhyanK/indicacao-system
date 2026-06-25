@@ -90,6 +90,32 @@ export function OverviewTab() {
     [dailyGoal.data?.salesRanking],
   );
 
+  const coVendedorRanking = useMemo(
+    () =>
+      (dailyGoal.data?.coVendedorRanking ?? []).map((r) => ({
+        position: r.position,
+        name: r.name,
+        total: r.total,
+        pendingTotal: r.pendingTotal,
+        count: r.count,
+        pendingCount: r.pendingCount,
+      })),
+    [dailyGoal.data?.coVendedorRanking],
+  );
+
+  const participacoesRanking = useMemo(
+    () =>
+      (dailyGoal.data?.participacoesRanking ?? []).map((r) => ({
+        position: r.position,
+        name: r.name,
+        total: r.total,
+        pendingTotal: r.pendingTotal,
+        count: r.count,
+        pendingCount: r.pendingCount,
+      })),
+    [dailyGoal.data?.participacoesRanking],
+  );
+
   const recentSales = dailyGoal.data?.recentSales ?? [];
 
   return (
@@ -208,7 +234,9 @@ export function OverviewTab() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <SalesRankingPanel title="Ranking Geral" entries={salesRanking} />
+        <SalesRankingPanel title="Ranking Vendedores" entries={salesRanking} />
+        <SalesRankingPanel title="Ranking Co-Vendedores" entries={coVendedorRanking} />
+        <SalesRankingPanel title="Ranking Participações" entries={participacoesRanking} />
         <RecentSalesPanel sales={recentSales} />
       </div>
     </>
