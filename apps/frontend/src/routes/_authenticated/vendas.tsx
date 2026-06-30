@@ -8,6 +8,7 @@ import { PendingBoletosPanel } from "@/components/cais/PendingBoletosPanel";
 import { SaleCelebrationModal } from "@/components/cais/SaleCelebrationModal";
 import { SaleRegistrationDrawer } from "@/components/cais/SaleRegistrationDrawer";
 import { SalesAccordionTable } from "@/components/cais/SalesAccordionTable";
+import { ExportSalesDialog } from "@/components/cais/ExportSalesDialog";
 import { SalesFiltersBar } from "@/components/cais/SalesFiltersBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -38,6 +39,7 @@ function VendasPage() {
   const canViewAll = can("sales.view_all");
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [highlightSaleId, setHighlightSaleId] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<SaleRegistrationResult | null>(null);
 
@@ -137,14 +139,20 @@ function VendasPage() {
           </TabsList>
         </Tabs>
 
-        <Button
-          variant="gold"
-          className="inline-flex items-center gap-2"
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Registrar nova venda
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => setExportDialogOpen(true)}>
+            Exportar
+          </Button>
+
+          <Button
+            variant="gold"
+            className="inline-flex items-center gap-2"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Registrar nova venda
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 rounded-md border border-slate-200 bg-branco p-4">
@@ -184,6 +192,12 @@ function VendasPage() {
         leadName={celebration?.leadName}
         saleValue={celebration?.saleValue}
         onClose={() => setCelebration(null)}
+      />
+
+      <ExportSalesDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        sales={filteredSales}
       />
     </AppLayout>
   );
