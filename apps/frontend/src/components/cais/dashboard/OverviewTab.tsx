@@ -18,16 +18,15 @@ import {
 } from "@/components/cais/dashboard/SalesPanels";
 import { GoalProgressBar } from "@/components/cais/dashboard/GoalProgressBar";
 import {
-  fetchAllLeads,
+  fetchDashboardSummary,
   fetchMetaPeriod,
   fetchDailyGoalToday,
   fetchLookups,
   formatBRL,
-  isLeadClosed,
 } from "@/lib/cais-api";
 
 export function OverviewTab() {
-  const leads = useQuery({ queryKey: ["leads-all"], queryFn: fetchAllLeads });
+  const summary = useQuery({ queryKey: ["dashboard-summary"], queryFn: fetchDashboardSummary });
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
   const dailyGoal = useQuery({
     queryKey: ["daily-goal-today"],
@@ -65,17 +64,21 @@ export function OverviewTab() {
     return () => clearTimeout(t);
   }, [dailyPct]);
 
-  const total = leads.data?.length ?? 0;
-  const converted = (leads.data ?? []).filter(isLeadClosed).length;
+  const total = summary.data?.totalLeads ?? 0;
+  const converted = summary.data?.leadsByStatus.find((s) => s.slug === "fechado")?.count ?? 0;
   const convRate = total ? ((converted / total) * 100).toFixed(1) : "0.0";
 
   const funnelData = useMemo(() => {
     const statuses = lookups.data?.statuses ?? [];
-    return statuses.map((s) => ({
-      status: s.name,
-      count: (leads.data ?? []).filter((l) => l.salesStatus?.slug === s.slug).length,
-    }));
-  }, [leads.data, lookups.data]);
+    const statusCounts = summary.data?.leadsByStatus ?? [];
+    return statuses.map((s) => {
+      const match = statusCounts.find((sc) => sc.slug === s.slug);
+      return {
+        status: s.name,
+        count: match ? match.count : 0,
+      };
+    });
+  }, [summary.data?.leadsByStatus, lookups.data]);
 
   const salesRanking = useMemo(
     () =>
@@ -194,7 +197,7 @@ export function OverviewTab() {
           sub="Leads fechados"
         />
         <KPICard label="Taxa de Conversão" value={`${convRate}%`} sub="Convertidos / Total" />
-        <KPICard label="Volume Vendido" value={formatBRL(volume)} sub="Soma das vendas" />
+        <KPICard label="Volume Vendido" value={formatBRL(periodCurrent)} sub="Soma das vendas" />
       </div>
 
       <div className="mb-8 rounded-md border border-slate-200 bg-branco p-5">

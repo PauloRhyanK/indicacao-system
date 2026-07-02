@@ -710,6 +710,21 @@ export async function fetchDailyGoalToday(): Promise<DailyGoalToday> {
   return res.data;
 }
 
+export interface DashboardSummary {
+  goal: ApiGoal | null;
+  totalLeads: number;
+  leadsByStatus: {
+    status: string;
+    slug: string | null;
+    count: number;
+  }[];
+}
+
+export async function fetchDashboardSummary(): Promise<DashboardSummary> {
+  const res = await apiFetch<{ data: DashboardSummary }>("/dashboard/summary");
+  return res.data;
+}
+
 export async function fetchPersonalDashboard(): Promise<PersonalDashboard> {
   const res = await apiFetch<{ data: PersonalDashboard }>("/dashboard/personal");
   return res.data;
