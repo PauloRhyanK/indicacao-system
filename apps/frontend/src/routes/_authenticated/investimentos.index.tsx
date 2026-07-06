@@ -19,10 +19,15 @@ import {
 export const Route = createFileRoute("/_authenticated/investimentos/")({
   head: () => ({ meta: [{ title: "Investimentos — CAIS" }] }),
   beforeLoad: ({ context }) => {
-    // SDR puro (agenda leads, sem gestão) cai direto na sua fila de trabalho.
     const perms = (context as { permissions?: string[] }).permissions ?? [];
-    if (perms.includes("investimentos.schedule") && !perms.includes("investimentos.manage")) {
+    if (perms.includes("investimentos.manage")) return; // gestor/admin fica no dashboard
+    // SDR (agenda) cai na fila de trabalho.
+    if (perms.includes("investimentos.schedule")) {
       throw redirect({ to: "/investimentos/sdr" });
+    }
+    // Assessor (edita, sem agendar nem qualificar) cai nas suas reuniões.
+    if (perms.includes("investimentos.edit") && !perms.includes("investimentos.qualify")) {
+      throw redirect({ to: "/investimentos/reunioes" });
     }
   },
   component: InvestDashboardPage,
