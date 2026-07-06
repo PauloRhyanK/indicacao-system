@@ -46,6 +46,7 @@ export const INVEST_FAIXA_LABELS: Record<InvestFaixa, string> = {
   digital: "Digital",
   private: "Private",
   wealth: "Wealth",
+  pj: "PJ",
 };
 
 export const INVEST_FAIXA_MIN_PRIVATE = 5_000_000;
