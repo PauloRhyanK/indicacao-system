@@ -36,6 +36,23 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
   { key: "roles.manage", label: "Gerenciar papéis", groupName: "Administração" },
   { key: "settings.manage", label: "Gerenciar domínios do sistema", groupName: "Administração" },
   {
+    key: "investimentos.view",
+    label: "Ver pipeline de investimentos",
+    description: "Consultar leads, funil e meta da campanha BNF",
+    groupName: "Investimentos",
+  },
+  {
+    key: "investimentos.manage",
+    label: "Gerenciar leads de investimentos",
+    description: "Criar, editar, mover etapa, excluir leads e definir a meta de captação",
+    groupName: "Investimentos",
+  },
+  {
+    key: "investimentos.import",
+    label: "Importar planilha de investimentos",
+    groupName: "Investimentos",
+  },
+  {
     key: "rj.view",
     label: "Ver credores (somente leitura)",
     description: "Consultar e exportar dados dos credores",
@@ -120,6 +137,9 @@ export const COLABORADOR_PERMISSION_KEYS = [
   "rewards.client_choice",
   "dashboard.general",
   "tv.view",
+  "investimentos.view",
+  "investimentos.manage",
+  "investimentos.import",
 ] as const;
 
 export const ROLE_ADMIN_NAME = "Administrador";

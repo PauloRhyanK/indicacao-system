@@ -63,6 +63,8 @@ model User {
   leadsAsCoVendedor      Lead[]     @relation("LeadCoVendedor")
   leadsCreated           Lead[]     @relation("LeadCreatedBy")
   leadsFirstContact      Lead[]     @relation("LeadFirstContact")
+  investLeadsAsResponsavel InvestLead[] @relation("InvestLeadResponsavel")
+  investLeadsCreated       InvestLead[] @relation("InvestLeadCreatedBy")
   purchasesAsResponsavel Purchase[]     @relation("PurchaseResponsavel")
   campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
   userRoles              UserRole[]
@@ -283,6 +285,46 @@ model MetaDailyOverride {
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
   @@map("meta_daily_overrides")
+}
+
+model InvestLead {
+  id              String    @id @default(uuid()) @db.Uuid
+  nome            String
+  origem          String    @default("outro")
+  produto         String    @default("carteira")
+  pitch           String    @default("")
+  pl              Decimal   @default(0) @db.Decimal(15, 2)
+  etapa           String    @default("lead")
+  probabilidade   Int       @default(5)
+  faixa           String?
+  responsavelId   String?   @map("responsavel_id") @db.Uuid
+  responsavelNome String    @default("") @map("responsavel_nome")
+  indicadoPor     String    @default("") @map("indicado_por")
+  celular         String    @default("")
+  contato         String    @default("")
+  passo           String    @default("")
+  retorno         DateTime? @db.Date
+  obs             String    @default("")
+  createdById     String?   @map("created_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  responsavel User? @relation("InvestLeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  createdBy   User? @relation("InvestLeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([etapa])
+  @@index([responsavelId])
+  @@index([deletedAt])
+  @@map("invest_leads")
+}
+
+model InvestConfig {
+  id        String   @id @default("singleton")
+  meta      Decimal  @default(0) @db.Decimal(15, 2)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("invest_config")
 }
 
 model RjCredor {

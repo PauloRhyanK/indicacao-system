@@ -20,8 +20,10 @@ import { Route as AuthenticatedIndicacoesRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteRouteImport } from './routes/_authenticated/configuracoes/route'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
+import { Route as AuthenticatedInvestimentosIndexRouteImport } from './routes/_authenticated/investimentos.index'
 import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes/index'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as AuthenticatedInvestimentosPipelineRouteImport } from './routes/_authenticated/investimentos.pipeline'
 import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
 
@@ -80,6 +82,12 @@ const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
   path: '/leads/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInvestimentosIndexRoute =
+  AuthenticatedInvestimentosIndexRouteImport.update({
+    id: '/investimentos/',
+    path: '/investimentos/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesIndexRoute =
   AuthenticatedConfiguracoesIndexRouteImport.update({
     id: '/',
@@ -91,6 +99,12 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInvestimentosPipelineRoute =
+  AuthenticatedInvestimentosPipelineRouteImport.update({
+    id: '/investimentos/pipeline',
+    path: '/investimentos/pipeline',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesPapeisRoute =
   AuthenticatedConfiguracoesPapeisRouteImport.update({
     id: '/papeis',
@@ -116,8 +130,10 @@ export interface FileRoutesByFullPath {
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
+  '/investimentos/': typeof AuthenticatedInvestimentosIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -131,8 +147,10 @@ export interface FileRoutesByTo {
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
+  '/investimentos': typeof AuthenticatedInvestimentosIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRoutesById {
@@ -149,8 +167,10 @@ export interface FileRoutesById {
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/_authenticated/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
+  '/_authenticated/investimentos/': typeof AuthenticatedInvestimentosIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRouteTypes {
@@ -167,8 +187,10 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
+    | '/investimentos/pipeline'
     | '/leads/$id'
     | '/configuracoes/'
+    | '/investimentos/'
     | '/leads/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -182,8 +204,10 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
+    | '/investimentos/pipeline'
     | '/leads/$id'
     | '/configuracoes'
+    | '/investimentos'
     | '/leads'
   id:
     | '__root__'
@@ -199,8 +223,10 @@ export interface FileRouteTypes {
     | '/_authenticated/vendas'
     | '/_authenticated/configuracoes/metas'
     | '/_authenticated/configuracoes/papeis'
+    | '/_authenticated/investimentos/pipeline'
     | '/_authenticated/leads/$id'
     | '/_authenticated/configuracoes/'
+    | '/_authenticated/investimentos/'
     | '/_authenticated/leads/'
   fileRoutesById: FileRoutesById
 }
@@ -292,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/investimentos/': {
+      id: '/_authenticated/investimentos/'
+      path: '/investimentos'
+      fullPath: '/investimentos/'
+      preLoaderRoute: typeof AuthenticatedInvestimentosIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes/': {
       id: '/_authenticated/configuracoes/'
       path: '/'
@@ -304,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/leads/$id'
       fullPath: '/leads/$id'
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/investimentos/pipeline': {
+      id: '/_authenticated/investimentos/pipeline'
+      path: '/investimentos/pipeline'
+      fullPath: '/investimentos/pipeline'
+      preLoaderRoute: typeof AuthenticatedInvestimentosPipelineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/configuracoes/papeis': {
@@ -347,7 +387,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIndicacoesRoute: typeof AuthenticatedIndicacoesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
+  AuthenticatedInvestimentosPipelineRoute: typeof AuthenticatedInvestimentosPipelineRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
+  AuthenticatedInvestimentosIndexRoute: typeof AuthenticatedInvestimentosIndexRoute
   AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
 }
 
@@ -357,7 +399,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIndicacoesRoute: AuthenticatedIndicacoesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
+  AuthenticatedInvestimentosPipelineRoute:
+    AuthenticatedInvestimentosPipelineRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
+  AuthenticatedInvestimentosIndexRoute: AuthenticatedInvestimentosIndexRoute,
   AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
 }
 

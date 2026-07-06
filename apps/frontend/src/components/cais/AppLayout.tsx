@@ -9,18 +9,54 @@ import {
   Settings,
   LogOut,
   ShoppingCart,
+  KanbanSquare,
+  ArrowLeftRight,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
 import { usePermissions } from "@/lib/use-permissions";
+import {
+  SYSTEM_HOME,
+  useActiveSystem,
+  type ActiveSystem,
+} from "@/lib/use-active-system";
 import { cn } from "@/lib/utils";
 import caisLogo from "@/assets/cais-logo.png";
 
-const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: null },
-  { to: "/leads", label: "Leads", icon: Users, permission: ["leads.view_all", "leads.view_own"] as const },
-  { to: "/vendas", label: "Registrar Venda", icon: ShoppingCart, permission: ["sales.create"] as const },
-  { to: "/indicacoes", label: "Indicações", icon: Network, permission: ["leads.view_all", "leads.view_own"] as const },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, permission: null },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  permission: readonly string[] | null;
+  exact?: boolean;
+};
+
+const NAV_BY_SYSTEM: Record<ActiveSystem, readonly NavItem[]> = {
+  investimento: [
+    { to: "/investimentos", label: "Dashboard", icon: LayoutDashboard, permission: ["investimentos.view"], exact: true },
+    { to: "/investimentos/pipeline", label: "Pipeline", icon: KanbanSquare, permission: ["investimentos.view"] },
+    { to: "/configuracoes", label: "Configurações", icon: Settings, permission: null },
+  ],
+  consorcio: [
+    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: null },
+    { to: "/leads", label: "Leads", icon: Users, permission: ["leads.view_all", "leads.view_own"] },
+    { to: "/vendas", label: "Registrar Venda", icon: ShoppingCart, permission: ["sales.create"] },
+    { to: "/indicacoes", label: "Indicações", icon: Network, permission: ["leads.view_all", "leads.view_own"] },
+    { to: "/configuracoes", label: "Configurações", icon: Settings, permission: null },
+  ],
+};
+
+const SYSTEM_META: Record<ActiveSystem, { label: string; subtitle: string }> = {
+  investimento: { label: "Investimentos", subtitle: "CRM de Investimentos" },
+  consorcio: { label: "Consórcio", subtitle: "Indicação de Consórcios" },
+};
+
+const CONSORCIO_ACCESS = [
+  "leads.view_all",
+  "leads.view_own",
+  "sales.create",
+  "sales.view_all",
+  "dashboard.general",
+  "rewards.payments",
 ] as const;
 
 const STORAGE_KEY = "cais-sidebar-expanded";
@@ -30,10 +66,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { canAny } = usePermissions();
   const [expanded, setExpanded] = useState(true);
+  const { activeSystem, switchTo } = useActiveSystem(pathname);
 
-  const nav = navItems.filter(
+  const hasInvest = canAny("investimentos.view");
+  const hasConsorcio = canAny(...CONSORCIO_ACCESS);
+  const otherSystem: ActiveSystem =
+    activeSystem === "investimento" ? "consorcio" : "investimento";
+  const canSwitch = otherSystem === "investimento" ? hasInvest : hasConsorcio;
+
+  const nav = NAV_BY_SYSTEM[activeSystem].filter(
     (item) => !item.permission || canAny(...item.permission),
   );
+  const meta = SYSTEM_META[activeSystem];
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -44,12 +88,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, String(expanded));
   }, [expanded]);
 
-  const isActive = (to: string) =>
-    pathname === to || pathname.startsWith(to + "/");
+  const isActive = (item: NavItem) =>
+    item.exact
+      ? pathname === item.to
+      : pathname === item.to || pathname.startsWith(item.to + "/");
 
   const handleLogout = () => {
     logout();
     navigate({ to: "/login", replace: true });
+  };
+
+  const handleSwitch = () => {
+    switchTo(otherSystem);
+    navigate({ to: SYSTEM_HOME[otherSystem] });
   };
 
   return (
@@ -62,17 +113,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className={cn("py-6", expanded ? "px-6" : "px-3")}>
-          <Link to="/dashboard" className="block">
+          <Link to={SYSTEM_HOME[activeSystem]} className="block">
             <img
               src={caisLogo}
-              alt="Cais Investimentos"
+              alt="Cais"
               className={cn(
                 "w-auto object-contain object-left",
                 expanded ? "h-[64px]" : "mx-auto h-8",
               )}
             />
             {expanded && (
-              <div className="mt-2 text-[11px] italic text-ouro">Indicação de Consórcios</div>
+              <div className="mt-2 text-[11px] italic text-ouro">{meta.subtitle}</div>
             )}
           </Link>
         </div>
@@ -83,7 +134,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         <nav className={cn("mt-4 flex flex-1 flex-col gap-1", expanded ? "px-3" : "px-2")}>
           {nav.map((item) => {
-            const active = isActive(item.to);
+            const active = isActive(item);
             return (
               <Link
                 key={item.to}
@@ -109,6 +160,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className={cn("flex flex-col gap-1", expanded ? "m-3" : "mx-2 mb-3")}>
+          {canSwitch && (
+            <button
+              type="button"
+              onClick={handleSwitch}
+              title={expanded ? undefined : `Ir para ${SYSTEM_META[otherSystem].label}`}
+              className={cn(
+                "flex items-center rounded-md border border-ouro/40 text-ouro transition-colors hover:bg-ouro/10",
+                expanded ? "gap-3 px-3 py-2.5 text-[13px]" : "justify-center py-2.5",
+              )}
+            >
+              <ArrowLeftRight className="h-[18px] w-[18px] shrink-0" />
+              {expanded && (
+                <span className="truncate">
+                  Ir para <b className="font-semibold">{SYSTEM_META[otherSystem].label}</b>
+                </span>
+              )}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -151,12 +221,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Mobile top bar */}
         <header className="flex items-center justify-between bg-azul-profundo px-4 py-3 md:hidden">
-          <Link to="/dashboard">
-            <img src={caisLogo} alt="Cais Investimentos" className="h-8 w-auto object-contain" />
+          <Link to={SYSTEM_HOME[activeSystem]}>
+            <img src={caisLogo} alt="Cais" className="h-8 w-auto object-contain" />
           </Link>
-          <button onClick={handleLogout} className="text-azul-ceu">
-            <LogOut className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            {canSwitch && (
+              <button
+                onClick={handleSwitch}
+                className="flex items-center gap-1.5 rounded-md border border-ouro/40 px-2.5 py-1.5 text-[12px] text-ouro"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                {SYSTEM_META[otherSystem].label}
+              </button>
+            )}
+            <button onClick={handleLogout} className="text-azul-ceu">
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <main className="min-w-0 flex-1 overflow-x-hidden px-4 pb-24 pt-6 md:px-8 md:pb-10 animate-fade-in">
@@ -167,7 +248,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile bottom tabs */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-azul-profundo md:hidden">
         {nav.map((item) => {
-          const active = isActive(item.to);
+          const active = isActive(item);
           return (
             <Link
               key={item.to}
@@ -186,4 +267,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
