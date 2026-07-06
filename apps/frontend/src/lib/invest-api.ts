@@ -177,6 +177,7 @@ export interface InvestImportReport {
   created: number;
   updated: number;
   responsaveisNaoMapeados: string[];
+  divergencias: { nome: string; detalhe: string }[];
 }
 
 // ---------------------------------------------------------------------------

@@ -275,11 +275,54 @@ function normalizeRetorno(value: number | string | undefined): Date | null {
   return null;
 }
 
+export interface InvestImportDivergencia {
+  nome: string;
+  detalhe: string;
+}
+
 export interface InvestImportReport {
   total: number;
   created: number;
   updated: number;
   responsaveisNaoMapeados: string[];
+  divergencias: InvestImportDivergencia[];
+}
+
+/**
+ * Flag de divergências: o mesmo lead (por nome) aparece mais de uma vez na
+ * planilha com PL ou responsável diferentes — típico de "citado por duas
+ * pessoas". O upsert mantém o último; aqui só sinalizamos para revisão.
+ */
+function detectDivergencias(rows: InvestImportRow[]): InvestImportDivergencia[] {
+  const groups = new Map<
+    string,
+    { nome: string; count: number; pls: Set<string>; resps: Set<string> }
+  >();
+  for (const row of rows) {
+    const key = normalizeText(row.nome);
+    const g = groups.get(key) ?? { nome: row.nome.trim(), count: 0, pls: new Set(), resps: new Set() };
+    g.count += 1;
+    g.pls.add(String(parseNumberBr(row.pl)));
+    const resp = (row.responsavel ?? "").trim();
+    if (resp) g.resps.add(resp);
+    groups.set(key, g);
+  }
+
+  const out: InvestImportDivergencia[] = [];
+  for (const g of groups.values()) {
+    if (g.count < 2) continue;
+    const partes: string[] = [];
+    if (g.pls.size > 1) {
+      partes.push(
+        `PL divergente (${[...g.pls].map((p) => Number(p).toLocaleString("pt-BR")).join(" vs ")})`,
+      );
+    }
+    if (g.resps.size > 1) partes.push(`responsável divergente (${[...g.resps].join(" vs ")})`);
+    if (partes.length > 0) {
+      out.push({ nome: g.nome, detalhe: `${g.count}× na planilha — ${partes.join("; ")}` });
+    }
+  }
+  return out;
 }
 
 export async function importInvestLeads(
@@ -312,6 +355,7 @@ export async function importInvestLeads(
     created: 0,
     updated: 0,
     responsaveisNaoMapeados: [],
+    divergencias: detectDivergencias(rows),
   };
   const unmatched = new Set<string>();
   const seenInBatch = new Map<string, string>(); // nome normalizado → id criado no lote

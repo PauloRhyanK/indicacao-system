@@ -225,6 +225,23 @@ export function InvestImportDialog({ open, onClose }: InvestImportDialogProps) {
                     </span>
                   </p>
                 )}
+                {report.divergencias.length > 0 && (
+                  <div className="mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-amber-700">
+                    <p className="font-semibold">
+                      ⚠ {report.divergencias.length} lead(s) com divergência na planilha:
+                    </p>
+                    <ul className="mt-1 list-disc pl-4">
+                      {report.divergencias.slice(0, 12).map((d) => (
+                        <li key={d.nome}>
+                          <strong>{d.nome}</strong>: {d.detalhe}
+                        </li>
+                      ))}
+                    </ul>
+                    {report.divergencias.length > 12 && (
+                      <p className="mt-1">+ {report.divergencias.length - 12} outros</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
