@@ -6,13 +6,18 @@ import { ArrowRight } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { KPICard } from "@/components/cais/KPICard";
 import { Input } from "@/components/ui/input";
-import { InvestFunnel } from "@/components/cais/invest/InvestFunnel";
+import {
+  InvestFaixaDonut,
+  InvestFunnelChart,
+  InvestTrendChart,
+} from "@/components/cais/invest/InvestCharts";
 import { usePermissions } from "@/lib/use-permissions";
 import {
   fetchInvestLeads,
   formatBRLCompact,
   investPipeByResponsavel,
   investTotals,
+  investWinRate,
   updateInvestConfig,
 } from "@/lib/invest-api";
 
@@ -50,6 +55,7 @@ function InvestDashboardPage() {
 
   const totals = useMemo(() => investTotals(leads), [leads]);
   const porResponsavel = useMemo(() => investPipeByResponsavel(leads), [leads]);
+  const win = useMemo(() => investWinRate(leads), [leads]);
   const closed = totals.ganhoN + totals.perdidoN;
   const conversao = closed ? Math.round((totals.ganhoN / closed) * 100) : null;
 
@@ -173,15 +179,12 @@ function InvestDashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-md border border-slate-200 bg-branco p-4">
-            <h3 className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.6px] text-ouro-escuro">
-              Funil por etapa
-              <span className="text-[10px] font-normal normal-case tracking-normal text-slate-400">
-                nº · PL
-              </span>
-            </h3>
-            <InvestFunnel leads={leads} />
-          </div>
+          <InvestFaixaDonut leads={leads} />
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <InvestFunnelChart leads={leads} winRate={win.taxa} />
+          <InvestTrendChart leads={leads} />
         </div>
 
         <div className="mt-3 rounded-md border border-slate-200 bg-branco p-4">

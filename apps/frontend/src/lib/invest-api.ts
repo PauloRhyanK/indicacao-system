@@ -482,6 +482,108 @@ export function investPipeByResponsavel(leads: InvestLead[]): InvestRespRow[] {
   return [...map.values()].sort((a, b) => b.ponderado - a.ponderado);
 }
 
+export interface InvestFaixaDist {
+  faixa: InvestFaixa;
+  label: string;
+  color: string;
+  count: number;
+  total: number;
+  ponderado: number;
+}
+
+/** Distribuição do pipe ativo por faixa (Digital/Private/Wealth). */
+export function investFaixaDistribution(leads: InvestLead[]): InvestFaixaDist[] {
+  const rows = INVEST_FAIXAS.map((f) => ({
+    faixa: f,
+    label: INVEST_FAIXA_INFO[f].label,
+    color: INVEST_FAIXA_INFO[f].color,
+    count: 0,
+    total: 0,
+    ponderado: 0,
+  }));
+  const by = new Map(rows.map((r) => [r.faixa, r]));
+  for (const l of leads) {
+    if (l.etapa === "perdido" || l.etapa === "ganho") continue;
+    if (!l.faixa) continue;
+    const r = by.get(l.faixa);
+    if (!r) continue;
+    r.count += 1;
+    r.total += l.pl;
+    r.ponderado += investWeighted(l);
+  }
+  return rows;
+}
+
+export interface InvestFunnelStage {
+  etapa: InvestEtapa;
+  label: string;
+  color: string;
+  count: number;
+  valor: number;
+}
+
+/** Distribuição atual por etapa aberta (para o funil visual). */
+export function investFunnelStages(leads: InvestLead[]): InvestFunnelStage[] {
+  const rows = INVEST_ETAPAS_ABERTAS.map((e) => ({
+    etapa: e,
+    label: INVEST_ETAPA_INFO[e].label,
+    color: INVEST_ETAPA_INFO[e].color,
+    count: 0,
+    valor: 0,
+  }));
+  const idx = new Map(rows.map((r, i) => [r.etapa, i]));
+  for (const l of leads) {
+    const i = idx.get(l.etapa);
+    if (i !== undefined) {
+      rows[i].count += 1;
+      rows[i].valor += l.pl;
+    }
+  }
+  return rows;
+}
+
+/** Taxa de conversão = ganhos / (ganhos + perdidos). */
+export function investWinRate(leads: InvestLead[]): {
+  ganhos: number;
+  perdidos: number;
+  taxa: number | null;
+} {
+  let ganhos = 0;
+  let perdidos = 0;
+  for (const l of leads) {
+    if (l.etapa === "ganho") ganhos += 1;
+    else if (l.etapa === "perdido") perdidos += 1;
+  }
+  const closed = ganhos + perdidos;
+  return { ganhos, perdidos, taxa: closed ? (ganhos / closed) * 100 : null };
+}
+
+/** Tendência mensal: leads captados (por created_at) e ganhos (por updated_at). */
+export function investTrendByMonth(
+  leads: InvestLead[],
+): { mes: string; captados: number; ganhos: number; captadoValor: number }[] {
+  const map = new Map<string, { captados: number; ganhos: number; captadoValor: number }>();
+  const get = (k: string) => {
+    let r = map.get(k);
+    if (!r) {
+      r = { captados: 0, ganhos: 0, captadoValor: 0 };
+      map.set(k, r);
+    }
+    return r;
+  };
+  for (const l of leads) {
+    get(l.created_at.slice(0, 7)).captados += 1;
+    if (l.etapa === "ganho") {
+      const r = get(l.updated_at.slice(0, 7));
+      r.ganhos += 1;
+      r.captadoValor += l.pl;
+    }
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([mes, v]) => ({ mes, ...v }));
+}
+
 /** Totais do pipe sobre um conjunto de leads (usado no dashboard e no filtro). */
 export function investTotals(leads: InvestLead[]) {
   let plOpen = 0;
