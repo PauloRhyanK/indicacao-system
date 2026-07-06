@@ -47,6 +47,8 @@ interface InvestLeadDialogProps {
   lead: InvestLead | null;
   profiles: Profile[];
   canManage: boolean;
+  /** Captação: pode criar lead novo mesmo sem gerir o pipeline. */
+  canCreate?: boolean;
 }
 
 interface FormState {
@@ -125,7 +127,10 @@ export function InvestLeadDialog({
   lead,
   profiles,
   canManage,
+  canCreate = false,
 }: InvestLeadDialogProps) {
+  // Editar exige gestão; criar um lead novo basta ter captação (create).
+  const editable = lead ? canManage : canManage || canCreate;
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -220,14 +225,14 @@ export function InvestLeadDialog({
               value={form.nome}
               onChange={(e) => set("nome", e.target.value)}
               placeholder="ex.: Construtora Vale Verde"
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
 
           <div>
             <Label>Origem</Label>
-            <Select value={form.origem} onValueChange={(v) => set("origem", v)} disabled={!canManage}>
+            <Select value={form.origem} onValueChange={(v) => set("origem", v)} disabled={!editable}>
               <SelectTrigger className="mt-1.5">
                 <SelectValue />
               </SelectTrigger>
@@ -243,7 +248,7 @@ export function InvestLeadDialog({
 
           <div>
             <Label>Produto de interesse</Label>
-            <Select value={form.produto} onValueChange={(v) => set("produto", v)} disabled={!canManage}>
+            <Select value={form.produto} onValueChange={(v) => set("produto", v)} disabled={!editable}>
               <SelectTrigger className="mt-1.5">
                 <SelectValue />
               </SelectTrigger>
@@ -262,7 +267,7 @@ export function InvestLeadDialog({
             <Select
               value={form.etapa}
               onValueChange={(v) => set("etapa", v as InvestEtapa)}
-              disabled={!canManage}
+              disabled={!editable}
             >
               <SelectTrigger className="mt-1.5">
                 <SelectValue />
@@ -287,7 +292,7 @@ export function InvestLeadDialog({
               step={5}
               value={form.probabilidade}
               onChange={(e) => set("probabilidade", e.target.value)}
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
             <p className="mt-1 text-[11px] text-slate-500">Manual por lead — defina a chance real.</p>
@@ -301,7 +306,7 @@ export function InvestLeadDialog({
               value={form.pl}
               onChange={(e) => onPlChange(e.target.value)}
               placeholder="0,00"
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
             {plBelowFloor && (
@@ -319,7 +324,7 @@ export function InvestLeadDialog({
                 setFaixaTouched(true);
                 set("faixa", v as InvestFaixa);
               }}
-              disabled={!canManage}
+              disabled={!editable}
             >
               <SelectTrigger className="mt-1.5">
                 <SelectValue />
@@ -344,7 +349,7 @@ export function InvestLeadDialog({
               value={form.celular}
               onChange={(e) => set("celular", e.target.value)}
               placeholder="(27) 9...."
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
@@ -356,7 +361,7 @@ export function InvestLeadDialog({
               value={form.indicadoPor}
               onChange={(e) => set("indicadoPor", e.target.value)}
               placeholder="quem trouxe o lead"
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
@@ -366,7 +371,7 @@ export function InvestLeadDialog({
             <Select
               value={form.responsavelId}
               onValueChange={(v) => set("responsavelId", v)}
-              disabled={!canManage}
+              disabled={!editable}
             >
               <SelectTrigger className="mt-1.5">
                 <SelectValue placeholder="Sem responsável" />
@@ -392,7 +397,7 @@ export function InvestLeadDialog({
             <Select
               value={form.vendedorId}
               onValueChange={(v) => set("vendedorId", v)}
-              disabled={!canManage}
+              disabled={!editable}
             >
               <SelectTrigger className="mt-1.5">
                 <SelectValue placeholder="Quem atende / fecha" />
@@ -413,7 +418,7 @@ export function InvestLeadDialog({
             <Select
               value={form.coVendedorId}
               onValueChange={(v) => set("coVendedorId", v)}
-              disabled={!canManage}
+              disabled={!editable}
             >
               <SelectTrigger className="mt-1.5">
                 <SelectValue placeholder="Sem co-vendedor" />
@@ -436,7 +441,7 @@ export function InvestLeadDialog({
               value={form.contato}
               onChange={(e) => set("contato", e.target.value)}
               placeholder="ex.: Sr. Antônio — (27) 9..."
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
@@ -448,7 +453,7 @@ export function InvestLeadDialog({
               type="date"
               value={form.retorno}
               onChange={(e) => set("retorno", e.target.value)}
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
@@ -460,7 +465,7 @@ export function InvestLeadDialog({
               value={form.passo}
               onChange={(e) => set("passo", e.target.value)}
               placeholder="ex.: Reunião de diagnóstico patrimonial na quinta"
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
@@ -472,7 +477,7 @@ export function InvestLeadDialog({
               value={form.pitch}
               onChange={(e) => set("pitch", e.target.value)}
               placeholder="ex.: gestão conta PJ, análise da carteira, Fundo Fortlev..."
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5"
             />
           </div>
@@ -484,13 +489,13 @@ export function InvestLeadDialog({
               value={form.obs}
               onChange={(e) => set("obs", e.target.value)}
               placeholder="Perfil, objetivos, concorrência, ressalvas..."
-              disabled={!canManage}
+              disabled={!editable}
               className="mt-1.5 min-h-[64px]"
             />
           </div>
         </div>
 
-        {canManage && (
+        {editable && (
           <div className="mt-2 flex items-center justify-between gap-2">
             <div>
               {lead &&

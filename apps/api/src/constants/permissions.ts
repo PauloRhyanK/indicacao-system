@@ -42,6 +42,12 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
     groupName: "Investimentos",
   },
   {
+    key: "investimentos.create",
+    label: "Cadastrar lead de investimento (captação)",
+    description: "Qualquer colaborador pode capturar leads, mesmo sem gerir o pipeline",
+    groupName: "Investimentos",
+  },
+  {
     key: "investimentos.manage",
     label: "Gerenciar leads de investimentos",
     description: "Criar, editar, mover etapa, excluir leads e definir a meta de captação",
@@ -138,6 +144,7 @@ export const COLABORADOR_PERMISSION_KEYS = [
   "dashboard.general",
   "tv.view",
   "investimentos.view",
+  "investimentos.create",
   "investimentos.manage",
   "investimentos.import",
 ] as const;

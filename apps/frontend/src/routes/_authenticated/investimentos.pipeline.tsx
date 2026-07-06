@@ -60,6 +60,7 @@ const ETAPA_ORD: Record<InvestEtapa, number> = {
 function InvestPipelinePage() {
   const { can } = usePermissions();
   const canManage = can("investimentos.manage");
+  const canCreate = canManage || can("investimentos.create");
   const canImport = can("investimentos.import");
 
   const queryClient = useQueryClient();
@@ -177,7 +178,7 @@ function InvestPipelinePage() {
                 <Upload className="h-4 w-4" /> Importar
               </Button>
             )}
-            {canManage && (
+            {canCreate && (
               <Button onClick={openCreate}>
                 <Plus className="h-4 w-4" /> Cadastrar lead
               </Button>
@@ -396,6 +397,7 @@ function InvestPipelinePage() {
         lead={editingLead}
         profiles={profiles.data ?? []}
         canManage={canManage}
+        canCreate={canCreate}
       />
       <InvestImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </AppLayout>
