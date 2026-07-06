@@ -146,41 +146,19 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
               <div className="rounded-md border border-slate-200 p-1 flex justify-center">
                 <Calendar
                   mode="single"
+                  required
                   selected={date}
                   onSelect={setDate}
                   locale={ptBR}
                   className="rounded-md"
                 />
               </div>
-              <div className="flex items-center gap-2 mt-3">
-                <input
-                  type="checkbox"
-                  id="isOnlineCheckbox"
-                  checked={isOnline}
-                  onChange={(e) => setIsOnline(e.target.checked)}
-                  className="rounded border-slate-300 text-ouro-escuro focus:ring-ouro-escuro"
-                />
-                <Label htmlFor="isOnlineCheckbox" className="font-normal text-slate-700 cursor-pointer">
-                  Gerar link do Microsoft Teams
-                </Label>
-              </div>
-
-              <div className="mt-6">
-                <Label htmlFor="reuniao-local">Local / link (opcional)</Label>
-                <Input
-                  id="reuniao-local"
-                  value={local}
-                  onChange={(e) => setLocal(e.target.value)}
-                  placeholder="ex.: escritório / videochamada"
-                  className="mt-1.5"
-                />
-              </div>
             </div>
           </div>
 
           {/* Coluna Direita: Horários e Local */}
-          <div className="space-y-6 flex flex-col h-full">
-            <div className="flex-1">
+          <div className="space-y-6">
+            <div>
               <Label className="mb-2 block flex items-center gap-2">
                 <Clock className="h-4 w-4 text-slate-500" /> Horários livres
               </Label>
@@ -224,6 +202,34 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                   })}
                 </div>
               )}
+            </div>
+
+            <div className="space-y-5 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isOnlineCheckbox"
+                  checked={isOnline}
+                  onChange={(e) => setIsOnline(e.target.checked)}
+                  className="rounded border-slate-300 text-ouro-escuro focus:ring-ouro-escuro"
+                />
+                <Label htmlFor="isOnlineCheckbox" className="font-normal text-slate-700 cursor-pointer">
+                  Gerar link do Microsoft Teams
+                </Label>
+              </div>
+
+              <div>
+                <Label htmlFor="reuniao-local" className="flex items-baseline gap-1">
+                  Local <span className="text-slate-400 font-normal text-[11px]">(opcional)</span>
+                </Label>
+                <Input
+                  id="reuniao-local"
+                  value={local}
+                  onChange={(e) => setLocal(e.target.value)}
+                  placeholder="ex.: escritório / videochamada"
+                  className="mt-1.5"
+                />
+              </div>
             </div>
           </div>
         </div>
