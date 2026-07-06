@@ -38,7 +38,7 @@ export const INVEST_ETAPA_DEFAULT_PROB: Record<InvestEtapa, number> = {
 
 // Faixa do cliente — coração do roteamento. Limiares definidos pelo gestor (KUS-138):
 // Digital 100k–5M · Private 5M–30M · Wealth ≥30M.
-export const INVEST_FAIXA_VALUES = ["digital", "private", "wealth"] as const;
+export const INVEST_FAIXA_VALUES = ["digital", "private", "wealth", "pj"] as const;
 
 export type InvestFaixa = (typeof INVEST_FAIXA_VALUES)[number];
 
