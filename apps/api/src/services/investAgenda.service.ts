@@ -205,23 +205,27 @@ export async function getAssessorSlots(assessorId: string, date: string) {
   const slots = [];
   // Horário comercial: 09:00 às 18:00
   for (let hour = 9; hour <= 18; hour++) {
-    const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:00:00.000-03:00`);
-    const slotEnd = new Date(slotStart.getTime() + DEFAULT_DURATION_MS);
+    for (const min of [0, 30]) {
+      if (hour === 18 && min === 30) continue; // max 18:00
+      
+      const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}:00.000-03:00`);
+      const slotEnd = new Date(slotStart.getTime() + DEFAULT_DURATION_MS);
 
-    // Checar sobreposição no CAIS
-    const hasCaisOverlap = reunioes.some((r: any) => {
-      const rStart = r.dataHoraInicio;
-      const rEnd = r.dataHoraFim ? r.dataHoraFim : new Date(rStart.getTime() + DEFAULT_DURATION_MS);
-      return slotStart < rEnd && slotEnd > rStart;
-    });
+      // Checar sobreposição no CAIS
+      const hasCaisOverlap = reunioes.some((r: any) => {
+        const rStart = r.dataHoraInicio;
+        const rEnd = r.dataHoraFim ? r.dataHoraFim : new Date(rStart.getTime() + DEFAULT_DURATION_MS);
+        return slotStart < rEnd && slotEnd > rStart;
+      });
 
-    // Checar sobreposição no Outlook
-    const hasOutlookOverlap = outlookEvents.some((e: any) => {
-      return slotStart < e.end && slotEnd > e.start;
-    });
+      // Checar sobreposição no Outlook
+      const hasOutlookOverlap = outlookEvents.some((e: any) => {
+        return slotStart < e.end && slotEnd > e.start;
+      });
 
-    if (!hasCaisOverlap && !hasOutlookOverlap) {
-      slots.push(slotStart.toISOString());
+      if (!hasCaisOverlap && !hasOutlookOverlap) {
+        slots.push(slotStart.toISOString());
+      }
     }
   }
 

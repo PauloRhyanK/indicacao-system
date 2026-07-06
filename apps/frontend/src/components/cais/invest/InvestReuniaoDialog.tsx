@@ -135,7 +135,7 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                 </SelectContent>
               </Select>
               <p className="mt-1 text-[11px] text-slate-500">
-                Apenas assessores com competência para a faixa do lead.
+                Apenas assessores configurados para a faixa do lead.
               </p>
             </div>
 
@@ -161,8 +161,19 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                   className="rounded border-slate-300 text-ouro-escuro focus:ring-ouro-escuro"
                 />
                 <Label htmlFor="isOnlineCheckbox" className="font-normal text-slate-700 cursor-pointer">
-                  Gerar link do Microsoft Teams (Reunião Online)
+                  Gerar link do Microsoft Teams
                 </Label>
+              </div>
+
+              <div className="mt-6">
+                <Label htmlFor="reuniao-local">Local / link (opcional)</Label>
+                <Input
+                  id="reuniao-local"
+                  value={local}
+                  onChange={(e) => setLocal(e.target.value)}
+                  placeholder="ex.: escritório / videochamada"
+                  className="mt-1.5"
+                />
               </div>
             </div>
           </div>
@@ -213,17 +224,6 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                   })}
                 </div>
               )}
-            </div>
-
-            <div>
-              <Label htmlFor="reuniao-local">Local / link (opcional)</Label>
-              <Input
-                id="reuniao-local"
-                value={local}
-                onChange={(e) => setLocal(e.target.value)}
-                placeholder="ex.: escritório / videochamada"
-                className="mt-1.5"
-              />
             </div>
           </div>
         </div>
