@@ -170,7 +170,68 @@ export async function getInvestOutlookAuth(request: FastifyRequest, reply: Fasti
 }
 
 export async function getInvestOutlookCallback(request: FastifyRequest, reply: FastifyReply) {
-  const { code, state } = request.query as { code: string; state: string };
+  const query = request.query as Record<string, string>;
+  const { code, state, admin_consent, error, error_description } = query;
+
+  // Se for o fluxo de admin consent, a Microsoft manda admin_consent=True
+  if (admin_consent === "True") {
+    reply.type("text/html").send(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Consentimento Concedido</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f3f4f6; }
+          .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; max-width: 400px; }
+          h1 { color: #10b981; font-size: 1.5rem; margin-top: 0; }
+          p { color: #4b5563; margin-bottom: 1.5rem; }
+          button { background-color: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: 500; }
+          button:hover { background-color: #2563eb; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>✅ Consentimento Concedido</h1>
+          <p>O aplicativo CAIS INDICAÇÕES foi autorizado com sucesso para a sua organização.</p>
+          <p>Os usuários já podem fazer login normalmente.</p>
+          <button onclick="window.close()">Fechar esta aba</button>
+        </div>
+      </body>
+      </html>
+    `);
+    return;
+  }
+
+  // Se o admin recusar, a Microsoft manda error
+  if (error && !code) {
+     reply.type("text/html").send(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Erro no Consentimento</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f3f4f6; }
+          .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; max-width: 400px; }
+          h1 { color: #ef4444; font-size: 1.5rem; margin-top: 0; }
+          p { color: #4b5563; margin-bottom: 1.5rem; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>❌ Consentimento Não Concedido</h1>
+          <p>Houve um erro ou o consentimento foi recusado.</p>
+          <p style="font-size: 0.875rem; color: #6b7280;">Detalhe: ${error_description || error}</p>
+        </div>
+      </body>
+      </html>
+    `);
+    return;
+  }
+
   if (!code || !state) {
     return reply.status(400).send({ error: "Faltando code ou state." });
   }
