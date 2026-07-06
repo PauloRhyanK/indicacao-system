@@ -15,4 +15,7 @@ export const defaultSiteMeta = [
   { name: "twitter:card", content: "summary" },
   { name: "twitter:title", content: `${SITE_NAME} — ${SITE_TAGLINE}` },
   { name: "twitter:description", content: SITE_DESCRIPTION },
+  { name: "msapplication-TileColor", content: "#ffffff" },
+  { name: "msapplication-TileImage", content: "/ms-icon-144x144.png" },
+  { name: "theme-color", content: "#ffffff" },
 ];

@@ -18,4 +18,7 @@ export const confidencialSiteMeta = [
     name: "description",
     content: "Ambiente restrito de coordenação de credores para recuperação judicial.",
   },
+  { name: "msapplication-TileColor", content: "#ffffff" },
+  { name: "msapplication-TileImage", content: "/ms-icon-144x144.png" },
+  { name: "theme-color", content: "#ffffff" },
 ];
