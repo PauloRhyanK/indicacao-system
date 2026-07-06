@@ -64,6 +64,8 @@ model User {
   leadsCreated           Lead[]     @relation("LeadCreatedBy")
   leadsFirstContact      Lead[]     @relation("LeadFirstContact")
   investLeadsAsResponsavel InvestLead[] @relation("InvestLeadResponsavel")
+  investLeadsAsVendedor    InvestLead[] @relation("InvestLeadVendedor")
+  investLeadsAsCoVendedor  InvestLead[] @relation("InvestLeadCoVendedor")
   investLeadsCreated       InvestLead[] @relation("InvestLeadCreatedBy")
   purchasesAsResponsavel Purchase[]     @relation("PurchaseResponsavel")
   campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
@@ -299,6 +301,8 @@ model InvestLead {
   faixa           String?
   responsavelId   String?   @map("responsavel_id") @db.Uuid
   responsavelNome String    @default("") @map("responsavel_nome")
+  vendedorId      String?   @map("vendedor_id") @db.Uuid
+  coVendedorId    String?   @map("co_vendedor_id") @db.Uuid
   indicadoPor     String    @default("") @map("indicado_por")
   celular         String    @default("")
   contato         String    @default("")
@@ -311,10 +315,13 @@ model InvestLead {
   deletedAt       DateTime? @map("deleted_at")
 
   responsavel User? @relation("InvestLeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  vendedor    User? @relation("InvestLeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
+  coVendedor  User? @relation("InvestLeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
   createdBy   User? @relation("InvestLeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([etapa])
   @@index([responsavelId])
+  @@index([vendedorId])
   @@index([deletedAt])
   @@map("invest_leads")
 }

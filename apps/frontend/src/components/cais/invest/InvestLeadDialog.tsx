@@ -27,6 +27,7 @@ import {
   INVEST_FAIXAS,
   INVEST_FAIXA_INFO,
   INVEST_ORIGENS,
+  INVEST_PL_FLOOR,
   INVEST_PRODUTOS,
   createInvestLead,
   deleteInvestLead,
@@ -60,6 +61,8 @@ interface FormState {
   indicadoPor: string;
   celular: string;
   responsavelId: string;
+  vendedorId: string;
+  coVendedorId: string;
   contato: string;
   passo: string;
   retorno: string;
@@ -79,6 +82,8 @@ function emptyForm(): FormState {
     indicadoPor: "",
     celular: "",
     responsavelId: NONE,
+    vendedorId: NONE,
+    coVendedorId: NONE,
     contato: "",
     passo: "",
     retorno: "",
@@ -99,6 +104,8 @@ function formFromLead(lead: InvestLead): FormState {
     indicadoPor: lead.indicado_por,
     celular: lead.celular,
     responsavelId: lead.responsavel?.id ?? NONE,
+    vendedorId: lead.vendedor?.id ?? NONE,
+    coVendedorId: lead.co_vendedor?.id ?? NONE,
     contato: lead.contato,
     passo: lead.passo,
     retorno: lead.retorno ?? "",
@@ -160,6 +167,8 @@ export function InvestLeadDialog({
         probabilidade: Math.max(0, Math.min(100, parseInt(form.probabilidade, 10) || 0)),
         faixa: form.faixa,
         responsavelId: form.responsavelId === NONE ? null : form.responsavelId,
+        vendedorId: form.vendedorId === NONE ? null : form.vendedorId,
+        coVendedorId: form.coVendedorId === NONE ? null : form.coVendedorId,
         indicadoPor: form.indicadoPor.trim(),
         celular: form.celular.trim(),
         contato: form.contato.trim(),
@@ -190,6 +199,8 @@ export function InvestLeadDialog({
   });
 
   const busy = saveMutation.isPending || deleteMutation.isPending;
+  const plParsed = parsePl(form.pl);
+  const plBelowFloor = plParsed > 0 && plParsed < INVEST_PL_FLOOR;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -293,6 +304,11 @@ export function InvestLeadDialog({
               disabled={!canManage}
               className="mt-1.5"
             />
+            {plBelowFloor && (
+              <p className="mt-1 text-[11px] text-amber-600">
+                Abaixo de R$ 1 mi — fora do piso da campanha (entra sinalizado).
+              </p>
+            )}
           </div>
 
           <div>
@@ -369,6 +385,48 @@ export function InvestLeadDialog({
                 Na planilha: <strong>{lead.responsavel_nome}</strong> (não mapeado a um usuário)
               </p>
             ) : null}
+          </div>
+
+          <div>
+            <Label>Vendedor / Assessor</Label>
+            <Select
+              value={form.vendedorId}
+              onValueChange={(v) => set("vendedorId", v)}
+              disabled={!canManage}
+            >
+              <SelectTrigger className="mt-1.5">
+                <SelectValue placeholder="Quem atende / fecha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>— (pode ser o responsável)</SelectItem>
+                {profiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Co-vendedor</Label>
+            <Select
+              value={form.coVendedorId}
+              onValueChange={(v) => set("coVendedorId", v)}
+              disabled={!canManage}
+            >
+              <SelectTrigger className="mt-1.5">
+                <SelectValue placeholder="Sem co-vendedor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Sem co-vendedor</SelectItem>
+                {profiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

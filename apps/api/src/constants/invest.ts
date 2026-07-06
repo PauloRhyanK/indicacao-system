@@ -51,6 +51,9 @@ export const INVEST_FAIXA_LABELS: Record<InvestFaixa, string> = {
 export const INVEST_FAIXA_MIN_PRIVATE = 5_000_000;
 export const INVEST_FAIXA_MIN_WEALTH = 30_000_000;
 
+/** Piso de patrimônio para o lead "entrar no PL" da campanha (regra BNF). */
+export const INVEST_PL_FLOOR = 1_000_000;
+
 /** Sugere a faixa a partir do PL (sobrescrevível manualmente). */
 export function faixaFromPl(pl: number): InvestFaixa {
   if (pl >= INVEST_FAIXA_MIN_WEALTH) return "wealth";

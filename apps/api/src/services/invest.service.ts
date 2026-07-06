@@ -8,6 +8,7 @@ import {
   INVEST_FAIXA_VALUES,
   INVEST_ORIGEM_LABELS,
   INVEST_ORIGEM_VALUES,
+  INVEST_PL_FLOOR,
   INVEST_PRODUTO_LABELS,
   INVEST_PRODUTO_VALUES,
   faixaFromPl,
@@ -30,10 +31,16 @@ const activeWhere = { deletedAt: null } as const;
 
 const includeResponsavel = {
   responsavel: { select: { id: true, name: true } },
+  vendedor: { select: { id: true, name: true } },
+  coVendedor: { select: { id: true, name: true } },
 } as const;
 
+type UserRef = { id: string; name: string } | null;
+
 type InvestLeadWithUser = InvestLead & {
-  responsavel: { id: string; name: string } | null;
+  responsavel: UserRef;
+  vendedor: UserRef;
+  coVendedor: UserRef;
 };
 
 function serializeInvestLead(lead: InvestLeadWithUser) {
@@ -47,8 +54,11 @@ function serializeInvestLead(lead: InvestLeadWithUser) {
     etapa: lead.etapa,
     probabilidade: lead.probabilidade,
     faixa: lead.faixa,
+    abaixo_do_piso: Number(lead.pl) > 0 && Number(lead.pl) < INVEST_PL_FLOOR,
     responsavel: lead.responsavel,
     responsavel_nome: lead.responsavel?.name ?? lead.responsavelNome,
+    vendedor: lead.vendedor,
+    co_vendedor: lead.coVendedor,
     indicado_por: lead.indicadoPor,
     celular: lead.celular,
     contato: lead.contato,
@@ -108,6 +118,8 @@ export async function createInvestLead(input: CreateInvestLeadInput, actorUserId
       faixa: normalizeFaixa(input.faixa) ?? faixaFromPl(input.pl),
       responsavelId: input.responsavelId ?? null,
       responsavelNome: input.responsavelNome,
+      vendedorId: input.vendedorId ?? null,
+      coVendedorId: input.coVendedorId ?? null,
       indicadoPor: input.indicadoPor,
       celular: input.celular,
       contato: input.contato,
@@ -144,6 +156,8 @@ export async function updateInvestLead(id: string, input: UpdateInvestLeadInput)
       ...(input.faixa !== undefined ? { faixa: normalizeFaixa(input.faixa) } : {}),
       ...(input.responsavelId !== undefined ? { responsavelId: input.responsavelId } : {}),
       ...(input.responsavelNome !== undefined ? { responsavelNome: input.responsavelNome } : {}),
+      ...(input.vendedorId !== undefined ? { vendedorId: input.vendedorId } : {}),
+      ...(input.coVendedorId !== undefined ? { coVendedorId: input.coVendedorId } : {}),
       ...(input.indicadoPor !== undefined ? { indicadoPor: input.indicadoPor } : {}),
       ...(input.celular !== undefined ? { celular: input.celular } : {}),
       ...(input.contato !== undefined ? { contato: input.contato } : {}),
@@ -377,6 +391,7 @@ export async function exportInvestLeadsCsv(): Promise<string> {
     "Probabilidade (%)",
     "Previsão",
     "Responsável",
+    "Vendedor/Assessor",
     "Contato",
     "Próximo passo",
     "Retorno",
@@ -398,6 +413,7 @@ export async function exportInvestLeadsCsv(): Promise<string> {
       l.probabilidade,
       Math.round(previsao),
       l.responsavel?.name ?? l.responsavelNome,
+      l.vendedor?.name ?? "",
       l.contato,
       l.passo,
       l.retorno ? l.retorno.toISOString().slice(0, 10) : "",

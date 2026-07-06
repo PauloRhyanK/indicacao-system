@@ -23,6 +23,8 @@ const investLeadBaseSchema = z.object({
   faixa: z.enum(INVEST_FAIXA_VALUES).nullable().optional(),
   responsavelId: z.string().uuid().nullable().optional(),
   responsavelNome: z.string().default(""),
+  vendedorId: z.string().uuid().nullable().optional(),
+  coVendedorId: z.string().uuid().nullable().optional(),
   indicadoPor: z.string().default(""),
   celular: z.string().default(""),
   contato: z.string().default(""),

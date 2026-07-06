@@ -77,6 +77,9 @@ export const INVEST_FAIXA_INFO: Record<InvestFaixa, { label: string; color: stri
 export const INVEST_FAIXA_MIN_PRIVATE = 5_000_000;
 export const INVEST_FAIXA_MIN_WEALTH = 30_000_000;
 
+/** Piso de patrimônio para o lead "entrar no PL" da campanha BNF. */
+export const INVEST_PL_FLOOR = 1_000_000;
+
 /** Sugere a faixa a partir do PL (sobrescrevível manualmente). */
 export function faixaFromPl(pl: number): InvestFaixa {
   if (pl >= INVEST_FAIXA_MIN_WEALTH) return "wealth";
@@ -106,8 +109,11 @@ export interface InvestLead {
   etapa: InvestEtapa;
   probabilidade: number;
   faixa: InvestFaixa | null;
+  abaixo_do_piso: boolean;
   responsavel: { id: string; name: string } | null;
   responsavel_nome: string;
+  vendedor: { id: string; name: string } | null;
+  co_vendedor: { id: string; name: string } | null;
   indicado_por: string;
   celular: string;
   contato: string;
@@ -138,6 +144,8 @@ export interface InvestLeadPayload {
   faixa?: InvestFaixa | null;
   responsavelId?: string | null;
   responsavelNome?: string;
+  vendedorId?: string | null;
+  coVendedorId?: string | null;
   indicadoPor?: string;
   celular?: string;
   contato: string;

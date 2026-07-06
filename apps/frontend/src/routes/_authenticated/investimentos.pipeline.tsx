@@ -338,6 +338,11 @@ function InvestPipelinePage() {
                           <div className="mt-1.5 flex items-baseline justify-between gap-2">
                             <span className="text-[13px] font-semibold tabular-nums text-ouro-escuro">
                               {l.pl ? formatBRL(l.pl) : "PL a definir"}
+                              {l.abaixo_do_piso && (
+                                <span title="Abaixo de R$ 1 mi" className="ml-1 text-amber-500">
+                                  ⚠
+                                </span>
+                              )}
                             </span>
                             {etapa !== "ganho" && etapa !== "perdido" && (
                               <span className="text-[10px] text-slate-400">{l.probabilidade}%</span>
@@ -510,6 +515,11 @@ function ListaView({
                       <>
                         <span className="tabular-nums font-medium text-ouro-escuro">
                           {formatBRL(l.pl)}
+                          {l.abaixo_do_piso && (
+                            <span title="Abaixo de R$ 1 mi (fora do piso)" className="ml-1 text-amber-500">
+                              ⚠
+                            </span>
+                          )}
                         </span>
                         {!isClosed && (
                           <div className="text-[10.5px] text-slate-400">
