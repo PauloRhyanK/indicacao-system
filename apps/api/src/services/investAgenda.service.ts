@@ -119,6 +119,13 @@ export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId
   });
   if (conflito) throw conflict("Assessor já tem reunião nesse horário");
 
+  // Dupla checagem: verificar se o horário continua livre no Outlook no exato momento de agendar
+  const outlookEvents = await getOutlookFreeBusy(input.assessorId, inicio, fim).catch(() => []);
+  const hasOutlookOverlap = outlookEvents.some((e: any) => {
+    return inicio < e.end && fim > e.start;
+  });
+  if (hasOutlookOverlap) throw conflict("Assessor já possui um compromisso no Outlook neste horário");
+
   let finalLocal = input.local;
   let outlookEventId: string | null = null;
 
@@ -203,10 +210,10 @@ export async function getAssessorSlots(assessorId: string, date: string) {
   ]);
 
   const slots = [];
-  // Horário comercial: 09:00 às 18:00
-  for (let hour = 9; hour <= 18; hour++) {
+  // Horário: 07:00 às 22:00
+  for (let hour = 7; hour <= 22; hour++) {
     for (const min of [0, 30]) {
-      if (hour === 18 && min === 30) continue; // max 18:00
+      if (hour === 22 && min === 30) continue; // max 22:00
       
       const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}:00.000-03:00`);
       const slotEnd = new Date(slotStart.getTime() + DEFAULT_DURATION_MS);

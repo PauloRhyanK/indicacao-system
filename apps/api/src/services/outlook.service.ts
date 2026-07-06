@@ -201,7 +201,7 @@ export async function getOutlookFreeBusy(userId: string, start: Date, end: Date)
   const url = new URL("https://graph.microsoft.com/v1.0/me/calendarView");
   url.searchParams.append("startDateTime", start.toISOString());
   url.searchParams.append("endDateTime", end.toISOString());
-  url.searchParams.append("$select", "subject,start,end");
+  url.searchParams.append("$select", "subject,start,end,showAs");
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -215,8 +215,10 @@ export async function getOutlookFreeBusy(userId: string, start: Date, end: Date)
   }
 
   const data = (await res.json()) as any;
-  return (data.value || []).map((e: any) => ({
-    start: new Date(e.start.dateTime + "Z"), // MS Graph retorna UTC se Prefer header não for passado
-    end: new Date(e.end.dateTime + "Z"),
-  }));
+  return (data.value || [])
+    .filter((e: any) => e.showAs !== "free") // Ignora eventos marcados como "Livre"
+    .map((e: any) => ({
+      start: new Date(e.start.dateTime + "Z"), // MS Graph retorna UTC se Prefer header não for passado
+      end: new Date(e.end.dateTime + "Z"),
+    }));
 }
