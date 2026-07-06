@@ -37,6 +37,7 @@ services:
       OUTLOOK_CLIENT_ID: ${OUTLOOK_CLIENT_ID:-}
       OUTLOOK_CLIENT_SECRET: ${OUTLOOK_CLIENT_SECRET:-}
       OUTLOOK_REDIRECT_URI: ${OUTLOOK_REDIRECT_URI:-}
+      FRONTEND_URL: ${FRONTEND_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
