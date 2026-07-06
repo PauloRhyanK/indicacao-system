@@ -60,6 +60,7 @@ const ETAPA_ORD: Record<InvestEtapa, number> = {
 function InvestPipelinePage() {
   const { can } = usePermissions();
   const canManage = can("investimentos.manage");
+  const canEdit = canManage || can("investimentos.edit");
   const canCreate = canManage || can("investimentos.create");
   const canImport = can("investimentos.import");
 
@@ -148,7 +149,7 @@ function InvestPipelinePage() {
     const id = dragId.current;
     dragId.current = null;
     setDragOverCol(null);
-    if (!id || !canManage) return;
+    if (!id || !canEdit) return;
     const lead = leads.find((l) => l.id === id);
     if (lead && lead.etapa !== etapa) etapaMutation.mutate({ id, etapa });
   };
@@ -279,7 +280,7 @@ function InvestPipelinePage() {
         ) : view === "lista" ? (
           <ListaView
             rows={tableRows}
-            canManage={canManage}
+            canEdit={canEdit}
             onEdit={openEdit}
             onEtapa={(id, etapa) => etapaMutation.mutate({ id, etapa })}
           />
@@ -324,7 +325,7 @@ function InvestPipelinePage() {
                       cards.map((l) => (
                         <div
                           key={l.id}
-                          draggable={canManage}
+                          draggable={canEdit}
                           onDragStart={() => (dragId.current = l.id)}
                           onClick={() => openEdit(l)}
                           className="cursor-pointer rounded-md border border-slate-200 bg-branco p-2.5 shadow-sm transition-colors hover:border-slate-300"
@@ -398,6 +399,7 @@ function InvestPipelinePage() {
         profiles={profiles.data ?? []}
         canManage={canManage}
         canCreate={canCreate}
+        canEdit={canEdit}
       />
       <InvestImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </AppLayout>
@@ -445,12 +447,12 @@ function EtapaChip({
 
 function ListaView({
   rows,
-  canManage,
+  canEdit,
   onEdit,
   onEtapa,
 }: {
   rows: InvestLead[];
-  canManage: boolean;
+  canEdit: boolean;
   onEdit: (lead: InvestLead) => void;
   onEtapa: (id: string, etapa: InvestEtapa) => void;
 }) {
@@ -535,7 +537,7 @@ function ListaView({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col items-start gap-1">
-                      {canManage ? (
+                      {canEdit ? (
                         <select
                           value={l.etapa}
                           onChange={(e) => onEtapa(l.id, e.target.value as InvestEtapa)}
@@ -581,7 +583,7 @@ function ListaView({
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      title={canManage ? "Editar" : "Ver detalhes"}
+                      title={canEdit ? "Editar" : "Ver detalhes"}
                       onClick={() => onEdit(l)}
                       className="rounded p-1.5 text-slate-400 transition-colors hover:bg-ouro/20 hover:text-azul-profundo"
                     >

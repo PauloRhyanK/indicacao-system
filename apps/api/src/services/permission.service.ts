@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma.js";
 import {
   ALL_PERMISSION_KEYS,
   COLABORADOR_PERMISSION_KEYS,
+  INVEST_SYSTEM_ROLES,
   PERMISSIONS_CATALOG,
   ROLE_ADMIN_NAME,
   ROLE_COLABORADOR_NAME,
@@ -113,6 +114,20 @@ export async function ensureSystemRoles() {
     })),
     skipDuplicates: true,
   });
+
+  // Papéis de sistema do módulo de investimentos (SDR, Assessor, Qualificador).
+  for (const role of INVEST_SYSTEM_ROLES) {
+    const invRole = await prisma.role.upsert({
+      where: { name: role.name },
+      update: { isSystem: true },
+      create: { name: role.name, isSystem: true },
+    });
+    await prisma.rolePermission.deleteMany({ where: { roleId: invRole.id } });
+    await prisma.rolePermission.createMany({
+      data: role.keys.map((key) => ({ roleId: invRole.id, permissionKey: key })),
+      skipDuplicates: true,
+    });
+  }
 
   return { adminRoleId: adminRole.id, colaboradorRoleId: colabRole.id };
 }

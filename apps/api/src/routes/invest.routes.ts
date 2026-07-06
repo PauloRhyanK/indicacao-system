@@ -20,6 +20,11 @@ const investCreate = [
   authenticate,
   requirePermission("investimentos.create", "investimentos.manage"),
 ] as const;
+// Edição: SDR/Assessor/Qualificador editam leads; gestão total também.
+const investEdit = [
+  authenticate,
+  requirePermission("investimentos.edit", "investimentos.manage"),
+] as const;
 
 export async function investRoutes(app: FastifyInstance) {
   app.get("/investimentos/leads", { preHandler: [...investView] }, getInvestLeads);
@@ -28,11 +33,11 @@ export async function investRoutes(app: FastifyInstance) {
 
   app.post("/investimentos/leads", { preHandler: [...investCreate] }, postInvestLead);
 
-  app.patch("/investimentos/leads/:id", { preHandler: [...investManage] }, patchInvestLead);
+  app.patch("/investimentos/leads/:id", { preHandler: [...investEdit] }, patchInvestLead);
 
   app.patch(
     "/investimentos/leads/:id/etapa",
-    { preHandler: [...investManage] },
+    { preHandler: [...investEdit] },
     patchInvestLeadEtapa,
   );
 

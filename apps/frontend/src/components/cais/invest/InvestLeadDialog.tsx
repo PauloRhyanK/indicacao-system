@@ -49,6 +49,8 @@ interface InvestLeadDialogProps {
   canManage: boolean;
   /** Captação: pode criar lead novo mesmo sem gerir o pipeline. */
   canCreate?: boolean;
+  /** Edição: SDR/Assessor podem editar leads existentes sem gestão total. */
+  canEdit?: boolean;
 }
 
 interface FormState {
@@ -128,9 +130,10 @@ export function InvestLeadDialog({
   profiles,
   canManage,
   canCreate = false,
+  canEdit = false,
 }: InvestLeadDialogProps) {
-  // Editar exige gestão; criar um lead novo basta ter captação (create).
-  const editable = lead ? canManage : canManage || canCreate;
+  // Editar lead existente exige edit/gestão; criar um novo basta captação.
+  const editable = lead ? canManage || canEdit : canManage || canCreate;
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -498,7 +501,7 @@ export function InvestLeadDialog({
         {editable && (
           <div className="mt-2 flex items-center justify-between gap-2">
             <div>
-              {lead &&
+              {lead && canManage &&
                 (confirmDelete ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-red-600">Excluir este lead?</span>

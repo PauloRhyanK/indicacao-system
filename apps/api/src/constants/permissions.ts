@@ -48,9 +48,27 @@ export const PERMISSIONS_CATALOG: PermissionDefinition[] = [
     groupName: "Investimentos",
   },
   {
+    key: "investimentos.edit",
+    label: "Editar leads de investimento",
+    description: "Mover etapa, ajustar faixa, próximo passo, retorno e negociação (SDR/Assessor)",
+    groupName: "Investimentos",
+  },
+  {
+    key: "investimentos.qualify",
+    label: "Qualificar leads",
+    description: "Validar, completar dados e definir a faixa na qualificação (Qualificador)",
+    groupName: "Investimentos",
+  },
+  {
+    key: "investimentos.schedule",
+    label: "Agendar reuniões de investimento",
+    description: "Marcar reunião do lead na agenda do assessor compatível (SDR)",
+    groupName: "Investimentos",
+  },
+  {
     key: "investimentos.manage",
     label: "Gerenciar leads de investimentos",
-    description: "Criar, editar, mover etapa, excluir leads e definir a meta de captação",
+    description: "Editar/excluir qualquer lead, definir a meta e administrar o pipeline",
     groupName: "Investimentos",
   },
   {
@@ -151,6 +169,39 @@ export const COLABORADOR_PERMISSION_KEYS = [
 
 export const ROLE_ADMIN_NAME = "Administrador";
 export const ROLE_COLABORADOR_NAME = "Colaborador";
+export const ROLE_SDR_NAME = "SDR";
+export const ROLE_ASSESSOR_NAME = "Assessor";
+export const ROLE_QUALIFICADOR_NAME = "Qualificador";
+
+/** SDR: trabalha a fila, edita leads e marca reunião. */
+export const SDR_PERMISSION_KEYS = [
+  "investimentos.view",
+  "investimentos.create",
+  "investimentos.edit",
+  "investimentos.schedule",
+] as const;
+
+/** Assessor/Vendedor: vê seus leads/reuniões, edita negociação e fechamento. */
+export const ASSESSOR_PERMISSION_KEYS = [
+  "investimentos.view",
+  "investimentos.create",
+  "investimentos.edit",
+] as const;
+
+/** Qualificador (neutro): valida, completa dados e define faixa. */
+export const QUALIFICADOR_PERMISSION_KEYS = [
+  "investimentos.view",
+  "investimentos.create",
+  "investimentos.edit",
+  "investimentos.qualify",
+] as const;
+
+/** Papéis de sistema do módulo de investimentos, atribuíveis na admin de usuários. */
+export const INVEST_SYSTEM_ROLES = [
+  { name: ROLE_SDR_NAME, keys: SDR_PERMISSION_KEYS },
+  { name: ROLE_ASSESSOR_NAME, keys: ASSESSOR_PERMISSION_KEYS },
+  { name: ROLE_QUALIFICADOR_NAME, keys: QUALIFICADOR_PERMISSION_KEYS },
+] as const;
 export const ROLE_CONFIDENCIAL_NAME = "Acesso Confidencial";
 export const ROLE_CONSULTA_CONFIDENCIAL_NAME = "Consulta Confidencial";
 export const ROLE_ADMIN_RJ_NAME = "Administrador RJ";
