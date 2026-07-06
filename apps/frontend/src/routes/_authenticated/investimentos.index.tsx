@@ -11,6 +11,7 @@ import { usePermissions } from "@/lib/use-permissions";
 import {
   fetchInvestLeads,
   formatBRLCompact,
+  investPipeByResponsavel,
   investTotals,
   updateInvestConfig,
 } from "@/lib/invest-api";
@@ -30,6 +31,7 @@ function InvestDashboardPage() {
   const meta = data.data?.config.meta ?? 0;
 
   const totals = useMemo(() => investTotals(leads), [leads]);
+  const porResponsavel = useMemo(() => investPipeByResponsavel(leads), [leads]);
   const closed = totals.ganhoN + totals.perdidoN;
   const conversao = closed ? Math.round((totals.ganhoN / closed) * 100) : null;
 
@@ -162,6 +164,45 @@ function InvestDashboardPage() {
             </h3>
             <InvestFunnel leads={leads} />
           </div>
+        </div>
+
+        <div className="mt-3 rounded-md border border-slate-200 bg-branco p-4">
+          <h3 className="mb-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.6px] text-ouro-escuro">
+            Pipe por responsável
+            <span className="text-[10px] font-normal normal-case tracking-normal text-slate-400">
+              total · ponderado
+            </span>
+          </h3>
+          {porResponsavel.length === 0 ? (
+            <p className="py-4 text-center text-sm text-slate-400">Nenhum lead ativo.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left text-[10.5px] uppercase tracking-wider text-slate-500">
+                    <th className="py-2 pr-4 font-semibold">Responsável</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Leads</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Pipe total</th>
+                    <th className="py-2 text-right font-semibold">Ponderado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porResponsavel.map((r) => (
+                    <tr key={r.nome} className="border-b border-slate-50 last:border-b-0">
+                      <td className="py-2 pr-4 font-medium text-azul-profundo">{r.nome}</td>
+                      <td className="py-2 pr-4 text-right tabular-nums text-slate-500">{r.count}</td>
+                      <td className="py-2 pr-4 text-right tabular-nums text-slate-600">
+                        {formatBRLCompact(r.total)}
+                      </td>
+                      <td className="py-2 text-right tabular-nums font-semibold text-ouro-escuro">
+                        {formatBRLCompact(r.ponderado)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

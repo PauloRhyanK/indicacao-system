@@ -287,6 +287,28 @@ export function investRetornoSoon(d: string | null): boolean {
   return diff >= 0 && diff <= 2;
 }
 
+export interface InvestRespRow {
+  nome: string;
+  total: number;
+  ponderado: number;
+  count: number;
+}
+
+/** Pipe total e ponderado agrupado por responsável (leads ativos). Ordena por ponderado. */
+export function investPipeByResponsavel(leads: InvestLead[]): InvestRespRow[] {
+  const map = new Map<string, InvestRespRow>();
+  for (const l of leads) {
+    if (l.etapa === "ganho" || l.etapa === "perdido") continue;
+    const nome = l.responsavel_nome || "Sem responsável";
+    const row = map.get(nome) ?? { nome, total: 0, ponderado: 0, count: 0 };
+    row.total += l.pl;
+    row.ponderado += investWeighted(l);
+    row.count += 1;
+    map.set(nome, row);
+  }
+  return [...map.values()].sort((a, b) => b.ponderado - a.ponderado);
+}
+
 /** Totais do pipe sobre um conjunto de leads (usado no dashboard e no filtro). */
 export function investTotals(leads: InvestLead[]) {
   let plOpen = 0;
