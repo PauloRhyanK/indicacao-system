@@ -2,6 +2,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   createInvestLeadSchema,
   createInvestReuniaoSchema,
+  investGridQuerySchema,
   importInvestLeadsSchema,
   listReunioesQuerySchema,
   qualifyInvestLeadSchema,
@@ -26,6 +27,7 @@ import {
   getInvestTvData,
   importInvestLeads,
   listInvestLeads,
+  listInvestLeadsGrid,
   qualifyLead,
   softDeleteInvestLead,
   updateInvestConfig,
@@ -39,6 +41,12 @@ function actorId(request: FastifyRequest) {
 
 export async function getInvestLeads(_request: FastifyRequest, reply: FastifyReply) {
   const data = await listInvestLeads();
+  return reply.send({ data });
+}
+
+export async function getInvestLeadsGrid(request: FastifyRequest, reply: FastifyReply) {
+  const query = investGridQuerySchema.parse(request.query);
+  const data = await listInvestLeadsGrid(query, actorId(request));
   return reply.send({ data });
 }
 

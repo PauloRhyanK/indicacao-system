@@ -6,6 +6,7 @@ import {
   getInvestAssessores,
   getInvestConfigHandler,
   getInvestLeads,
+  getInvestLeadsGrid,
   getInvestLeadsCsv,
   getInvestReunioes,
   getInvestTv,
@@ -49,6 +50,8 @@ export async function investRoutes(app: FastifyInstance) {
   app.get("/investimentos/tv", getInvestTv);
 
   app.get("/investimentos/leads", { preHandler: [...investView] }, getInvestLeads);
+
+  app.get("/investimentos/leads/grid", { preHandler: [...investView] }, getInvestLeadsGrid);
 
   app.get("/investimentos/export/csv", { preHandler: [...investView] }, getInvestLeadsCsv);
 

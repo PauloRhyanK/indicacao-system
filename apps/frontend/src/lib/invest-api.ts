@@ -213,6 +213,33 @@ export async function fetchInvestLeads(): Promise<InvestListResult> {
   return res.data;
 }
 
+export interface InvestGridResult {
+  leads: InvestLead[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  aggregate: { pipeTotal: number; pipePonderado: number; count: number };
+}
+
+export async function fetchInvestLeadsGrid(params: {
+  page?: number;
+  limit?: number;
+  q?: string;
+  responsavel?: string;
+  scope?: "all" | "mine" | "unassigned";
+  etapa?: InvestEtapa;
+}): Promise<InvestGridResult> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.q) qs.set("q", params.q);
+  if (params.responsavel) qs.set("responsavel", params.responsavel);
+  if (params.scope && params.scope !== "all") qs.set("scope", params.scope);
+  if (params.etapa) qs.set("etapa", params.etapa);
+  const res = await apiFetch<{ data: InvestGridResult }>(
+    `/investimentos/leads/grid${qs.toString() ? `?${qs}` : ""}`,
+  );
+  return res.data;
+}
+
 export async function createInvestLead(payload: InvestLeadPayload): Promise<InvestLead> {
   const res = await apiFetch<{ data: InvestLead }>("/investimentos/leads", {
     method: "POST",

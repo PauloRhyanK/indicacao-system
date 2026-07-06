@@ -53,6 +53,17 @@ export const updateInvestConfigSchema = z.object({
   meta: z.number().min(0),
 });
 
+export const investGridQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(200).default(25),
+  q: z.string().optional(),
+  responsavel: z.string().optional(),
+  scope: z.enum(["all", "mine", "unassigned"]).optional(),
+  etapa: z.enum(INVEST_ETAPA_VALUES).optional(),
+});
+
+export type InvestGridQuery = z.infer<typeof investGridQuerySchema>;
+
 /**
  * Linha crua da planilha (colunas BASE: Lead, Origem, Produto, Pitch, PL,
  * Etapa, Probabilidade, Responsavel, Contato, Proximo passo, Retorno,

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, Kanban, LayoutDashboard, List, Pencil, Plus, Printer, Search, Upload } from "lucide-react";
+import { Download, Kanban, LayoutDashboard, List, Plus, Printer, Search, Upload } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Button } from "@/components/cais/Button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvestLeadDialog } from "@/components/cais/invest/InvestLeadDialog";
 import { InvestImportDialog } from "@/components/cais/invest/InvestImportDialog";
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
+import { InvestLeadsGrid } from "@/components/cais/invest/InvestLeadsGrid";
 import { fetchProfiles } from "@/lib/cais-api";
 import { fetchMe } from "@/lib/api/auth";
 import { usePermissions } from "@/lib/use-permissions";
@@ -29,8 +30,6 @@ import {
   formatBRL,
   formatBRLCompact,
   formatInvestRetorno,
-  investOrigemLabel,
-  investProdutoLabel,
   investRetornoSoon,
   investWeighted,
   updateInvestLeadEtapa,
@@ -45,17 +44,6 @@ export const Route = createFileRoute("/_authenticated/investimentos/pipeline")({
 
 type Recorte = "todos" | "meus" | "sem-responsavel";
 type ViewMode = "lista" | "kanban";
-
-const ETAPA_ORD: Record<InvestEtapa, number> = {
-  negociacao: 0,
-  proposta: 1,
-  reuniao: 2,
-  qualificado: 3,
-  contato: 4,
-  lead: 5,
-  ganho: 6,
-  perdido: 7,
-};
 
 function InvestPipelinePage() {
   const { can } = usePermissions();
@@ -121,16 +109,6 @@ function InvestPipelinePage() {
       return true;
     });
   }, [leads, recorte, respFilter, search, currentUserId]);
-
-  const tableRows = useMemo(() => {
-    const rows = filtered.filter((l) => etapaFilter === "all" || l.etapa === etapaFilter);
-    return [...rows].sort(
-      (a, b) =>
-        ETAPA_ORD[a.etapa] - ETAPA_ORD[b.etapa] ||
-        b.pl - a.pl ||
-        a.nome.localeCompare(b.nome, "pt-BR"),
-    );
-  }, [filtered, etapaFilter]);
 
   const etapaMutation = useMutation({
     mutationFn: ({ id, etapa }: { id: string; etapa: InvestEtapa }) =>
@@ -286,8 +264,11 @@ function InvestPipelinePage() {
             Carregando pipeline...
           </div>
         ) : view === "lista" ? (
-          <ListaView
-            rows={tableRows}
+          <InvestLeadsGrid
+            recorte={recorte}
+            respFilter={respFilter}
+            etapaFilter={etapaFilter}
+            search={search}
             canEdit={canEdit}
             onEdit={openEdit}
             onEtapa={(id, etapa) => etapaMutation.mutate({ id, etapa })}
@@ -450,160 +431,5 @@ function EtapaChip({
       {label}
       <span className="text-[11px] font-semibold tabular-nums">{count}</span>
     </button>
-  );
-}
-
-function ListaView({
-  rows,
-  canEdit,
-  onEdit,
-  onEtapa,
-}: {
-  rows: InvestLead[];
-  canEdit: boolean;
-  onEdit: (lead: InvestLead) => void;
-  onEtapa: (id: string, etapa: InvestEtapa) => void;
-}) {
-  if (!rows.length) {
-    return (
-      <div className="rounded-md border border-slate-200 bg-branco p-12 text-center">
-        <p className="text-sm font-semibold text-slate-600">Nenhum lead neste filtro</p>
-        <p className="mt-1 text-xs text-slate-400">Cadastre um novo ou ajuste a busca.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-branco">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-left text-[10.5px] uppercase tracking-wider text-slate-500">
-              <th className="px-4 py-3 font-semibold">Lead / Cliente</th>
-              <th className="px-4 py-3 font-semibold">Origem / Produto</th>
-              <th className="px-4 py-3 text-right font-semibold">PL · Previsão</th>
-              <th className="px-4 py-3 font-semibold">Etapa · Prob.</th>
-              <th className="hidden px-4 py-3 font-semibold lg:table-cell">Próximo passo</th>
-              <th className="hidden px-4 py-3 font-semibold lg:table-cell">Retorno</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((l) => {
-              const info = INVEST_ETAPA_INFO[l.etapa];
-              const isClosed = l.etapa === "ganho" || l.etapa === "perdido";
-              return (
-                <tr
-                  key={l.id}
-                  className={cn(
-                    "border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70",
-                    l.etapa === "ganho" && "shadow-[inset_3px_0_0_#2f8f5b]",
-                    l.etapa === "perdido" && "bg-slate-50/50 shadow-[inset_3px_0_0_#bd5440]",
-                  )}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-1.5 font-semibold text-azul-profundo">
-                      {l.nome}
-                      <InvestFaixaTag faixa={l.faixa} />
-                      {l.responsavel_nome && (
-                        <span className="rounded border border-sky-100 bg-sky-50 px-1.5 text-[9px] font-semibold uppercase tracking-wide text-azul-corporativo">
-                          {l.responsavel_nome}
-                        </span>
-                      )}
-                    </div>
-                    {l.contato && <div className="mt-0.5 text-[11px] text-slate-400">{l.contato}</div>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-block rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                      {investOrigemLabel(l.origem)}
-                    </span>
-                    <div className="mt-0.5 text-[10.5px] text-slate-400">
-                      {investProdutoLabel(l.produto)}
-                      {l.pitch ? ` · ${l.pitch}` : ""}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {l.pl ? (
-                      <>
-                        <span className="tabular-nums font-medium text-ouro-escuro">
-                          {formatBRL(l.pl)}
-                          {l.abaixo_do_piso && (
-                            <span title="Abaixo de R$ 1 mi (fora do piso)" className="ml-1 text-amber-500">
-                              ⚠
-                            </span>
-                          )}
-                        </span>
-                        {!isClosed && (
-                          <div className="text-[10.5px] text-slate-400">
-                            → {formatBRLCompact(investWeighted(l))}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-xs italic text-slate-400">a definir</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col items-start gap-1">
-                      {canEdit ? (
-                        <select
-                          value={l.etapa}
-                          onChange={(e) => onEtapa(l.id, e.target.value as InvestEtapa)}
-                          className="cursor-pointer rounded-full border px-2.5 py-1 text-[11.5px] font-semibold"
-                          style={{ color: info.color, backgroundColor: info.bg, borderColor: info.color }}
-                        >
-                          {INVEST_ETAPAS.map((e) => (
-                            <option key={e} value={e}>
-                              {INVEST_ETAPA_INFO[e].label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span
-                          className="rounded-full border px-2.5 py-1 text-[11.5px] font-semibold"
-                          style={{ color: info.color, backgroundColor: info.bg, borderColor: info.color }}
-                        >
-                          {info.label}
-                        </span>
-                      )}
-                      {!isClosed && (
-                        <span className="text-[11px] tabular-nums text-slate-400">
-                          × {l.probabilidade}%
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="hidden max-w-[230px] px-4 py-3 text-xs text-slate-600 lg:table-cell">
-                    {l.passo || "—"}
-                  </td>
-                  <td className="hidden px-4 py-3 lg:table-cell">
-                    <span
-                      className={cn(
-                        "text-xs tabular-nums",
-                        investRetornoSoon(l.retorno)
-                          ? "font-semibold text-ouro-escuro"
-                          : "text-slate-500",
-                      )}
-                    >
-                      {formatInvestRetorno(l.retorno)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      title={canEdit ? "Editar" : "Ver detalhes"}
-                      onClick={() => onEdit(l)}
-                      className="rounded p-1.5 text-slate-400 transition-colors hover:bg-ouro/20 hover:text-azul-profundo"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
   );
 }

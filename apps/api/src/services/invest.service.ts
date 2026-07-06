@@ -109,6 +109,78 @@ export async function listInvestLeads() {
   return { leads: leads.map(serializeInvestLead), config };
 }
 
+/**
+ * Grid server-side (KUS-143): paginação + filtros + agregado de pipe
+ * (total e ponderado) sobre TODO o conjunto filtrado, não só a página.
+ */
+export async function listInvestLeadsGrid(
+  query: {
+    page: number;
+    limit: number;
+    q?: string;
+    responsavel?: string;
+    scope?: "all" | "mine" | "unassigned";
+    etapa?: string;
+  },
+  actorUserId?: string,
+) {
+  const and: Prisma.InvestLeadWhereInput[] = [{ deletedAt: null }];
+
+  if (query.q?.trim()) {
+    const q = query.q.trim();
+    and.push({
+      OR: [
+        { nome: { contains: q, mode: "insensitive" } },
+        { passo: { contains: q, mode: "insensitive" } },
+        { contato: { contains: q, mode: "insensitive" } },
+        { pitch: { contains: q, mode: "insensitive" } },
+        { responsavelNome: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+  if (query.responsavel) and.push({ responsavelNome: query.responsavel });
+  if (query.etapa) and.push({ etapa: query.etapa });
+  if (query.scope === "mine" && actorUserId) and.push({ responsavelId: actorUserId });
+  if (query.scope === "unassigned") and.push({ responsavelId: null, responsavelNome: "" });
+
+  const where: Prisma.InvestLeadWhereInput = { AND: and };
+
+  const [total, pageRows, aggRows] = await Promise.all([
+    prisma.investLead.count({ where }),
+    prisma.investLead.findMany({
+      where,
+      include: includeResponsavel,
+      orderBy: [{ pl: "desc" }, { nome: "asc" }],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+    }),
+    prisma.investLead.findMany({
+      where,
+      select: { pl: true, probabilidade: true, etapa: true },
+    }),
+  ]);
+
+  let pipeTotal = 0;
+  let pipePonderado = 0;
+  for (const r of aggRows) {
+    if (r.etapa === "ganho" || r.etapa === "perdido") continue;
+    const pl = Number(r.pl);
+    pipeTotal += pl;
+    pipePonderado += (pl * r.probabilidade) / 100;
+  }
+
+  return {
+    leads: pageRows.map(serializeInvestLead),
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    },
+    aggregate: { pipeTotal, pipePonderado, count: aggRows.length },
+  };
+}
+
 export async function createInvestLead(input: CreateInvestLeadInput, actorUserId?: string) {
   const created = await prisma.investLead.create({
     data: {
