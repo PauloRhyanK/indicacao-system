@@ -124,6 +124,7 @@ export function publicUser(
     mustChangePassword?: boolean;
     accessScope?: UserAccessScope;
     confidencialApprovedAt?: Date | null;
+    outlookRefreshToken?: string | null;
   },
   roles: { id: string; name: string; isSystem: boolean }[] = [],
 ) {
@@ -136,5 +137,6 @@ export function publicUser(
     createdAt: user.createdAt,
     mustChangePassword: user.mustChangePassword ?? false,
     confidencialApprovedAt: user.confidencialApprovedAt?.toISOString() ?? null,
+    outlookConnected: !!user.outlookRefreshToken,
   };
 }

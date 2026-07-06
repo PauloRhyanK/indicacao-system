@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, LayoutDashboard, MapPin, List as ListIcon, Calendar as CalendarIcon, Users, User, Link as LinkIcon, Loader2, Video } from "lucide-react";
+import { CalendarClock, LayoutDashboard, MapPin, List as ListIcon, Calendar as CalendarIcon, Users, User, Link as LinkIcon, Loader2, Video, CheckCircle2, RefreshCcw } from "lucide-react";
 import type { View } from "react-big-calendar";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { InvestLeadDialog } from "@/components/cais/invest/InvestLeadDialog";
@@ -35,6 +35,7 @@ function formatDataHora(iso: string): string {
 }
 
 function InvestReunioesPage() {
+  const { user } = Route.useRouteContext();
   const { can } = usePermissions();
   const canManage = can("investimentos.manage");
   const canEdit = canManage || can("investimentos.edit");
@@ -159,14 +160,30 @@ function InvestReunioesPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleConnectOutlook}
-              disabled={connectingOutlook}
-              className="inline-flex items-center gap-2 rounded-md border border-blue-600 bg-blue-50 px-3 py-2.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
-            >
-              {connectingOutlook ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
-              Conectar Outlook
-            </button>
+            {user?.outlookConnected ? (
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-md border border-green-600 bg-green-50 px-3 py-2.5 text-sm font-medium text-green-700">
+                  <CheckCircle2 className="h-4 w-4" /> Outlook Conectado
+                </div>
+                <button
+                  onClick={handleConnectOutlook}
+                  disabled={connectingOutlook}
+                  className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                  title="Reconectar Outlook"
+                >
+                  {connectingOutlook ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConnectOutlook}
+                disabled={connectingOutlook}
+                className="inline-flex items-center gap-2 rounded-md border border-blue-600 bg-blue-50 px-3 py-2.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
+              >
+                {connectingOutlook ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
+                Conectar Outlook
+              </button>
+            )}
             <Link
               to="/investimentos"
               className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-azul-profundo transition-colors hover:bg-slate-100"

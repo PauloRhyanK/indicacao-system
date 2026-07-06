@@ -15,6 +15,7 @@ export interface AuthUser {
   createdAt: string;
   mustChangePassword?: boolean;
   confidencialApprovedAt?: string | null;
+  outlookConnected?: boolean;
 }
 
 export function isConfidencialApproved(user: AuthUser): boolean {
