@@ -41,6 +41,14 @@ function actorId(request: FastifyRequest) {
   return request.user?.sub;
 }
 
+/** Escapa texto para inserção segura em HTML (evita XSS refletido). */
+function escapeHtml(value: string): string {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+  );
+}
+
 export async function getInvestLeads(_request: FastifyRequest, reply: FastifyReply) {
   const data = await listInvestLeads();
   return reply.send({ data });
@@ -224,7 +232,7 @@ export async function getInvestOutlookCallback(request: FastifyRequest, reply: F
         <div class="card">
           <h1>❌ Consentimento Não Concedido</h1>
           <p>Houve um erro ou o consentimento foi recusado.</p>
-          <p style="font-size: 0.875rem; color: #6b7280;">Detalhe: ${error_description || error}</p>
+          <p style="font-size: 0.875rem; color: #6b7280;">Detalhe: ${escapeHtml(error_description || error)}</p>
         </div>
       </body>
       </html>
@@ -236,7 +244,7 @@ export async function getInvestOutlookCallback(request: FastifyRequest, reply: F
     return reply.status(400).send({ error: "Faltando code ou state." });
   }
 
-  // state is the userId
+  // O state é assinado; handleOutlookCallback valida e extrai o userId.
   await handleOutlookCallback(code, state);
 
   // Redireciona de volta para a página de reuniões
