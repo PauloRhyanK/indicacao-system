@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useActiveSystem } from "@/lib/use-active-system";
 import { Badge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
@@ -9,6 +10,7 @@ import {
   INVEST_FAIXAS,
   INVEST_FAIXA_INFO,
   fetchAssessorFaixas,
+  fetchInvestConfig,
   setAssessorFaixas,
   type InvestFaixa,
 } from "@/lib/invest-api";
@@ -67,6 +69,15 @@ function ConfiguracoesPage() {
     enabled: canManageInvest,
   });
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { activeSystem } = useActiveSystem(pathname);
+  const isInvest = activeSystem === "investimento";
+  const investConfig = useQuery({
+    queryKey: ["invest-config"],
+    queryFn: fetchInvestConfig,
+    enabled: isInvest && canManageInvest,
+  });
+
   const allProfiles = profiles.data ?? [];
   const internos = allProfiles.filter((p) => p.access_scope !== "CONFIDENCIAL");
   const confidenciais = allProfiles.filter((p) => p.access_scope === "CONFIDENCIAL");
@@ -93,8 +104,14 @@ function ConfiguracoesPage() {
       </div>
 
       <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
-        <SectionHeader>Meta do Período</SectionHeader>
-        {meta.isLoading ? (
+        <SectionHeader>{isInvest ? "Meta de captação — BNF" : "Meta do Período"}</SectionHeader>
+        {isInvest ? (
+          <div className="space-y-1 text-[14px] text-azul-profundo">
+            <p className="font-medium">Campanha BNF · Investimento</p>
+            <p>Objetivo: {formatBRL(investConfig.data?.meta ?? 0)}</p>
+            <p className="text-[12px] text-slate-500">Meta de captação / AUC</p>
+          </div>
+        ) : meta.isLoading ? (
           <PageLoader />
         ) : meta.data ? (
           <div className="space-y-3 text-[14px] text-azul-profundo">

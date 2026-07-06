@@ -287,6 +287,11 @@ export async function deleteInvestLead(id: string): Promise<void> {
   await apiFetch<void>(`/investimentos/leads/${id}`, { method: "DELETE" });
 }
 
+export async function fetchInvestConfig(): Promise<InvestConfig> {
+  const res = await apiFetch<{ data: InvestConfig }>("/investimentos/config");
+  return res.data;
+}
+
 export async function updateInvestConfig(meta: number): Promise<InvestConfig> {
   const res = await apiFetch<{ data: InvestConfig }>("/investimentos/config", {
     method: "PUT",
