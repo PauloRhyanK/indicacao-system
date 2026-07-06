@@ -27,6 +27,7 @@ import { Route as AuthenticatedInvestimentosSdrRouteImport } from './routes/_aut
 import { Route as AuthenticatedInvestimentosReunioesRouteImport } from './routes/_authenticated/investimentos.reunioes'
 import { Route as AuthenticatedInvestimentosQualificacaoRouteImport } from './routes/_authenticated/investimentos.qualificacao'
 import { Route as AuthenticatedInvestimentosPipelineRouteImport } from './routes/_authenticated/investimentos.pipeline'
+import { Route as AuthenticatedInvestimentosImprimirRouteImport } from './routes/_authenticated/investimentos.imprimir'
 import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
 
@@ -126,6 +127,12 @@ const AuthenticatedInvestimentosPipelineRoute =
     path: '/investimentos/pipeline',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedInvestimentosImprimirRoute =
+  AuthenticatedInvestimentosImprimirRouteImport.update({
+    id: '/investimentos/imprimir',
+    path: '/investimentos/imprimir',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesPapeisRoute =
   AuthenticatedConfiguracoesPapeisRouteImport.update({
     id: '/papeis',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/investimentos/imprimir': typeof AuthenticatedInvestimentosImprimirRoute
   '/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
   '/investimentos/qualificacao': typeof AuthenticatedInvestimentosQualificacaoRoute
   '/investimentos/reunioes': typeof AuthenticatedInvestimentosReunioesRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/vendas': typeof AuthenticatedVendasRoute
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/investimentos/imprimir': typeof AuthenticatedInvestimentosImprimirRoute
   '/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
   '/investimentos/qualificacao': typeof AuthenticatedInvestimentosQualificacaoRoute
   '/investimentos/reunioes': typeof AuthenticatedInvestimentosReunioesRoute
@@ -194,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
+  '/_authenticated/investimentos/imprimir': typeof AuthenticatedInvestimentosImprimirRoute
   '/_authenticated/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
   '/_authenticated/investimentos/qualificacao': typeof AuthenticatedInvestimentosQualificacaoRoute
   '/_authenticated/investimentos/reunioes': typeof AuthenticatedInvestimentosReunioesRoute
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
+    | '/investimentos/imprimir'
     | '/investimentos/pipeline'
     | '/investimentos/qualificacao'
     | '/investimentos/reunioes'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
+    | '/investimentos/imprimir'
     | '/investimentos/pipeline'
     | '/investimentos/qualificacao'
     | '/investimentos/reunioes'
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendas'
     | '/_authenticated/configuracoes/metas'
     | '/_authenticated/configuracoes/papeis'
+    | '/_authenticated/investimentos/imprimir'
     | '/_authenticated/investimentos/pipeline'
     | '/_authenticated/investimentos/qualificacao'
     | '/_authenticated/investimentos/reunioes'
@@ -406,6 +419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInvestimentosPipelineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/investimentos/imprimir': {
+      id: '/_authenticated/investimentos/imprimir'
+      path: '/investimentos/imprimir'
+      fullPath: '/investimentos/imprimir'
+      preLoaderRoute: typeof AuthenticatedInvestimentosImprimirRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes/papeis': {
       id: '/_authenticated/configuracoes/papeis'
       path: '/papeis'
@@ -447,6 +467,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIndicacoesRoute: typeof AuthenticatedIndicacoesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
+  AuthenticatedInvestimentosImprimirRoute: typeof AuthenticatedInvestimentosImprimirRoute
   AuthenticatedInvestimentosPipelineRoute: typeof AuthenticatedInvestimentosPipelineRoute
   AuthenticatedInvestimentosQualificacaoRoute: typeof AuthenticatedInvestimentosQualificacaoRoute
   AuthenticatedInvestimentosReunioesRoute: typeof AuthenticatedInvestimentosReunioesRoute
@@ -462,6 +483,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIndicacoesRoute: AuthenticatedIndicacoesRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
+  AuthenticatedInvestimentosImprimirRoute:
+    AuthenticatedInvestimentosImprimirRoute,
   AuthenticatedInvestimentosPipelineRoute:
     AuthenticatedInvestimentosPipelineRoute,
   AuthenticatedInvestimentosQualificacaoRoute:

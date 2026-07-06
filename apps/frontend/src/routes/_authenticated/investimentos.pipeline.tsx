@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, Kanban, LayoutDashboard, List, Pencil, Plus, Search, Upload } from "lucide-react";
+import { Download, Kanban, LayoutDashboard, List, Pencil, Plus, Printer, Search, Upload } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { Button } from "@/components/cais/Button";
 import { Input } from "@/components/ui/input";
@@ -174,6 +174,14 @@ function InvestPipelinePage() {
             <Button variant="ghost" onClick={() => void downloadInvestCsv()}>
               <Download className="h-4 w-4" /> CSV
             </Button>
+            <Link
+              to="/investimentos/imprimir"
+              search={respFilter !== "all" ? { responsavel: respFilter } : {}}
+              target="_blank"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-azul-profundo transition-colors hover:bg-slate-100"
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Link>
             {canImport && (
               <Button variant="ghost" onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4" /> Importar
