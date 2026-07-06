@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, LayoutDashboard, MapPin, List as ListIcon, Calendar as CalendarIcon, Users, User } from "lucide-react";
+import { CalendarClock, LayoutDashboard, MapPin, List as ListIcon, Calendar as CalendarIcon, Users, User, Link as LinkIcon, Loader2, Video } from "lucide-react";
 import type { View } from "react-big-calendar";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { InvestLeadDialog } from "@/components/cais/invest/InvestLeadDialog";
@@ -12,9 +12,11 @@ import { usePermissions } from "@/lib/use-permissions";
 import {
   fetchInvestLeads,
   fetchInvestReunioes,
+  fetchOutlookAuthUrl,
   type InvestLead,
   type InvestReuniao,
 } from "@/lib/invest-api";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/investimentos/reunioes")({
   head: () => ({ meta: [{ title: "Minhas reuniões · Investimentos — CAIS" }] }),
@@ -53,6 +55,29 @@ function InvestReunioesPage() {
 
   const [editingLead, setEditingLead] = useState<InvestLead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [connectingOutlook, setConnectingOutlook] = useState(false);
+
+  const handleConnectOutlook = async () => {
+    try {
+      setConnectingOutlook(true);
+      const url = await fetchOutlookAuthUrl();
+      window.location.href = url;
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao conectar com Outlook");
+      setConnectingOutlook(false);
+    }
+  };
+
+  useMemo(() => {
+    if (typeof window !== "undefined") {
+      const search = new URLSearchParams(window.location.search);
+      if (search.get("outlook") === "connected") {
+        setTimeout(() => toast.success("Outlook conectado com sucesso!"), 500);
+        // Clear search params
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
 
   const now = Date.now();
   const { futuras, passadas } = useMemo(() => {
@@ -73,11 +98,16 @@ function InvestReunioesPage() {
     }
   };
 
-  const renderReuniao = (r: InvestReuniao) => (
-    <button
-      key={r.id}
-      type="button"
-      onClick={() => openLeadFicha(r.lead.id)}
+  const renderReuniao = (r: InvestReuniao) => {
+    const urlMatch = r.local?.match(/(https?:\/\/[^\s]+)/);
+    const meetingUrl = urlMatch ? urlMatch[1] : null;
+    const cleanLocal = r.local ? r.local.replace(meetingUrl || "", "").replace(/\s*-\s*$/, "").trim() : "";
+
+    return (
+      <button
+        key={r.id}
+        type="button"
+        onClick={() => openLeadFicha(r.lead.id)}
       className="w-full rounded-md border border-slate-200 bg-branco p-3 text-left shadow-sm transition-colors hover:border-ouro"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -93,13 +123,27 @@ function InvestReunioesPage() {
       {r.lead.pitch && (
         <div className="mt-1 line-clamp-2 text-[12px] text-slate-500">{r.lead.pitch}</div>
       )}
-      {r.local && (
-        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-slate-400">
-          <MapPin className="h-3 w-3" /> {r.local}
-        </div>
-      )}
+      <div className="mt-1 flex items-center justify-between gap-2">
+        {cleanLocal ? (
+          <div className="flex items-center gap-1 text-[11px] text-slate-400">
+            <MapPin className="h-3 w-3" /> {cleanLocal}
+          </div>
+        ) : <div />}
+        {meetingUrl && (
+          <a
+            href={meetingUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 rounded bg-[#5B5FC7] px-2 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[#464A9E]"
+          >
+            <Video className="h-3 w-3" /> Entrar no Teams
+          </a>
+        )}
+      </div>
     </button>
-  );
+    );
+  };
 
   return (
     <AppLayout>
@@ -114,12 +158,22 @@ function InvestReunioesPage() {
               {scope === "mine" ? "Reuniões marcadas para você" : "Agenda de reuniões de todo o time"} · campanha BNF
             </p>
           </div>
-          <Link
-            to="/investimentos"
-            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-azul-profundo transition-colors hover:bg-slate-100"
-          >
-            <LayoutDashboard className="h-4 w-4" /> Dashboard
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleConnectOutlook}
+              disabled={connectingOutlook}
+              className="inline-flex items-center gap-2 rounded-md border border-blue-600 bg-blue-50 px-3 py-2.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
+            >
+              {connectingOutlook ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
+              Conectar Outlook
+            </button>
+            <Link
+              to="/investimentos"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-azul-profundo transition-colors hover:bg-slate-100"
+            >
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </Link>
+          </div>
         </div>
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">

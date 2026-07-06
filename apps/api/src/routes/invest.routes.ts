@@ -19,6 +19,8 @@ import {
   postInvestReuniao,
   putInvestAssessorFaixas,
   putInvestConfig,
+  getInvestOutlookAuth,
+  getInvestOutlookCallback,
 } from "../controllers/invest.controller.js";
 import { authenticate, requirePermission } from "../middlewares/auth.js";
 
@@ -88,4 +90,8 @@ export async function investRoutes(app: FastifyInstance) {
     { preHandler: [...investManage] },
     putInvestAssessorFaixas,
   );
+
+  // Microsoft Outlook Integration
+  app.get("/investimentos/outlook/auth", { preHandler: [authenticate] }, getInvestOutlookAuth);
+  app.get("/investimentos/outlook/callback", getInvestOutlookCallback);
 }

@@ -59,6 +59,11 @@ model User {
   createdAt           DateTime         @default(now()) @map("created_at")
   deletedAt           DateTime?        @map("deleted_at")
 
+  // Integração Microsoft Outlook
+  outlookRefreshToken String?          @map("outlook_refresh_token")
+  outlookAccessToken  String?          @map("outlook_access_token")
+  outlookTokenExpiresAt DateTime?      @map("outlook_token_expires_at")
+
   leadsAsResponsavel     Lead[]     @relation("LeadResponsavel")
   leadsAsCoVendedor      Lead[]     @relation("LeadCoVendedor")
   leadsCreated           Lead[]     @relation("LeadCreatedBy")
@@ -342,9 +347,11 @@ model InvestReuniao {
   dataHoraFim    DateTime? @map("data_hora_fim")
   titulo         String    @default("")
   local          String    @default("")
-  status         String    @default("agendada")
-  faixa          String?
+  status         String    @default("agendada") // agendada, realizada, cancelada
+  faixa          String?   @db.VarChar(50)
   criadoPorId    String?   @map("criado_por_id") @db.Uuid
+  outlookEventId String?   @map("outlook_event_id")
+
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")

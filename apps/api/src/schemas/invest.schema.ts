@@ -90,6 +90,12 @@ export const investImportRowSchema = z.object({
 
 export const importInvestLeadsSchema = z.object({
   rows: z.array(investImportRowSchema).min(1).max(5000),
+  aliases: z.array(z.object({
+    aliasRaw: z.string(),
+    action: z.enum(["map", "create"]).default("map"),
+    userId: z.string().uuid().optional(),
+    createName: z.string().optional(),
+  })).optional(),
 });
 
 export const createInvestReuniaoSchema = z.object({
@@ -99,6 +105,7 @@ export const createInvestReuniaoSchema = z.object({
   dataHoraFim: z.string().optional().nullable(),
   titulo: z.string().default(""),
   local: z.string().default(""),
+  isOnline: z.boolean().optional().default(false),
 });
 
 export const listReunioesQuerySchema = z.object({

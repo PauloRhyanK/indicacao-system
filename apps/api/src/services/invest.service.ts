@@ -17,8 +17,11 @@ import {
   type InvestOrigem,
   type InvestProduto,
 } from "../constants/invest.js";
-import { notFound } from "../utils/httpError.js";
+import { notFound, badRequest } from "../utils/httpError.js";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { normalizeText } from "../utils/slugify.js";
+import { allocateEmailForName } from "../utils/userEmail.js";
 import type {
   CreateInvestLeadInput,
   InvestImportRow,
@@ -433,8 +436,47 @@ function detectDivergencias(rows: InvestImportRow[]): InvestImportDivergencia[] 
 
 export async function importInvestLeads(
   rows: InvestImportRow[],
+  newAliases?: { aliasRaw: string; action?: "map" | "create"; userId?: string; createName?: string }[],
   actorUserId?: string,
 ): Promise<InvestImportReport> {
+  // 1. Criar novos aliases fornecidos antes de prosseguir
+  if (newAliases && newAliases.length > 0) {
+    for (const a of newAliases) {
+      if (a.action === "create" && a.createName) {
+        const email = await allocateEmailForName(a.createName);
+        const placeholder = crypto.randomBytes(8).toString("hex");
+        const passwordHash = await bcrypt.hash(placeholder, 10);
+        const createdUser = await prisma.user.create({
+          data: {
+            name: a.createName,
+            email,
+            passwordHash,
+            mustChangePassword: true,
+          },
+        });
+        a.userId = createdUser.id;
+        
+        const colabRole = await prisma.role.findUnique({ where: { name: "Colaborador" } });
+        if (colabRole) {
+          await prisma.userRole.create({
+            data: { userId: createdUser.id, roleId: colabRole.id }
+          });
+        }
+      }
+    }
+
+    const validAliases = newAliases.filter((a) => a.userId);
+    if (validAliases.length > 0) {
+      await prisma.userAlias.createMany({
+        data: validAliases.map((a) => ({
+          aliasRaw: a.aliasRaw,
+          aliasNormalized: normalizeText(a.aliasRaw),
+          userId: a.userId!,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
   // Resolve responsáveis fora da transação: alias primeiro, depois nome normalizado.
   const [aliases, users] = await Promise.all([
     prisma.userAlias.findMany({
@@ -465,6 +507,23 @@ export async function importInvestLeads(
   };
   const unmatched = new Set<string>();
   const seenInBatch = new Map<string, string>(); // nome normalizado → id criado no lote
+
+  // Pré-verificação de responsáveis não mapeados
+  for (const row of rows) {
+    const respRaw = (row.responsavel ?? "").trim();
+    if (respRaw) {
+      const responsavelId = userByKey.get(normalizeText(respRaw));
+      if (!responsavelId) unmatched.add(respRaw);
+    }
+  }
+
+  // Se existirem nomes não mapeados, aborta e avisa o frontend para solicitar mapeamento
+  if (unmatched.size > 0) {
+    throw badRequest(`Temos responsáveis não mapeados na planilha: ${Array.from(unmatched).join(", ")}`, {
+      code: "UNMAPPED_RESPONSAVEIS",
+      unmapped: Array.from(unmatched),
+    });
+  }
 
   await prisma.$transaction(async (tx) => {
     for (const row of rows) {

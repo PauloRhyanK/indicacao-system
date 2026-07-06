@@ -193,7 +193,12 @@ export interface InvestReuniao {
   status: string;
   faixa: InvestFaixa | null;
   lead: { id: string; nome: string; faixa: InvestFaixa | null; pitch: string };
-  assessor: AssessorRef;
+  assessor: { id: string; name: string };
+}
+
+export async function fetchOutlookAuthUrl(): Promise<string> {
+  const res = await apiFetch<{ url: string }>("/investimentos/outlook/auth");
+  return res.url;
 }
 
 export interface InvestImportReport {
@@ -290,10 +295,13 @@ export async function updateInvestConfig(meta: number): Promise<InvestConfig> {
   return res.data;
 }
 
-export async function importInvestLeads(rows: InvestImportRow[]): Promise<InvestImportReport> {
+export async function importInvestLeads(
+  rows: InvestImportRow[],
+  aliases?: { aliasRaw: string; action?: "map" | "create"; userId?: string; createName?: string }[],
+): Promise<InvestImportReport> {
   const res = await apiFetch<{ data: InvestImportReport }>("/investimentos/import", {
     method: "POST",
-    body: JSON.stringify({ rows }),
+    body: JSON.stringify({ rows, aliases }),
   });
   return res.data;
 }
@@ -328,17 +336,18 @@ export async function fetchAssessoresParaFaixa(faixa: InvestFaixa | null): Promi
   return res.data;
 }
 
-export async function createInvestReuniao(payload: {
+export async function createInvestReuniao(input: {
   leadId: string;
   assessorId: string;
   dataHoraInicio: string;
   dataHoraFim?: string | null;
   titulo?: string;
   local?: string;
+  isOnline?: boolean;
 }): Promise<InvestReuniao> {
   const res = await apiFetch<{ data: InvestReuniao }>("/investimentos/reunioes", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(input),
   });
   return res.data;
 }

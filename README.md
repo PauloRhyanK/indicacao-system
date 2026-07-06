@@ -314,6 +314,23 @@ Variáveis de seed no `.env` da VPS (ver `.env.production.example`):
 
 Usuários com escopo `FULL` (legado) são convertidos para `INTERNAL` na migration `0020`. Não há mais acesso cruzado admin ↔ confidencial.
 
+### Integração Microsoft Outlook (Agenda)
+
+Para permitir a integração com calendários e criação de reuniões, configure um aplicativo no Azure:
+1. Acesse o [Portal do Azure (Microsoft Entra ID)](https://portal.azure.com/).
+2. Vá em **Registros de aplicativo** > **Novo registro**. Nome: "CAIS Indicações".
+3. Tipos de conta: "Contas em qualquer diretório... e pessoais" (ou restrinja ao corporativo).
+4. URI de Redirecionamento (Web): `https://api.seusistema.com.br/api/v1/investimentos/outlook/callback` (em dev: `http://localhost:3000/api/v1/investimentos/outlook/callback`).
+5. Copie o **ID do aplicativo (cliente)** para `OUTLOOK_CLIENT_ID`.
+6. Em **Certificados e segredos**, crie um "Novo segredo do cliente". Copie o **Valor** para `OUTLOOK_CLIENT_SECRET`.
+7. Em **Permissões de APIs**, adicione (Microsoft Graph > Permissões delegadas): `Calendars.ReadWrite`, `User.Read` e `offline_access`. Clique em **Conceder consentimento**.
+8. Preencha no `.env` do backend e reinicie:
+   ```env
+   OUTLOOK_CLIENT_ID="seu-client-id"
+   OUTLOOK_CLIENT_SECRET="seu-client-secret"
+   OUTLOOK_REDIRECT_URI="http://localhost:3001/api/v1/investimentos/outlook/callback"
+   ```
+
 ### Frontend admin (Vercel)
 
 1. Importe o repositório; **Root Directory:** `apps/frontend`

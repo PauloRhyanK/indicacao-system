@@ -107,7 +107,10 @@ function InvestCalendarEvent({ event }: EventProps<CalendarEvent>) {
   const theme = INVEST_FAIXA_INFO[faixa];
   
   const timeLabel = format(event.start, "HH:mm");
-  const isOnline = !!reuniao.local && (reuniao.local.includes("http") || reuniao.local.includes("video"));
+  
+  const urlMatch = reuniao.local?.match(/(https?:\/\/[^\s]+)/);
+  const meetingUrl = urlMatch ? urlMatch[1] : null;
+  const isOnline = !!meetingUrl || (!!reuniao.local && reuniao.local.includes("video"));
 
   return (
     <div
@@ -141,6 +144,17 @@ function InvestCalendarEvent({ event }: EventProps<CalendarEvent>) {
         </span>
         {lead.pitch && (
           <span className="line-clamp-2 text-[10px] opacity-80">{lead.pitch}</span>
+        )}
+        {meetingUrl && (
+          <a
+            href={meetingUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 inline-flex w-fit items-center gap-1 rounded bg-[#5B5FC7] px-1.5 py-0.5 text-[10px] font-medium text-white transition-colors hover:bg-[#464A9E]"
+          >
+            <Video className="h-2.5 w-2.5" /> Entrar no Teams
+          </a>
         )}
       </div>
     </div>

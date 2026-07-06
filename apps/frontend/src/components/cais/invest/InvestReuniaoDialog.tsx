@@ -44,6 +44,7 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dataHora, setDataHora] = useState("");
   const [local, setLocal] = useState("");
+  const [isOnline, setIsOnline] = useState(false);
 
   const assessores = useQuery({
     queryKey: ["invest-assessores", lead?.faixa ?? "none"],
@@ -64,6 +65,7 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
       setDate(new Date());
       setDataHora("");
       setLocal("");
+      setIsOnline(false);
     }
   }, [open, lead]);
 
@@ -80,6 +82,7 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
         assessorId,
         dataHoraInicio: dataHora,
         local: local.trim(),
+        isOnline,
       });
     },
     onSuccess: () => {
@@ -148,6 +151,18 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                   locale={ptBR}
                   className="rounded-md"
                 />
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <input
+                  type="checkbox"
+                  id="isOnlineCheckbox"
+                  checked={isOnline}
+                  onChange={(e) => setIsOnline(e.target.checked)}
+                  className="rounded border-slate-300 text-ouro-escuro focus:ring-ouro-escuro"
+                />
+                <Label htmlFor="isOnlineCheckbox" className="font-normal text-slate-700 cursor-pointer">
+                  Gerar link do Microsoft Teams (Reunião Online)
+                </Label>
               </div>
             </div>
           </div>

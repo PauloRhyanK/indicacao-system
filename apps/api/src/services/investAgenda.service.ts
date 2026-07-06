@@ -2,6 +2,7 @@ import { prisma } from "../config/prisma.js";
 import { INVEST_FAIXA_LABELS, type InvestFaixa } from "../constants/invest.js";
 import { badRequest, conflict, notFound } from "../utils/httpError.js";
 import { activeUserWhere } from "../utils/softDelete.js";
+import { getOutlookFreeBusy, createOutlookEvent } from "./outlook.service.js";
 import type {
   CreateInvestReuniaoInput,
   SetAssessorFaixasInput,
@@ -88,7 +89,7 @@ const reuniaoInclude = {
 export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId?: string) {
   const lead = await prisma.investLead.findFirst({
     where: { id: input.leadId, deletedAt: null },
-    select: { id: true, faixa: true },
+    select: { id: true, faixa: true, nome: true },
   });
   if (!lead) throw notFound("Lead não encontrado");
 
@@ -118,6 +119,29 @@ export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId
   });
   if (conflito) throw conflict("Assessor já tem reunião nesse horário");
 
+  let finalLocal = input.local;
+  let outlookEventId: string | null = null;
+
+  try {
+    const outlookRes = await createOutlookEvent(input.assessorId, {
+      subject: input.titulo || `Reunião de Investimentos: ${lead.nome}`,
+      start: inicio,
+      end: fim,
+      location: input.local,
+      isOnlineMeeting: input.isOnline,
+    });
+
+    if (outlookRes) {
+      outlookEventId = outlookRes.id;
+      if (outlookRes.onlineMeetingUrl) {
+        // Se pediu online e retornou link, prioriza o link do Teams no local se vazio
+        finalLocal = finalLocal ? `${finalLocal} - ${outlookRes.onlineMeetingUrl}` : outlookRes.onlineMeetingUrl;
+      }
+    }
+  } catch (err) {
+    console.error("Falha ao criar evento no Outlook (Silenciada):", err);
+  }
+
   const created = await prisma.investReuniao.create({
     data: {
       leadId: input.leadId,
@@ -125,9 +149,10 @@ export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId
       dataHoraInicio: inicio,
       dataHoraFim: input.dataHoraFim ? fim : null,
       titulo: input.titulo,
-      local: input.local,
+      local: finalLocal,
       faixa: lead.faixa,
       criadoPorId: actorUserId ?? null,
+      outlookEventId,
     },
     include: reuniaoInclude,
   });
@@ -162,17 +187,20 @@ export async function getAssessorSlots(assessorId: string, date: string) {
   const startOfDay = new Date(`${date}T00:00:00.000-03:00`);
   const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
 
-  const reunioes = await prisma.investReuniao.findMany({
-    where: {
-      assessorId,
-      deletedAt: null,
-      status: { not: "cancelada" },
-      dataHoraInicio: {
-        gte: startOfDay,
-        lte: endOfDay,
+  const [reunioes, outlookEvents] = await Promise.all([
+    prisma.investReuniao.findMany({
+      where: {
+        assessorId,
+        deletedAt: null,
+        status: { not: "cancelada" },
+        dataHoraInicio: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
-    },
-  });
+    }),
+    getOutlookFreeBusy(assessorId, startOfDay, endOfDay).catch(() => [])
+  ]);
 
   const slots = [];
   // Horário comercial: 09:00 às 18:00
@@ -180,14 +208,19 @@ export async function getAssessorSlots(assessorId: string, date: string) {
     const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:00:00.000-03:00`);
     const slotEnd = new Date(slotStart.getTime() + DEFAULT_DURATION_MS);
 
-    // Checar sobreposição
-    const hasOverlap = reunioes.some((r) => {
+    // Checar sobreposição no CAIS
+    const hasCaisOverlap = reunioes.some((r: any) => {
       const rStart = r.dataHoraInicio;
       const rEnd = r.dataHoraFim ? r.dataHoraFim : new Date(rStart.getTime() + DEFAULT_DURATION_MS);
       return slotStart < rEnd && slotEnd > rStart;
     });
 
-    if (!hasOverlap) {
+    // Checar sobreposição no Outlook
+    const hasOutlookOverlap = outlookEvents.some((e: any) => {
+      return slotStart < e.end && slotEnd > e.start;
+    });
+
+    if (!hasCaisOverlap && !hasOutlookOverlap) {
       slots.push(slotStart.toISOString());
     }
   }

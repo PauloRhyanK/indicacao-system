@@ -35,6 +35,7 @@ import {
   updateInvestEtapa,
   updateInvestLead,
 } from "../services/invest.service.js";
+import { getOutlookAuthUrl, handleOutlookCallback } from "../services/outlook.service.js";
 
 function actorId(request: FastifyRequest) {
   return request.user?.sub;
@@ -102,7 +103,7 @@ export async function putInvestConfig(request: FastifyRequest, reply: FastifyRep
 
 export async function postInvestImport(request: FastifyRequest, reply: FastifyReply) {
   const input = importInvestLeadsSchema.parse(request.body);
-  const data = await importInvestLeads(input.rows, actorId(request));
+  const data = await importInvestLeads(input.rows, input.aliases, actorId(request));
   return reply.send({ data });
 }
 
@@ -161,4 +162,23 @@ export async function putInvestAssessorFaixas(request: FastifyRequest, reply: Fa
   const input = setAssessorFaixasSchema.parse(request.body);
   const data = await setAssessorFaixas(id, input);
   return reply.send({ data });
+}
+
+export async function getInvestOutlookAuth(request: FastifyRequest, reply: FastifyReply) {
+  const url = getOutlookAuthUrl(actorId(request));
+  return reply.send({ url });
+}
+
+export async function getInvestOutlookCallback(request: FastifyRequest, reply: FastifyReply) {
+  const { code, state } = request.query as { code: string; state: string };
+  if (!code || !state) {
+    return reply.status(400).send({ error: "Faltando code ou state." });
+  }
+
+  // state is the userId
+  await handleOutlookCallback(code, state);
+
+  // Redireciona de volta para a página de reuniões
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  return reply.redirect(`${frontendUrl}/investimentos/reunioes?outlook=connected`);
 }
