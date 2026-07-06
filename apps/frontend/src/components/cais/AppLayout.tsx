@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   KanbanSquare,
   ArrowLeftRight,
+  PhoneCall,
 } from "lucide-react";
 import { logout } from "@/lib/api/auth";
 import { usePermissions } from "@/lib/use-permissions";
@@ -34,6 +35,7 @@ const NAV_BY_SYSTEM: Record<ActiveSystem, readonly NavItem[]> = {
   investimento: [
     { to: "/investimentos", label: "Dashboard", icon: LayoutDashboard, permission: ["investimentos.view"], exact: true },
     { to: "/investimentos/pipeline", label: "Pipeline", icon: KanbanSquare, permission: ["investimentos.view"] },
+    { to: "/investimentos/sdr", label: "Fila SDR", icon: PhoneCall, permission: ["investimentos.edit", "investimentos.manage"] },
     { to: "/configuracoes", label: "Configurações", icon: Settings, permission: null },
   ],
   consorcio: [

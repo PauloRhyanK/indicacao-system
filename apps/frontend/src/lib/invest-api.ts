@@ -288,6 +288,26 @@ export function investRetornoSoon(d: string | null): boolean {
   return diff >= 0 && diff <= 2;
 }
 
+// Fila do SDR — recorte do pipeline por "ação necessária hoje" (KUS-148).
+export type SdrBucket = "ligar" | "retornos" | "fechar" | "ativas";
+
+export const INVEST_SDR_BUCKETS: { key: SdrBucket; label: string; hint: string; color: string }[] = [
+  { key: "ligar", label: "Para ligar hoje", hint: "retorno é hoje", color: "#346f93" },
+  { key: "retornos", label: "Retornos pendentes", hint: "retorno vencido / reciclados", color: "#c67b3a" },
+  { key: "fechar", label: "Negócios a fechar", hint: "em negociação", color: "#b0913f" },
+  { key: "ativas", label: "Oportunidades ativas", hint: "demais leads ativos", color: "#5f93ab" },
+];
+
+/** Classifica um lead ATIVO na fila do SDR. Retorna null para ganho/perdido. */
+export function investSdrBucket(lead: InvestLead, todayStr: string): SdrBucket | null {
+  if (lead.etapa === "ganho" || lead.etapa === "perdido") return null;
+  const r = lead.retorno;
+  if (r && r === todayStr) return "ligar";
+  if (r && r < todayStr) return "retornos";
+  if (lead.etapa === "negociacao") return "fechar";
+  return "ativas";
+}
+
 export interface InvestRespRow {
   nome: string;
   total: number;

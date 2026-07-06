@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,6 +18,13 @@ import {
 
 export const Route = createFileRoute("/_authenticated/investimentos/")({
   head: () => ({ meta: [{ title: "Investimentos — CAIS" }] }),
+  beforeLoad: ({ context }) => {
+    // SDR puro (agenda leads, sem gestão) cai direto na sua fila de trabalho.
+    const perms = (context as { permissions?: string[] }).permissions ?? [];
+    if (perms.includes("investimentos.schedule") && !perms.includes("investimentos.manage")) {
+      throw redirect({ to: "/investimentos/sdr" });
+    }
+  },
   component: InvestDashboardPage,
 });
 
