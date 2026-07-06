@@ -12,11 +12,14 @@ export interface Lookups {
   consortiumTypes: LookupItem[];
 }
 
+export type AccessScope = "INTERNAL" | "FULL" | "CONFIDENCIAL";
+
 export interface Profile {
   id: string;
   name: string;
   email: string;
   must_change_password: boolean;
+  access_scope: AccessScope;
   roles: { id: string; name: string; isSystem: boolean }[];
   created_at: string;
 }
@@ -313,6 +316,7 @@ function mapProfile(api: ApiUser): Profile {
     name: api.name,
     email: api.email,
     must_change_password: api.mustChangePassword ?? false,
+    access_scope: api.access_scope ?? "INTERNAL",
     roles: api.roles ?? [],
     created_at: api.createdAt,
   };
@@ -334,6 +338,7 @@ interface ApiUser {
   name: string;
   email: string;
   mustChangePassword?: boolean;
+  access_scope?: AccessScope;
   roles: { id: string; name: string; isSystem: boolean }[];
   createdAt: string;
 }

@@ -5,7 +5,14 @@ import { Badge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
 import { DomainManagerTable } from "@/components/cais/DomainManagerTable";
-import { AssessorFaixasSection } from "@/components/cais/invest/AssessorFaixasSection";
+import {
+  INVEST_FAIXAS,
+  INVEST_FAIXA_INFO,
+  fetchAssessorFaixas,
+  setAssessorFaixas,
+  type InvestFaixa,
+} from "@/lib/invest-api";
+import { cn } from "@/lib/utils";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
   createTeamUser,
@@ -54,6 +61,15 @@ function ConfiguracoesPage() {
     queryFn: fetchRoles,
     enabled: canManageUsers || canManageRoles,
   });
+  const faixas = useQuery({
+    queryKey: ["assessor-faixas"],
+    queryFn: fetchAssessorFaixas,
+    enabled: canManageInvest,
+  });
+
+  const allProfiles = profiles.data ?? [];
+  const internos = allProfiles.filter((p) => p.access_scope !== "CONFIDENCIAL");
+  const confidenciais = allProfiles.filter((p) => p.access_scope === "CONFIDENCIAL");
 
   return (
     <>
@@ -123,13 +139,15 @@ function ConfiguracoesPage() {
         ) : (
           <>
             <ul className="divide-y divide-slate-200">
-              {(profiles.data ?? []).map((p) => (
+              {internos.map((p) => (
                 <TeamMemberRow
                   key={p.id}
                   profile={p}
                   allRoles={roles.data ?? []}
                   canEdit={canManageUsers}
                   currentUserId={user.id}
+                  canManageInvest={canManageInvest}
+                  faixas={faixas.data?.[p.id] ?? []}
                 />
               ))}
             </ul>
@@ -138,7 +156,32 @@ function ConfiguracoesPage() {
         )}
       </div>
 
-      {canManageInvest && <AssessorFaixasSection />}
+      {confidenciais.length > 0 && (
+        <div className="mb-6 rounded-md border border-slate-200 bg-branco p-5">
+          <SectionHeader>Acesso Confidencial</SectionHeader>
+          <p className="mb-3 text-[13px] text-slate-500">
+            Contas do ambiente confidencial (Recuperação Judicial), separadas da equipe geral.
+            A gestão destes usuários é feita dentro do próprio sistema confidencial.
+          </p>
+          <ul className="divide-y divide-slate-200">
+            {confidenciais.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div>
+                  <p className="text-[14px] font-medium text-azul-profundo">{p.name}</p>
+                  <p className="text-[12px] text-slate-500">{p.email}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.roles.map((r) => (
+                    <Badge key={r.id} variant="gray">
+                      {r.name}
+                    </Badge>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="space-y-6">
         <div>
@@ -180,17 +223,34 @@ function TeamMemberRow({
   allRoles,
   canEdit,
   currentUserId,
+  canManageInvest,
+  faixas,
 }: {
   profile: Profile;
   allRoles: { id: string; name: string }[];
   canEdit: boolean;
   currentUserId: string;
+  canManageInvest: boolean;
+  faixas: InvestFaixa[];
 }) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<string[]>(profile.roles.map((r) => r.id));
   const [dirty, setDirty] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [resetPwOpen, setResetPwOpen] = useState(false);
+
+  const faixaMut = useMutation({
+    mutationFn: (next: InvestFaixa[]) => setAssessorFaixas(profile.id, next),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["assessor-faixas"] });
+      qc.invalidateQueries({ queryKey: ["invest-assessores"] });
+    },
+  });
+
+  const toggleFaixa = (f: InvestFaixa) => {
+    const next = faixas.includes(f) ? faixas.filter((x) => x !== f) : [...faixas, f];
+    faixaMut.mutate(next);
+  };
 
   const saveMut = useMutation({
     mutationFn: () => updateUserRoles(profile.id, selected),
@@ -300,6 +360,39 @@ function TeamMemberRow({
             <span className="text-[12px] text-red-600">
               {(saveMut.error as Error).message}
             </span>
+          )}
+        </div>
+      )}
+      {canEdit && canManageInvest && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+            Atende (investimento):
+          </span>
+          {INVEST_FAIXAS.map((f) => {
+            const active = faixas.includes(f);
+            const info = INVEST_FAIXA_INFO[f];
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => toggleFaixa(f)}
+                disabled={faixaMut.isPending}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors",
+                  active ? "" : "border-slate-200 text-slate-400 hover:border-slate-300",
+                )}
+                style={
+                  active
+                    ? { color: info.color, backgroundColor: info.bg, borderColor: info.color }
+                    : undefined
+                }
+              >
+                {info.label}
+              </button>
+            );
+          })}
+          {faixas.length === 0 && (
+            <span className="text-[11px] italic text-slate-400">atende todas as faixas</span>
           )}
         </div>
       )}

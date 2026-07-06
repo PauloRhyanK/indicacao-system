@@ -11,6 +11,7 @@ const publicSelect = {
   name: true,
   email: true,
   mustChangePassword: true,
+  accessScope: true,
   createdAt: true,
   userRoles: {
     select: {
@@ -24,6 +25,7 @@ function mapUser(row: {
   name: string;
   email: string;
   mustChangePassword: boolean;
+  accessScope: string;
   createdAt: Date;
   userRoles: { role: { id: string; name: string; isSystem: boolean } }[];
 }) {
@@ -32,6 +34,7 @@ function mapUser(row: {
     name: row.name,
     email: row.email,
     mustChangePassword: row.mustChangePassword,
+    access_scope: row.accessScope,
     createdAt: row.createdAt,
     roles: row.userRoles.map((ur) => ur.role),
   };
