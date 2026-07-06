@@ -18,6 +18,7 @@ import {
   listAssessoresParaFaixa,
   listReunioes,
   setAssessorFaixas,
+  getAssessorSlots,
 } from "../services/investAgenda.service.js";
 import type { InvestFaixa } from "../constants/invest.js";
 import {
@@ -118,6 +119,16 @@ export async function getInvestLeadsCsv(_request: FastifyRequest, reply: Fastify
 export async function getInvestAssessores(request: FastifyRequest, reply: FastifyReply) {
   const { faixa } = request.query as { faixa?: string };
   const data = await listAssessoresParaFaixa((faixa ?? null) as InvestFaixa | null);
+  return reply.send({ data });
+}
+
+export async function getInvestAssessorSlotsHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const { date } = request.query as { date: string }; // YYYY-MM-DD
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return reply.status(400).send({ message: "Data inválida ou ausente (use YYYY-MM-DD)." });
+  }
+  const data = await getAssessorSlots(id, date);
   return reply.send({ data });
 }
 

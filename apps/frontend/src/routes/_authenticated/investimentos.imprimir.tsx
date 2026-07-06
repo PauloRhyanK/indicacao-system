@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Printer } from "lucide-react";
+import { requireInvestPerm } from "@/lib/invest-guards";
 import {
   INVEST_FAIXA_INFO,
   fetchInvestLeads,
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/investimentos/imprimir")({
   validateSearch: (search: Record<string, unknown>): { responsavel?: string } => ({
     responsavel: typeof search.responsavel === "string" ? search.responsavel : undefined,
   }),
+  beforeLoad: ({ context }) => requireInvestPerm(context, ["investimentos.view"]),
   component: InvestImprimirPage,
 });
 

@@ -30,7 +30,7 @@ export async function listAssessoresParaFaixa(faixa: InvestFaixa | null) {
   return users.filter((u) => {
     if (!faixa) return true;
     const comp = byUser.get(u.id);
-    return !comp || comp.size === 0 || comp.has(faixa);
+    return comp && comp.has(faixa);
   });
 }
 
@@ -155,6 +155,44 @@ export async function listReunioes(params: {
     orderBy: { dataHoraInicio: "asc" },
   });
   return reunioes.map(serializeReuniao);
+}
+
+export async function getAssessorSlots(assessorId: string, date: string) {
+  // date format: YYYY-MM-DD
+  const startOfDay = new Date(`${date}T00:00:00.000-03:00`);
+  const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
+
+  const reunioes = await prisma.investReuniao.findMany({
+    where: {
+      assessorId,
+      deletedAt: null,
+      status: { not: "cancelada" },
+      dataHoraInicio: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+  });
+
+  const slots = [];
+  // Horário comercial: 09:00 às 18:00
+  for (let hour = 9; hour <= 18; hour++) {
+    const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:00:00.000-03:00`);
+    const slotEnd = new Date(slotStart.getTime() + DEFAULT_DURATION_MS);
+
+    // Checar sobreposição
+    const hasOverlap = reunioes.some((r) => {
+      const rStart = r.dataHoraInicio;
+      const rEnd = r.dataHoraFim ? r.dataHoraFim : new Date(rStart.getTime() + DEFAULT_DURATION_MS);
+      return slotStart < rEnd && slotEnd > rStart;
+    });
+
+    if (!hasOverlap) {
+      slots.push(slotStart.toISOString());
+    }
+  }
+
+  return slots;
 }
 
 export async function cancelReuniao(id: string) {

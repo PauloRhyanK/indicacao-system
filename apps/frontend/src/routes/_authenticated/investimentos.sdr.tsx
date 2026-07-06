@@ -8,6 +8,7 @@ import { InvestReuniaoDialog } from "@/components/cais/invest/InvestReuniaoDialo
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
 import { fetchProfiles } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
+import { requireInvestPerm } from "@/lib/invest-guards";
 import { cn } from "@/lib/utils";
 import {
   INVEST_ETAPA_INFO,
@@ -23,6 +24,8 @@ import {
 
 export const Route = createFileRoute("/_authenticated/investimentos/sdr")({
   head: () => ({ meta: [{ title: "Fila SDR · Investimentos — CAIS" }] }),
+  beforeLoad: ({ context }) =>
+    requireInvestPerm(context, ["investimentos.edit", "investimentos.manage"]),
   component: InvestSdrPage,
 });
 
@@ -210,6 +213,7 @@ function InvestSdrPage() {
         canManage={canManage}
         canCreate={canCreate}
         canEdit={canEdit}
+        onScheduleReuniao={openReuniao}
       />
       <InvestReuniaoDialog
         open={reuniaoOpen}

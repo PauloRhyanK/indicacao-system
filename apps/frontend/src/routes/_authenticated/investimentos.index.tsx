@@ -20,6 +20,8 @@ export const Route = createFileRoute("/_authenticated/investimentos/")({
   head: () => ({ meta: [{ title: "Investimentos — CAIS" }] }),
   beforeLoad: ({ context }) => {
     const perms = (context as { permissions?: string[] }).permissions ?? [];
+    // Sem acesso ao módulo de investimento → vai para o consórcio.
+    if (!perms.includes("investimentos.view")) throw redirect({ to: "/dashboard" });
     if (perms.includes("investimentos.manage")) return; // gestor/admin fica no dashboard
     // SDR (agenda) cai na fila de trabalho.
     if (perms.includes("investimentos.schedule")) {

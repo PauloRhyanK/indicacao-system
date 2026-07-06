@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { requireInvestPerm } from "@/lib/invest-guards";
 import {
   INVEST_FAIXAS,
   INVEST_FAIXA_INFO,
@@ -27,6 +28,8 @@ import {
 
 export const Route = createFileRoute("/_authenticated/investimentos/qualificacao")({
   head: () => ({ meta: [{ title: "Qualificação · Investimentos — CAIS" }] }),
+  beforeLoad: ({ context }) =>
+    requireInvestPerm(context, ["investimentos.qualify", "investimentos.manage"]),
   component: InvestQualificacaoPage,
 });
 

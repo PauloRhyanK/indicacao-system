@@ -1,218 +1,13 @@
-import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Compass, Loader2, Trash2, CalendarClock } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/cais/Button";
-import type { Profile } from "@/lib/cais-api";
-import {
-  INVEST_ETAPAS,
-  INVEST_ETAPA_INFO,
-  INVEST_FAIXAS,
-  INVEST_FAIXA_INFO,
-  INVEST_ORIGENS,
-  INVEST_PL_FLOOR,
-  INVEST_PRODUTOS,
-  createInvestLead,
-  deleteInvestLead,
-  faixaFromPl,
-  updateInvestLead,
-  type InvestEtapa,
-  type InvestFaixa,
-  type InvestLead,
-  type InvestLeadPayload,
-} from "@/lib/invest-api";
+const fs = require('fs');
+const file = 'apps/frontend/src/components/cais/invest/InvestLeadDialog.tsx';
+let content = fs.readFileSync(file, 'utf8');
 
-const NONE = "__none__";
+content = content.replace(
+  /import \{\n  Dialog,\n  DialogContent,\n  DialogDescription,\n  DialogHeader,\n  DialogTitle,\n\} from "@\/components\/ui\/dialog";/,
+  'import { SlideOver } from "@/components/cais/SlideOver";'
+);
 
-interface InvestLeadDialogProps {
-  open: boolean;
-  onClose: () => void;
-  lead: InvestLead | null;
-  profiles: Profile[];
-  canManage: boolean;
-  /** Captação: pode criar lead novo mesmo sem gerir o pipeline. */
-  canCreate?: boolean;
-  /** Edição: SDR/Assessor podem editar leads existentes sem gestão total. */
-  canEdit?: boolean;
-  onScheduleReuniao?: (lead: InvestLead) => void;
-}
-
-interface FormState {
-  nome: string;
-  origem: string;
-  produto: string;
-  pitch: string;
-  pl: string;
-  etapa: InvestEtapa;
-  probabilidade: string;
-  faixa: InvestFaixa;
-  indicadoPor: string;
-  celular: string;
-  responsavelId: string;
-  vendedorId: string;
-  coVendedorId: string;
-  contato: string;
-  passo: string;
-  retorno: string;
-  obs: string;
-}
-
-function emptyForm(): FormState {
-  return {
-    nome: "",
-    origem: "indicacao",
-    produto: "carteira",
-    pitch: "",
-    pl: "",
-    etapa: "lead",
-    probabilidade: String(INVEST_ETAPA_INFO.lead.prob),
-    faixa: "digital",
-    indicadoPor: "",
-    celular: "",
-    responsavelId: NONE,
-    vendedorId: NONE,
-    coVendedorId: NONE,
-    contato: "",
-    passo: "",
-    retorno: "",
-    obs: "",
-  };
-}
-
-function formFromLead(lead: InvestLead): FormState {
-  return {
-    nome: lead.nome,
-    origem: lead.origem,
-    produto: lead.produto,
-    pitch: lead.pitch,
-    pl: lead.pl ? String(lead.pl) : "",
-    etapa: lead.etapa,
-    probabilidade: String(lead.probabilidade),
-    faixa: lead.faixa ?? faixaFromPl(lead.pl),
-    indicadoPor: lead.indicado_por,
-    celular: lead.celular,
-    responsavelId: lead.responsavel?.id ?? NONE,
-    vendedorId: lead.vendedor?.id ?? NONE,
-    coVendedorId: lead.co_vendedor?.id ?? NONE,
-    contato: lead.contato,
-    passo: lead.passo,
-    retorno: lead.retorno ?? "",
-    obs: lead.obs,
-  };
-}
-
-function parsePl(value: string): number {
-  const cleaned = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
-  const parsed = parseFloat(cleaned);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
-export function InvestLeadDialog({
-  open,
-  onClose,
-  lead,
-  profiles,
-  canManage,
-  canCreate = false,
-  canEdit = false,
-  onScheduleReuniao,
-}: InvestLeadDialogProps) {
-  // Editar lead existente exige edit/gestão; criar um novo basta captação.
-  const editable = lead ? canManage || canEdit : canManage || canCreate;
-  const queryClient = useQueryClient();
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  // Faixa acompanha o PL até o usuário escolher manualmente.
-  const [faixaTouched, setFaixaTouched] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setForm(lead ? formFromLead(lead) : emptyForm());
-      setConfirmDelete(false);
-      setFaixaTouched(Boolean(lead?.faixa));
-    }
-  }, [open, lead]);
-
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
-
-  const onPlChange = (value: string) => {
-    const cleaned = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
-    const plNum = parseFloat(cleaned);
-    setForm((f) => ({
-      ...f,
-      pl: value,
-      faixa: faixaTouched ? f.faixa : faixaFromPl(Number.isFinite(plNum) ? plNum : 0),
-    }));
-  };
-
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["invest-leads"] });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const payload: InvestLeadPayload = {
-        nome: form.nome.trim(),
-        origem: form.origem,
-        produto: form.produto,
-        pitch: form.pitch.trim(),
-        pl: parsePl(form.pl),
-        etapa: form.etapa,
-        probabilidade: Math.max(0, Math.min(100, parseInt(form.probabilidade, 10) || 0)),
-        faixa: form.faixa,
-        responsavelId: form.responsavelId === NONE ? null : form.responsavelId,
-        vendedorId: form.vendedorId === NONE ? null : form.vendedorId,
-        coVendedorId: form.coVendedorId === NONE ? null : form.coVendedorId,
-        indicadoPor: form.indicadoPor.trim(),
-        celular: form.celular.trim(),
-        contato: form.contato.trim(),
-        passo: form.passo.trim(),
-        retorno: form.retorno || null,
-        obs: form.obs.trim(),
-      };
-      return lead ? updateInvestLead(lead.id, payload) : createInvestLead(payload);
-    },
-    onSuccess: () => {
-      toast.success(lead ? "Lead atualizado" : "Lead cadastrado");
-      invalidate();
-      onClose();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (lead) await deleteInvestLead(lead.id);
-    },
-    onSuccess: () => {
-      toast.success("Lead excluído do pipeline");
-      invalidate();
-      onClose();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const busy = saveMutation.isPending || deleteMutation.isPending;
-  const plParsed = parsePl(form.pl);
-  const plBelowFloor = plParsed > 0 && plParsed < INVEST_PL_FLOOR;
-
-
+const footerLogic = `
   const footer = editable ? (
     <div className="flex items-center justify-between gap-2 w-full">
       <div>
@@ -261,24 +56,16 @@ export function InvestLeadDialog({
       </div>
     </div>
   ) : undefined;
+`;
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-        <DialogHeader className="hidden">
-          <DialogTitle>{lead ? "Editar lead" : "Cadastrar lead"}</DialogTitle>
-          <DialogDescription>Formulário de lead de investimentos</DialogDescription>
-        </DialogHeader>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold text-azul-profundo">
-            {lead ? "Editar lead" : "Cadastrar lead"}
-          </h2>
-          {lead && onScheduleReuniao && (
-            <Button variant="ghost" onClick={() => onScheduleReuniao(lead)}>
-              <CalendarClock className="mr-2 h-4 w-4" /> Marcar reunião
-            </Button>
-          )}
-        </div>
+const newJsx = `  return (
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title={lead ? "Editar lead" : "Cadastrar lead"}
+      maxWidthClass="max-w-4xl"
+      footer={footer}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Coluna Esquerda: Dados do Cliente e Qualificação */}
         <div className="space-y-4">
@@ -345,7 +132,7 @@ export function InvestLeadDialog({
                 value={form.faixa}
                 onValueChange={(v) => {
                   setFaixaTouched(true);
-                  set("faixa", v as InvestFaixa);
+                  set("faixa", v);
                 }}
                 disabled={!editable}
               >
@@ -367,7 +154,7 @@ export function InvestLeadDialog({
                 <p className="mt-1 text-[11px] text-emerald-700">
                   ✓ Qualificado por {lead.qualificado_por.name}
                   {lead.qualificado_em
-                    ? ` em ${new Date(lead.qualificado_em).toLocaleDateString("pt-BR")}`
+                    ? \` em \${new Date(lead.qualificado_em).toLocaleDateString("pt-BR")}\`
                     : ""}
                 </p>
               )}
@@ -423,7 +210,7 @@ export function InvestLeadDialog({
               <Label>Etapa do funil</Label>
               <Select
                 value={form.etapa}
-                onValueChange={(v) => set("etapa", v as InvestEtapa)}
+                onValueChange={(v) => set("etapa", v)}
                 disabled={!editable}
               >
                 <SelectTrigger className="mt-1.5">
@@ -589,10 +376,14 @@ export function InvestLeadDialog({
           </div>
         </div>
       </div>
-      <div className="mt-4 border-t border-slate-100 pt-4">
-        {footer}
-      </div>
-      </DialogContent>
-    </Dialog>
-  );
+    </SlideOver>
+  );`;
+
+const parts = content.split('  return (');
+if (parts.length === 2) {
+  const newContent = parts[0] + footerLogic + '\n' + newJsx + '\n}\n';
+  fs.writeFileSync(file, newContent);
+  console.log('File successfully updated!');
+} else {
+  console.log('Error: Could not split file content correctly.');
 }

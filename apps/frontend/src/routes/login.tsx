@@ -26,7 +26,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated()) navigate({ to: "/dashboard", replace: true });
+    if (isAuthenticated()) navigate({ to: "/", replace: true });
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ function LoginPage() {
     setLoading(true);
     try {
       await login(email, password, "admin");
-      navigate({ to: "/dashboard", replace: true });
+      navigate({ to: "/", replace: true });
     } catch (err) {
       if (
         err instanceof ApiError &&

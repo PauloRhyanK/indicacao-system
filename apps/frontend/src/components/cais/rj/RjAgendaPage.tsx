@@ -61,11 +61,12 @@ export function RjAgendaPage() {
   const [scope, setScope] = useState<Scope>(
     savedPrefs.scope === "all" && !canViewAll ? "mine" : savedPrefs.scope,
   );
-  const [calView, setCalView] = useState<View>(savedPrefs.calView);
+  const [calView, setCalView] = useState<View>(savedPrefs.calView as View);
   const [calDate, setCalDate] = useState(new Date());
 
   useEffect(() => {
-    saveRjAgendaPrefs({ mode, calView, scope });
+    const validCalView = (calView === "week" || calView === "day" ? calView : "month") as "month" | "week" | "day";
+    saveRjAgendaPrefs({ mode, calView: validCalView, scope });
   }, [mode, calView, scope]);
 
   useEffect(() => {

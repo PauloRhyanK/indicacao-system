@@ -21,6 +21,7 @@ import { InvestLeadsGrid } from "@/components/cais/invest/InvestLeadsGrid";
 import { fetchProfiles } from "@/lib/cais-api";
 import { fetchMe } from "@/lib/api/auth";
 import { usePermissions } from "@/lib/use-permissions";
+import { requireInvestPerm } from "@/lib/invest-guards";
 import { cn } from "@/lib/utils";
 import {
   INVEST_ETAPAS,
@@ -39,6 +40,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/investimentos/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline · Investimentos — CAIS" }] }),
+  beforeLoad: ({ context }) => requireInvestPerm(context, ["investimentos.view"]),
   component: InvestPipelinePage,
 });
 

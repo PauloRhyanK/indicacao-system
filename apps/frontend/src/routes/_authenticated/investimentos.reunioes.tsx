@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, LayoutDashboard, MapPin } from "lucide-react";
+import { CalendarClock, LayoutDashboard, MapPin, List as ListIcon, Calendar as CalendarIcon, Users, User } from "lucide-react";
+import type { View } from "react-big-calendar";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { InvestLeadDialog } from "@/components/cais/invest/InvestLeadDialog";
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
+import { InvestAgendaCalendar } from "@/components/cais/invest/InvestAgendaCalendar";
 import { fetchProfiles } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
 import {
@@ -37,11 +39,17 @@ function InvestReunioesPage() {
   const canCreate = canManage || can("investimentos.create");
 
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
-  const reunioes = useQuery({
-    queryKey: ["invest-reunioes", "mine"],
-    queryFn: () => fetchInvestReunioes({ scope: "mine" }),
-  });
   const leads = useQuery({ queryKey: ["invest-leads"], queryFn: fetchInvestLeads });
+
+  const [scope, setScope] = useState<"mine" | "all">("mine");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [calendarView, setCalendarView] = useState<View>("month");
+  const [calendarDate, setCalendarDate] = useState(new Date());
+
+  const reunioes = useQuery({
+    queryKey: ["invest-reunioes", scope],
+    queryFn: () => fetchInvestReunioes({ scope }),
+  });
 
   const [editingLead, setEditingLead] = useState<InvestLead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -95,14 +103,15 @@ function InvestReunioesPage() {
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-[900px]">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className={viewMode === "calendar" ? "mx-auto max-w-[1240px]" : "mx-auto max-w-[900px]"}>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 text-xl font-semibold text-azul-profundo">
-              <CalendarClock className="h-5 w-5 text-ouro-escuro" /> Minhas reuniões
+              <CalendarClock className="h-5 w-5 text-ouro-escuro" /> 
+              {scope === "mine" ? "Minhas reuniões" : "Todas as reuniões"}
             </h1>
             <p className="mt-0.5 text-sm text-slate-500">
-              Reuniões marcadas para você · campanha BNF
+              {scope === "mine" ? "Reuniões marcadas para você" : "Agenda de reuniões de todo o time"} · campanha BNF
             </p>
           </div>
           <Link
@@ -113,15 +122,72 @@ function InvestReunioesPage() {
           </Link>
         </div>
 
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {canManage && (
+              <div className="inline-flex rounded-md border border-slate-200 bg-branco p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setScope("mine")}
+                  className={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors ${
+                    scope === "mine" ? "bg-azul-profundo text-branco" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <User className="h-4 w-4" /> Minhas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScope("all")}
+                  className={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors ${
+                    scope === "all" ? "bg-azul-profundo text-branco" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Users className="h-4 w-4" /> Todas
+                </button>
+              </div>
+            )}
+            
+            <div className="inline-flex rounded-md border border-slate-200 bg-branco p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === "list" ? "bg-azul-profundo text-branco" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <ListIcon className="h-4 w-4" /> Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                className={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors ${
+                  viewMode === "calendar" ? "bg-azul-profundo text-branco" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <CalendarIcon className="h-4 w-4" /> Calendário
+              </button>
+            </div>
+          </div>
+        </div>
+
         {reunioes.isLoading ? (
           <div className="rounded-md border border-slate-200 bg-branco p-12 text-center text-sm text-slate-500">
             Carregando reuniões...
           </div>
+        ) : viewMode === "calendar" ? (
+          <InvestAgendaCalendar
+            reunioes={reunioes.data ?? []}
+            view={calendarView}
+            date={calendarDate}
+            onView={setCalendarView}
+            onNavigate={setCalendarDate}
+            onSelectEvent={(r) => openLeadFicha(r.lead.id)}
+          />
         ) : (reunioes.data ?? []).length === 0 ? (
           <div className="rounded-md border border-slate-200 bg-branco p-12 text-center">
             <p className="text-sm font-semibold text-slate-600">Nenhuma reunião marcada</p>
             <p className="mt-1 text-xs text-slate-400">
-              Quando o SDR marcar uma reunião com você, ela aparece aqui.
+              {scope === "mine" ? "Quando o SDR marcar uma reunião com você, ela aparece aqui." : "Não há reuniões marcadas."}
             </p>
           </div>
         ) : (

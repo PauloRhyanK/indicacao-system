@@ -495,3 +495,8 @@ export function investTotals(leads: InvestLead[]) {
   }
   return { plOpen, prevOpen, ganhoVal, ganhoN, perdidoN, ativosN, prevTotal: ganhoVal + prevOpen };
 }
+
+export async function fetchAssessorSlots(assessorId: string, date: string): Promise<string[]> {
+  const data = await apiFetch<{ data: string[] }>(`/investimentos/assessores/${assessorId}/slots?date=${date}`);
+  return data.data;
+}
