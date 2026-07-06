@@ -12,6 +12,7 @@ import {
   patchInvestLeadEtapa,
   postInvestImport,
   postInvestLead,
+  postInvestQualify,
   postInvestReuniao,
   putInvestAssessorFaixas,
   putInvestConfig,
@@ -36,6 +37,11 @@ const investSchedule = [
   authenticate,
   requirePermission("investimentos.schedule", "investimentos.manage"),
 ] as const;
+// Qualificar: Qualificador (qualify) ou gestão.
+const investQualify = [
+  authenticate,
+  requirePermission("investimentos.qualify", "investimentos.manage"),
+] as const;
 
 export async function investRoutes(app: FastifyInstance) {
   app.get("/investimentos/leads", { preHandler: [...investView] }, getInvestLeads);
@@ -53,6 +59,8 @@ export async function investRoutes(app: FastifyInstance) {
   );
 
   app.delete("/investimentos/leads/:id", { preHandler: [...investManage] }, deleteInvestLead);
+
+  app.post("/investimentos/leads/:id/qualificar", { preHandler: [...investQualify] }, postInvestQualify);
 
   app.get("/investimentos/config", { preHandler: [...investView] }, getInvestConfigHandler);
 

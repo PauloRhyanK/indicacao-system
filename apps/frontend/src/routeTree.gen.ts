@@ -25,6 +25,7 @@ import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedInvestimentosSdrRouteImport } from './routes/_authenticated/investimentos.sdr'
 import { Route as AuthenticatedInvestimentosReunioesRouteImport } from './routes/_authenticated/investimentos.reunioes'
+import { Route as AuthenticatedInvestimentosQualificacaoRouteImport } from './routes/_authenticated/investimentos.qualificacao'
 import { Route as AuthenticatedInvestimentosPipelineRouteImport } from './routes/_authenticated/investimentos.pipeline'
 import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
@@ -113,6 +114,12 @@ const AuthenticatedInvestimentosReunioesRoute =
     path: '/investimentos/reunioes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedInvestimentosQualificacaoRoute =
+  AuthenticatedInvestimentosQualificacaoRouteImport.update({
+    id: '/investimentos/qualificacao',
+    path: '/investimentos/qualificacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInvestimentosPipelineRoute =
   AuthenticatedInvestimentosPipelineRouteImport.update({
     id: '/investimentos/pipeline',
@@ -145,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
+  '/investimentos/qualificacao': typeof AuthenticatedInvestimentosQualificacaoRoute
   '/investimentos/reunioes': typeof AuthenticatedInvestimentosReunioesRoute
   '/investimentos/sdr': typeof AuthenticatedInvestimentosSdrRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
@@ -164,6 +172,7 @@ export interface FileRoutesByTo {
   '/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
+  '/investimentos/qualificacao': typeof AuthenticatedInvestimentosQualificacaoRoute
   '/investimentos/reunioes': typeof AuthenticatedInvestimentosReunioesRoute
   '/investimentos/sdr': typeof AuthenticatedInvestimentosSdrRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
@@ -186,6 +195,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes/metas': typeof AuthenticatedConfiguracoesMetasRoute
   '/_authenticated/configuracoes/papeis': typeof AuthenticatedConfiguracoesPapeisRoute
   '/_authenticated/investimentos/pipeline': typeof AuthenticatedInvestimentosPipelineRoute
+  '/_authenticated/investimentos/qualificacao': typeof AuthenticatedInvestimentosQualificacaoRoute
   '/_authenticated/investimentos/reunioes': typeof AuthenticatedInvestimentosReunioesRoute
   '/_authenticated/investimentos/sdr': typeof AuthenticatedInvestimentosSdrRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
     | '/investimentos/pipeline'
+    | '/investimentos/qualificacao'
     | '/investimentos/reunioes'
     | '/investimentos/sdr'
     | '/leads/$id'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/configuracoes/metas'
     | '/configuracoes/papeis'
     | '/investimentos/pipeline'
+    | '/investimentos/qualificacao'
     | '/investimentos/reunioes'
     | '/investimentos/sdr'
     | '/leads/$id'
@@ -248,6 +260,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes/metas'
     | '/_authenticated/configuracoes/papeis'
     | '/_authenticated/investimentos/pipeline'
+    | '/_authenticated/investimentos/qualificacao'
     | '/_authenticated/investimentos/reunioes'
     | '/_authenticated/investimentos/sdr'
     | '/_authenticated/leads/$id'
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInvestimentosReunioesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/investimentos/qualificacao': {
+      id: '/_authenticated/investimentos/qualificacao'
+      path: '/investimentos/qualificacao'
+      fullPath: '/investimentos/qualificacao'
+      preLoaderRoute: typeof AuthenticatedInvestimentosQualificacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/investimentos/pipeline': {
       id: '/_authenticated/investimentos/pipeline'
       path: '/investimentos/pipeline'
@@ -428,6 +448,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndicacoesRoute: typeof AuthenticatedIndicacoesRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedInvestimentosPipelineRoute: typeof AuthenticatedInvestimentosPipelineRoute
+  AuthenticatedInvestimentosQualificacaoRoute: typeof AuthenticatedInvestimentosQualificacaoRoute
   AuthenticatedInvestimentosReunioesRoute: typeof AuthenticatedInvestimentosReunioesRoute
   AuthenticatedInvestimentosSdrRoute: typeof AuthenticatedInvestimentosSdrRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
@@ -443,6 +464,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedInvestimentosPipelineRoute:
     AuthenticatedInvestimentosPipelineRoute,
+  AuthenticatedInvestimentosQualificacaoRoute:
+    AuthenticatedInvestimentosQualificacaoRoute,
   AuthenticatedInvestimentosReunioesRoute:
     AuthenticatedInvestimentosReunioesRoute,
   AuthenticatedInvestimentosSdrRoute: AuthenticatedInvestimentosSdrRoute,

@@ -120,8 +120,15 @@ export interface InvestLead {
   passo: string;
   retorno: string | null;
   obs: string;
+  qualificado_por: { id: string; name: string } | null;
+  qualificado_em: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Lead ainda não qualificado e em etapa inicial → entra na fila de qualificação. */
+export function investNeedsQualification(lead: InvestLead): boolean {
+  return !lead.qualificado_em && (lead.etapa === "lead" || lead.etapa === "contato");
 }
 
 export interface InvestConfig {
@@ -221,6 +228,17 @@ export async function updateInvestLead(
   const res = await apiFetch<{ data: InvestLead }>(`/investimentos/leads/${id}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function qualifyInvestLead(
+  id: string,
+  faixa: InvestFaixa | null,
+): Promise<InvestLead> {
+  const res = await apiFetch<{ data: InvestLead }>(`/investimentos/leads/${id}/qualificar`, {
+    method: "POST",
+    body: JSON.stringify({ faixa }),
   });
   return res.data;
 }

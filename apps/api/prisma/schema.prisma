@@ -70,6 +70,7 @@ model User {
   investReunioesComoAssessor InvestReuniao[] @relation("InvestReuniaoAssessor")
   investReunioesCriadas      InvestReuniao[] @relation("InvestReuniaoCriador")
   investAssessorFaixas       InvestAssessorFaixa[]
+  investLeadsQualificados    InvestLead[] @relation("InvestLeadQualificador")
   purchasesAsResponsavel Purchase[]     @relation("PurchaseResponsavel")
   campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
   userRoles              UserRole[]
@@ -312,6 +313,8 @@ model InvestLead {
   passo           String    @default("")
   retorno         DateTime? @db.Date
   obs             String    @default("")
+  qualificadoPorId String?  @map("qualificado_por_id") @db.Uuid
+  qualificadoEm    DateTime? @map("qualificado_em")
   createdById     String?   @map("created_by_id") @db.Uuid
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -321,6 +324,7 @@ model InvestLead {
   vendedor    User? @relation("InvestLeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
   coVendedor  User? @relation("InvestLeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
   createdBy   User? @relation("InvestLeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  qualificadoPor User? @relation("InvestLeadQualificador", fields: [qualificadoPorId], references: [id], onDelete: SetNull)
   reunioes    InvestReuniao[]
 
   @@index([etapa])

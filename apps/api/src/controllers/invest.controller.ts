@@ -4,6 +4,7 @@ import {
   createInvestReuniaoSchema,
   importInvestLeadsSchema,
   listReunioesQuerySchema,
+  qualifyInvestLeadSchema,
   setAssessorFaixasSchema,
   updateInvestConfigSchema,
   updateInvestEtapaSchema,
@@ -24,6 +25,7 @@ import {
   getInvestConfig,
   importInvestLeads,
   listInvestLeads,
+  qualifyLead,
   softDeleteInvestLead,
   updateInvestConfig,
   updateInvestEtapa,
@@ -63,6 +65,13 @@ export async function deleteInvestLead(request: FastifyRequest, reply: FastifyRe
   const { id } = request.params as { id: string };
   await softDeleteInvestLead(id);
   return reply.status(204).send();
+}
+
+export async function postInvestQualify(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const input = qualifyInvestLeadSchema.parse(request.body);
+  const data = await qualifyLead(id, input.faixa, actorId(request));
+  return reply.send({ data });
 }
 
 export async function getInvestConfigHandler(_request: FastifyRequest, reply: FastifyReply) {

@@ -25,8 +25,12 @@ export const Route = createFileRoute("/_authenticated/investimentos/")({
     if (perms.includes("investimentos.schedule")) {
       throw redirect({ to: "/investimentos/sdr" });
     }
+    // Qualificador cai na fila de qualificação.
+    if (perms.includes("investimentos.qualify")) {
+      throw redirect({ to: "/investimentos/qualificacao" });
+    }
     // Assessor (edita, sem agendar nem qualificar) cai nas suas reuniões.
-    if (perms.includes("investimentos.edit") && !perms.includes("investimentos.qualify")) {
+    if (perms.includes("investimentos.edit")) {
       throw redirect({ to: "/investimentos/reunioes" });
     }
   },

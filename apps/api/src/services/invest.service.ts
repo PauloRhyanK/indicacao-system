@@ -33,6 +33,7 @@ const includeResponsavel = {
   responsavel: { select: { id: true, name: true } },
   vendedor: { select: { id: true, name: true } },
   coVendedor: { select: { id: true, name: true } },
+  qualificadoPor: { select: { id: true, name: true } },
 } as const;
 
 type UserRef = { id: string; name: string } | null;
@@ -41,6 +42,7 @@ type InvestLeadWithUser = InvestLead & {
   responsavel: UserRef;
   vendedor: UserRef;
   coVendedor: UserRef;
+  qualificadoPor: UserRef;
 };
 
 function serializeInvestLead(lead: InvestLeadWithUser) {
@@ -65,6 +67,8 @@ function serializeInvestLead(lead: InvestLeadWithUser) {
     passo: lead.passo,
     retorno: lead.retorno ? lead.retorno.toISOString().slice(0, 10) : null,
     obs: lead.obs,
+    qualificado_por: lead.qualificadoPor,
+    qualificado_em: lead.qualificadoEm ? lead.qualificadoEm.toISOString() : null,
     created_at: lead.createdAt,
     updated_at: lead.updatedAt,
   };
@@ -186,6 +190,36 @@ export async function updateInvestEtapa(id: string, input: UpdateInvestEtapaInpu
   const updated = await prisma.investLead.update({
     where: { id },
     data: { etapa: input.etapa },
+    include: includeResponsavel,
+  });
+
+  return serializeInvestLead(updated);
+}
+
+/**
+ * Qualificação neutra (KUS-152): valida/define a faixa, registra quem
+ * qualificou e quando, e avança o lead para "Qualificado" se ainda antes disso.
+ */
+export async function qualifyLead(
+  id: string,
+  faixa: string | null | undefined,
+  actorUserId?: string,
+) {
+  const existing = await findActiveInvestLead(id);
+  if (!existing) throw notFound("Lead não encontrado");
+
+  const idx = INVEST_ETAPA_VALUES.indexOf(existing.etapa as InvestEtapa);
+  const qualifiedIdx = INVEST_ETAPA_VALUES.indexOf("qualificado");
+  const novaEtapa = idx >= 0 && idx < qualifiedIdx ? "qualificado" : existing.etapa;
+
+  const updated = await prisma.investLead.update({
+    where: { id },
+    data: {
+      faixa: normalizeFaixa(faixa) ?? existing.faixa,
+      etapa: novaEtapa,
+      qualificadoPorId: actorUserId ?? null,
+      qualificadoEm: new Date(),
+    },
     include: includeResponsavel,
   });
 

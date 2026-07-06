@@ -43,6 +43,12 @@ export const updateInvestEtapaSchema = z.object({
   etapa: z.enum(INVEST_ETAPA_VALUES),
 });
 
+export const qualifyInvestLeadSchema = z.object({
+  faixa: z.enum(INVEST_FAIXA_VALUES).nullable().optional(),
+});
+
+export type QualifyInvestLeadInput = z.infer<typeof qualifyInvestLeadSchema>;
+
 export const updateInvestConfigSchema = z.object({
   meta: z.number().min(0),
 });

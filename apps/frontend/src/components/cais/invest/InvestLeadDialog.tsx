@@ -343,6 +343,14 @@ export function InvestLeadDialog({
             <p className="mt-1 text-[11px] text-slate-500">
               Sugerida pelo PL — reclassificável a qualquer momento.
             </p>
+            {lead?.qualificado_por && (
+              <p className="mt-1 text-[11px] text-emerald-700">
+                ✓ Qualificado por {lead.qualificado_por.name}
+                {lead.qualificado_em
+                  ? ` em ${new Date(lead.qualificado_em).toLocaleDateString("pt-BR")}`
+                  : ""}
+              </p>
+            )}
           </div>
 
           <div>
