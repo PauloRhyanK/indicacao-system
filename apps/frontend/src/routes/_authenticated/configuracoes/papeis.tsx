@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Plus, Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/cais/Button";
 import { PageLoader } from "@/components/cais/Feedback";
 import { inputClass } from "@/components/cais/SlideOver";
+import { cn } from "@/lib/utils";
 import {
   createRole,
   deleteRole,
@@ -15,6 +16,28 @@ import {
   type PermissionGroup,
   type RoleSummary,
 } from "@/lib/cais-api";
+
+type SystemKey = "investimento" | "consorcio" | "confidencial" | "admin" | "outros";
+
+/** Cada grupo de permissões pertence a um sistema. */
+const SYSTEM_OF_GROUP: Record<string, SystemKey> = {
+  Investimentos: "investimento",
+  Leads: "consorcio",
+  Vendas: "consorcio",
+  Indicações: "consorcio",
+  Metas: "consorcio",
+  Dashboard: "consorcio",
+  "Recuperacao Judicial": "confidencial",
+  Administração: "admin",
+};
+
+const SYSTEMS: { key: SystemKey; label: string; color: string }[] = [
+  { key: "investimento", label: "Investimento", color: "#b0913f" },
+  { key: "consorcio", label: "Consórcio", color: "#346f93" },
+  { key: "confidencial", label: "Confidencial (RJ)", color: "#6b5b95" },
+  { key: "admin", label: "Administração", color: "#64748b" },
+  { key: "outros", label: "Outros", color: "#94a3b8" },
+];
 
 export const Route = createFileRoute("/_authenticated/configuracoes/papeis")({
   head: () => ({ meta: [{ title: "Papéis — CAIS" }] }),
@@ -148,6 +171,7 @@ function RoleEditor({
   const [name, setName] = useState(role.name);
   const [keys, setKeys] = useState<Set<string>>(new Set(role.permissionKeys));
   const [dirty, setDirty] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     setName(role.name);
@@ -183,6 +207,45 @@ function RoleEditor({
     setDirty(true);
   };
 
+  const setMany = (permKeys: string[], on: boolean) => {
+    setKeys((prev) => {
+      const next = new Set(prev);
+      for (const k of permKeys) {
+        if (on) next.add(k);
+        else next.delete(k);
+      }
+      return next;
+    });
+    setDirty(true);
+  };
+
+  const q = search.trim().toLowerCase();
+  const totalPerms = useMemo(
+    () => catalog.reduce((s, g) => s + g.permissions.length, 0),
+    [catalog],
+  );
+
+  // Agrupa o catálogo por sistema, aplicando a busca.
+  const bySystem = useMemo(() => {
+    const map = new Map<SystemKey, PermissionGroup[]>();
+    for (const group of catalog) {
+      const sys = SYSTEM_OF_GROUP[group.groupName] ?? "outros";
+      const perms = q
+        ? group.permissions.filter(
+            (p) =>
+              p.label.toLowerCase().includes(q) ||
+              (p.description ?? "").toLowerCase().includes(q) ||
+              group.groupName.toLowerCase().includes(q),
+          )
+        : group.permissions;
+      if (perms.length === 0) continue;
+      const arr = map.get(sys) ?? [];
+      arr.push({ groupName: group.groupName, permissions: perms });
+      map.set(sys, arr);
+    }
+    return map;
+  }, [catalog, q]);
+
   return (
     <div className="rounded-md border border-slate-200 bg-branco p-5">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -213,36 +276,100 @@ function RoleEditor({
         )}
       </div>
 
-      <div className="space-y-6">
-        {catalog.map((group) => (
-          <div key={group.groupName}>
-            <h3 className="mb-2 text-[14px] font-semibold text-azul-profundo">
-              {group.groupName}
-            </h3>
-            <ul className="space-y-2">
-              {group.permissions.map((p) => (
-                <li key={p.key}>
-                  <label className="flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-1.5 hover:bg-slate-50">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5"
-                      checked={keys.has(p.key)}
-                      onChange={() => toggle(p.key)}
-                    />
-                    <span>
-                      <span className="text-[13px] text-azul-profundo">{p.label}</span>
-                      {p.description && (
-                        <span className="mt-0.5 block text-[12px] text-slate-500">
-                          {p.description}
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[13px] text-slate-500">
+          <strong className="text-azul-profundo">{keys.size}</strong> de {totalPerms} permissões
+          selecionadas
+        </span>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <input
+            className={inputClass + " w-[220px] pl-8 text-[13px]"}
+            placeholder="Buscar permissão..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {SYSTEMS.filter((s) => bySystem.has(s.key)).map((system) => {
+          const groups = bySystem.get(system.key)!;
+          const allKeys = groups.flatMap((g) => g.permissions.map((p) => p.key));
+          const selectedCount = allKeys.filter((k) => keys.has(k)).length;
+          const allOn = selectedCount === allKeys.length;
+          return (
+            <div key={system.key} className="rounded-md border border-slate-200">
+              <div
+                className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5"
+                style={{ borderLeft: `3px solid ${system.color}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-semibold text-azul-profundo">
+                    {system.label}
+                  </span>
+                  <span className="text-[11px] tabular-nums text-slate-400">
+                    {selectedCount}/{allKeys.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMany(allKeys, !allOn)}
+                  className="text-[11px] font-medium text-azul-medio hover:text-azul-profundo"
+                >
+                  {allOn ? "Limpar" : "Marcar todas"}
+                </button>
+              </div>
+              <div className="p-3">
+                {groups.map((group) => (
+                  <div key={group.groupName} className="mb-3 last:mb-0">
+                    {groups.length > 1 && (
+                      <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        {group.groupName}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 gap-1 xl:grid-cols-2">
+                      {group.permissions.map((p) => {
+                        const on = keys.has(p.key);
+                        return (
+                          <label
+                            key={p.key}
+                            className={cn(
+                              "flex cursor-pointer items-start gap-2.5 rounded-md border px-2.5 py-2 transition-colors",
+                              on
+                                ? "border-azul-medio/40 bg-azul-medio/5"
+                                : "border-transparent hover:bg-slate-50",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={on}
+                              onChange={() => toggle(p.key)}
+                            />
+                            <span>
+                              <span className="text-[13px] text-azul-profundo">{p.label}</span>
+                              {p.description && (
+                                <span className="mt-0.5 block text-[12px] text-slate-500">
+                                  {p.description}
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        {bySystem.size === 0 && (
+          <p className="py-8 text-center text-[13px] text-slate-400">
+            Nenhuma permissão encontrada para "{search}".
+          </p>
+        )}
       </div>
 
       {dirty && (
