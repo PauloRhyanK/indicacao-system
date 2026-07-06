@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Trash2 } from "lucide-react";
+import { Compass, Loader2, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -473,16 +473,24 @@ export function InvestLeadDialog({
             />
           </div>
 
-          <div className="sm:col-span-2">
-            <Label htmlFor="inv-pitch">Pitch</Label>
-            <Input
+          <div className="sm:col-span-2 rounded-lg border border-ouro/40 bg-ouro/5 p-3">
+            <div className="mb-1.5 flex items-center gap-2">
+              <Compass className="h-4 w-4 text-ouro-escuro" />
+              <Label htmlFor="inv-pitch" className="text-ouro-escuro">
+                Pitch — como vender para este cliente
+              </Label>
+            </div>
+            <Textarea
               id="inv-pitch"
               value={form.pitch}
               onChange={(e) => set("pitch", e.target.value)}
-              placeholder="ex.: gestão conta PJ, análise da carteira, Fundo Fortlev..."
+              placeholder="Motivos e ganchos: ex.: gestão conta PJ; análise de carteira / renda passiva; Fundo Fortlev; cota de R$ 1 mi com/sem seguro..."
               disabled={!editable}
-              className="mt-1.5"
+              className="min-h-[72px] bg-branco"
             />
+            <p className="mt-1 text-[11px] text-slate-500">
+              O assessor abre o lead e já vê o pitch antes de atender.
+            </p>
           </div>
 
           <div className="sm:col-span-2">
