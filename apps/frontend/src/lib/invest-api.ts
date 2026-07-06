@@ -64,7 +64,8 @@ export const INVEST_PRODUTOS = [
 
 // Faixa do cliente — coração do roteamento. Limiares do gestor (KUS-138):
 // Digital 100k–5M · Private 5M–30M · Wealth ≥30M. Cores da marca CAIS.
-export const INVEST_FAIXAS = ["digital", "private", "wealth"] as const;
+// PJ é sempre manual (não entra no cálculo automático por PL).
+export const INVEST_FAIXAS = ["digital", "private", "wealth", "pj"] as const;
 
 export type InvestFaixa = (typeof INVEST_FAIXAS)[number];
 
@@ -72,6 +73,7 @@ export const INVEST_FAIXA_INFO: Record<InvestFaixa, { label: string; color: stri
   digital: { label: "Digital", color: "#7ba7bc", bg: "#eaf2f6" },
   private: { label: "Private", color: "#346f93", bg: "#e7f0f5" },
   wealth: { label: "Wealth", color: "#b0913f", bg: "#f7f0dc" },
+  pj: { label: "PJ", color: "#7c6a9c", bg: "#efe9f5" },
 };
 
 export const INVEST_FAIXA_MIN_PRIVATE = 5_000_000;
@@ -80,7 +82,7 @@ export const INVEST_FAIXA_MIN_WEALTH = 30_000_000;
 /** Piso de patrimônio para o lead "entrar no PL" da campanha BNF. */
 export const INVEST_PL_FLOOR = 1_000_000;
 
-/** Sugere a faixa a partir do PL (sobrescrevível manualmente). */
+/** Sugere a faixa a partir do PL (sobrescrevível manualmente). PJ nunca é sugerida — só manual. */
 export function faixaFromPl(pl: number): InvestFaixa {
   if (pl >= INVEST_FAIXA_MIN_WEALTH) return "wealth";
   if (pl >= INVEST_FAIXA_MIN_PRIVATE) return "private";
