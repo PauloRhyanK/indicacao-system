@@ -172,6 +172,23 @@ export interface InvestImportRow {
   obs?: string;
 }
 
+export interface AssessorRef {
+  id: string;
+  name: string;
+}
+
+export interface InvestReuniao {
+  id: string;
+  data_hora_inicio: string;
+  data_hora_fim: string | null;
+  titulo: string;
+  local: string;
+  status: string;
+  faixa: InvestFaixa | null;
+  lead: { id: string; nome: string; faixa: InvestFaixa | null; pitch: string };
+  assessor: AssessorRef;
+}
+
 export interface InvestImportReport {
   total: number;
   created: number;
@@ -234,6 +251,65 @@ export async function importInvestLeads(rows: InvestImportRow[]): Promise<Invest
     body: JSON.stringify({ rows }),
   });
   return res.data;
+}
+
+// --- Agenda de reuniões (KUS-153/149) --------------------------------------
+
+export async function fetchAssessoresParaFaixa(faixa: InvestFaixa | null): Promise<AssessorRef[]> {
+  const q = faixa ? `?faixa=${faixa}` : "";
+  const res = await apiFetch<{ data: AssessorRef[] }>(`/investimentos/assessores${q}`);
+  return res.data;
+}
+
+export async function createInvestReuniao(payload: {
+  leadId: string;
+  assessorId: string;
+  dataHoraInicio: string;
+  dataHoraFim?: string | null;
+  titulo?: string;
+  local?: string;
+}): Promise<InvestReuniao> {
+  const res = await apiFetch<{ data: InvestReuniao }>("/investimentos/reunioes", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function fetchInvestReunioes(params: {
+  scope?: "mine" | "all";
+  assessorId?: string;
+  leadId?: string;
+}): Promise<InvestReuniao[]> {
+  const qs = new URLSearchParams();
+  if (params.scope) qs.set("scope", params.scope);
+  if (params.assessorId) qs.set("assessorId", params.assessorId);
+  if (params.leadId) qs.set("leadId", params.leadId);
+  const res = await apiFetch<{ data: InvestReuniao[] }>(
+    `/investimentos/reunioes${qs.toString() ? `?${qs}` : ""}`,
+  );
+  return res.data;
+}
+
+export async function cancelInvestReuniao(id: string): Promise<void> {
+  await apiFetch<void>(`/investimentos/reunioes/${id}`, { method: "DELETE" });
+}
+
+export async function fetchAssessorFaixas(): Promise<Record<string, InvestFaixa[]>> {
+  const res = await apiFetch<{ data: Record<string, InvestFaixa[]> }>(
+    "/investimentos/assessor-faixas",
+  );
+  return res.data;
+}
+
+export async function setAssessorFaixas(
+  userId: string,
+  faixas: InvestFaixa[],
+): Promise<void> {
+  await apiFetch(`/investimentos/assessores/${userId}/faixas`, {
+    method: "PUT",
+    body: JSON.stringify({ faixas }),
+  });
 }
 
 export async function downloadInvestCsv(): Promise<void> {

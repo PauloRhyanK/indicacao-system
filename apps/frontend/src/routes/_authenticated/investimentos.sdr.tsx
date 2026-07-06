@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Phone } from "lucide-react";
+import { CalendarClock, LayoutDashboard, Phone } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { InvestLeadDialog } from "@/components/cais/invest/InvestLeadDialog";
+import { InvestReuniaoDialog } from "@/components/cais/invest/InvestReuniaoDialog";
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
 import { fetchProfiles } from "@/lib/cais-api";
 import { usePermissions } from "@/lib/use-permissions";
@@ -37,6 +38,7 @@ function InvestSdrPage() {
   const canManage = can("investimentos.manage");
   const canEdit = canManage || can("investimentos.edit");
   const canCreate = canManage || can("investimentos.create");
+  const canSchedule = canManage || can("investimentos.schedule");
 
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
   const data = useQuery({ queryKey: ["invest-leads"], queryFn: fetchInvestLeads });
@@ -44,6 +46,13 @@ function InvestSdrPage() {
 
   const [editingLead, setEditingLead] = useState<InvestLead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [reuniaoLead, setReuniaoLead] = useState<InvestLead | null>(null);
+  const [reuniaoOpen, setReuniaoOpen] = useState(false);
+
+  const openReuniao = (l: InvestLead) => {
+    setReuniaoLead(l);
+    setReuniaoOpen(true);
+  };
 
   const today = todayISO();
   const buckets = useMemo(() => {
@@ -114,11 +123,12 @@ function InvestSdrPage() {
                       items.map((l) => {
                         const info = INVEST_ETAPA_INFO[l.etapa];
                         return (
-                          <button
+                          <div
                             key={l.id}
-                            type="button"
+                            role="button"
+                            tabIndex={0}
                             onClick={() => openLead(l)}
-                            className="rounded-md border border-slate-200 bg-branco p-2.5 text-left shadow-sm transition-colors hover:border-slate-300"
+                            className="cursor-pointer rounded-md border border-slate-200 bg-branco p-2.5 text-left shadow-sm transition-colors hover:border-slate-300"
                             style={{ borderLeftWidth: 3, borderLeftColor: bucket.color }}
                           >
                             <div className="flex items-start justify-between gap-2">
@@ -168,7 +178,19 @@ function InvestSdrPage() {
                                 </span>
                               )}
                             </div>
-                          </button>
+                            {canSchedule && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openReuniao(l);
+                                }}
+                                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded border border-slate-200 py-1 text-[11px] font-medium text-azul-corporativo transition-colors hover:border-ouro hover:bg-ouro/10"
+                              >
+                                <CalendarClock className="h-3.5 w-3.5" /> Marcar reunião
+                              </button>
+                            )}
+                          </div>
                         );
                       })
                     )}
@@ -188,6 +210,11 @@ function InvestSdrPage() {
         canManage={canManage}
         canCreate={canCreate}
         canEdit={canEdit}
+      />
+      <InvestReuniaoDialog
+        open={reuniaoOpen}
+        onClose={() => setReuniaoOpen(false)}
+        lead={reuniaoLead}
       />
     </AppLayout>
   );

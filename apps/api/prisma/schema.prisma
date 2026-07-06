@@ -67,6 +67,9 @@ model User {
   investLeadsAsVendedor    InvestLead[] @relation("InvestLeadVendedor")
   investLeadsAsCoVendedor  InvestLead[] @relation("InvestLeadCoVendedor")
   investLeadsCreated       InvestLead[] @relation("InvestLeadCreatedBy")
+  investReunioesComoAssessor InvestReuniao[] @relation("InvestReuniaoAssessor")
+  investReunioesCriadas      InvestReuniao[] @relation("InvestReuniaoCriador")
+  investAssessorFaixas       InvestAssessorFaixa[]
   purchasesAsResponsavel Purchase[]     @relation("PurchaseResponsavel")
   campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
   userRoles              UserRole[]
@@ -318,12 +321,48 @@ model InvestLead {
   vendedor    User? @relation("InvestLeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
   coVendedor  User? @relation("InvestLeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
   createdBy   User? @relation("InvestLeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  reunioes    InvestReuniao[]
 
   @@index([etapa])
   @@index([responsavelId])
   @@index([vendedorId])
   @@index([deletedAt])
   @@map("invest_leads")
+}
+
+model InvestReuniao {
+  id             String    @id @default(uuid()) @db.Uuid
+  leadId         String    @map("lead_id") @db.Uuid
+  assessorId     String    @map("assessor_id") @db.Uuid
+  dataHoraInicio DateTime  @map("data_hora_inicio")
+  dataHoraFim    DateTime? @map("data_hora_fim")
+  titulo         String    @default("")
+  local          String    @default("")
+  status         String    @default("agendada")
+  faixa          String?
+  criadoPorId    String?   @map("criado_por_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  lead      InvestLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assessor  User       @relation("InvestReuniaoAssessor", fields: [assessorId], references: [id], onDelete: Cascade)
+  criadoPor User?      @relation("InvestReuniaoCriador", fields: [criadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([assessorId, dataHoraInicio])
+  @@index([leadId])
+  @@index([deletedAt])
+  @@map("invest_reunioes")
+}
+
+model InvestAssessorFaixa {
+  userId String @map("user_id") @db.Uuid
+  faixa  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, faixa])
+  @@map("invest_assessor_faixas")
 }
 
 model InvestConfig {

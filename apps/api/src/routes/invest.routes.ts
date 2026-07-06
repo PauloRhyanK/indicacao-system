@@ -1,13 +1,19 @@
 import type { FastifyInstance } from "fastify";
 import {
   deleteInvestLead,
+  deleteInvestReuniao,
+  getInvestAssessorFaixas,
+  getInvestAssessores,
   getInvestConfigHandler,
   getInvestLeads,
   getInvestLeadsCsv,
+  getInvestReunioes,
   patchInvestLead,
   patchInvestLeadEtapa,
   postInvestImport,
   postInvestLead,
+  postInvestReuniao,
+  putInvestAssessorFaixas,
   putInvestConfig,
 } from "../controllers/invest.controller.js";
 import { authenticate, requirePermission } from "../middlewares/auth.js";
@@ -24,6 +30,11 @@ const investCreate = [
 const investEdit = [
   authenticate,
   requirePermission("investimentos.edit", "investimentos.manage"),
+] as const;
+// Agendar reunião: SDR (schedule) ou gestão.
+const investSchedule = [
+  authenticate,
+  requirePermission("investimentos.schedule", "investimentos.manage"),
 ] as const;
 
 export async function investRoutes(app: FastifyInstance) {
@@ -48,4 +59,16 @@ export async function investRoutes(app: FastifyInstance) {
   app.put("/investimentos/config", { preHandler: [...investManage] }, putInvestConfig);
 
   app.post("/investimentos/import", { preHandler: [...investImport] }, postInvestImport);
+
+  // Agenda de reuniões (KUS-153/149)
+  app.get("/investimentos/assessores", { preHandler: [...investView] }, getInvestAssessores);
+  app.get("/investimentos/reunioes", { preHandler: [...investView] }, getInvestReunioes);
+  app.post("/investimentos/reunioes", { preHandler: [...investSchedule] }, postInvestReuniao);
+  app.delete("/investimentos/reunioes/:id", { preHandler: [...investSchedule] }, deleteInvestReuniao);
+  app.get("/investimentos/assessor-faixas", { preHandler: [...investManage] }, getInvestAssessorFaixas);
+  app.put(
+    "/investimentos/assessores/:id/faixas",
+    { preHandler: [...investManage] },
+    putInvestAssessorFaixas,
+  );
 }

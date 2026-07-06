@@ -75,6 +75,28 @@ export const importInvestLeadsSchema = z.object({
   rows: z.array(investImportRowSchema).min(1).max(5000),
 });
 
+export const createInvestReuniaoSchema = z.object({
+  leadId: z.string().uuid(),
+  assessorId: z.string().uuid(),
+  dataHoraInicio: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
+  dataHoraFim: z.string().optional().nullable(),
+  titulo: z.string().default(""),
+  local: z.string().default(""),
+});
+
+export const listReunioesQuerySchema = z.object({
+  assessorId: z.string().uuid().optional(),
+  leadId: z.string().uuid().optional(),
+  scope: z.enum(["mine", "all"]).optional(),
+});
+
+export const setAssessorFaixasSchema = z.object({
+  faixas: z.array(z.enum(INVEST_FAIXA_VALUES)),
+});
+
+export type CreateInvestReuniaoInput = z.infer<typeof createInvestReuniaoSchema>;
+export type SetAssessorFaixasInput = z.infer<typeof setAssessorFaixasSchema>;
+
 export type CreateInvestLeadInput = z.infer<typeof createInvestLeadSchema>;
 export type UpdateInvestLeadInput = z.infer<typeof updateInvestLeadSchema>;
 export type UpdateInvestEtapaInput = z.infer<typeof updateInvestEtapaSchema>;

@@ -1,11 +1,23 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   createInvestLeadSchema,
+  createInvestReuniaoSchema,
   importInvestLeadsSchema,
+  listReunioesQuerySchema,
+  setAssessorFaixasSchema,
   updateInvestConfigSchema,
   updateInvestEtapaSchema,
   updateInvestLeadSchema,
 } from "../schemas/invest.schema.js";
+import {
+  cancelReuniao,
+  createReuniao,
+  getAssessorFaixasMap,
+  listAssessoresParaFaixa,
+  listReunioes,
+  setAssessorFaixas,
+} from "../services/investAgenda.service.js";
+import type { InvestFaixa } from "../constants/invest.js";
 import {
   createInvestLead,
   exportInvestLeadsCsv,
@@ -76,4 +88,43 @@ export async function getInvestLeadsCsv(_request: FastifyRequest, reply: Fastify
     .header("Content-Type", "text/csv; charset=utf-8")
     .header("Content-Disposition", 'attachment; filename="pipeline_investimentos.csv"')
     .send(`\ufeff${csv}`);
+}
+
+// --- Agenda de reuni\u00f5es (KUS-153/149) --------------------------------------
+
+export async function getInvestAssessores(request: FastifyRequest, reply: FastifyReply) {
+  const { faixa } = request.query as { faixa?: string };
+  const data = await listAssessoresParaFaixa((faixa ?? null) as InvestFaixa | null);
+  return reply.send({ data });
+}
+
+export async function postInvestReuniao(request: FastifyRequest, reply: FastifyReply) {
+  const input = createInvestReuniaoSchema.parse(request.body);
+  const data = await createReuniao(input, actorId(request));
+  return reply.status(201).send({ data });
+}
+
+export async function getInvestReunioes(request: FastifyRequest, reply: FastifyReply) {
+  const query = listReunioesQuerySchema.parse(request.query);
+  const assessorId = query.scope === "mine" ? actorId(request) : query.assessorId;
+  const data = await listReunioes({ assessorId, leadId: query.leadId });
+  return reply.send({ data });
+}
+
+export async function deleteInvestReuniao(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  await cancelReuniao(id);
+  return reply.status(204).send();
+}
+
+export async function getInvestAssessorFaixas(_request: FastifyRequest, reply: FastifyReply) {
+  const data = await getAssessorFaixasMap();
+  return reply.send({ data });
+}
+
+export async function putInvestAssessorFaixas(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const input = setAssessorFaixasSchema.parse(request.body);
+  const data = await setAssessorFaixas(id, input);
+  return reply.send({ data });
 }

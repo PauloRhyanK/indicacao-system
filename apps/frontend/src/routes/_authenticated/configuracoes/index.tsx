@@ -5,6 +5,7 @@ import { Badge } from "@/components/cais/Badge";
 import { Button } from "@/components/cais/Button";
 import { PageLoader, SectionHeader } from "@/components/cais/Feedback";
 import { DomainManagerTable } from "@/components/cais/DomainManagerTable";
+import { AssessorFaixasSection } from "@/components/cais/invest/AssessorFaixasSection";
 import { inputClass } from "@/components/cais/SlideOver";
 import {
   createTeamUser,
@@ -43,6 +44,7 @@ function ConfiguracoesPage() {
   const canManageUsers = can("users.manage");
   const canManageSettings = can("settings.manage");
   const canManageRoles = can("roles.manage");
+  const canManageInvest = can("investimentos.manage");
 
   const meta = useQuery({ queryKey: ["meta"], queryFn: fetchMetaPeriod });
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
@@ -135,6 +137,8 @@ function ConfiguracoesPage() {
           </>
         )}
       </div>
+
+      {canManageInvest && <AssessorFaixasSection />}
 
       <div className="space-y-6">
         <div>
