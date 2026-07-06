@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TvInvestimentosRouteImport } from './routes/tv-investimentos'
 import { Route as TvRouteImport } from './routes/tv'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PrimeiroAcessoRouteImport } from './routes/primeiro-acesso'
@@ -31,6 +32,11 @@ import { Route as AuthenticatedInvestimentosImprimirRouteImport } from './routes
 import { Route as AuthenticatedConfiguracoesPapeisRouteImport } from './routes/_authenticated/configuracoes/papeis'
 import { Route as AuthenticatedConfiguracoesMetasRouteImport } from './routes/_authenticated/configuracoes/metas'
 
+const TvInvestimentosRoute = TvInvestimentosRouteImport.update({
+  id: '/tv-investimentos',
+  path: '/tv-investimentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TvRoute = TvRouteImport.update({
   id: '/tv',
   path: '/tv',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/register': typeof RegisterRoute
   '/tv': typeof TvRoute
+  '/tv-investimentos': typeof TvInvestimentosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/register': typeof RegisterRoute
   '/tv': typeof TvRoute
+  '/tv-investimentos': typeof TvInvestimentosRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/indicacoes': typeof AuthenticatedIndicacoesRoute
   '/vendas': typeof AuthenticatedVendasRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/register': typeof RegisterRoute
   '/tv': typeof TvRoute
+  '/tv-investimentos': typeof TvInvestimentosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/indicacoes': typeof AuthenticatedIndicacoesRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/primeiro-acesso'
     | '/register'
     | '/tv'
+    | '/tv-investimentos'
     | '/configuracoes'
     | '/dashboard'
     | '/indicacoes'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/primeiro-acesso'
     | '/register'
     | '/tv'
+    | '/tv-investimentos'
     | '/dashboard'
     | '/indicacoes'
     | '/vendas'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/primeiro-acesso'
     | '/register'
     | '/tv'
+    | '/tv-investimentos'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
     | '/_authenticated/indicacoes'
@@ -289,10 +301,18 @@ export interface RootRouteChildren {
   PrimeiroAcessoRoute: typeof PrimeiroAcessoRoute
   RegisterRoute: typeof RegisterRoute
   TvRoute: typeof TvRoute
+  TvInvestimentosRoute: typeof TvInvestimentosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tv-investimentos': {
+      id: '/tv-investimentos'
+      path: '/tv-investimentos'
+      fullPath: '/tv-investimentos'
+      preLoaderRoute: typeof TvInvestimentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tv': {
       id: '/tv'
       path: '/tv'
@@ -507,6 +527,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrimeiroAcessoRoute: PrimeiroAcessoRoute,
   RegisterRoute: RegisterRoute,
   TvRoute: TvRoute,
+  TvInvestimentosRoute: TvInvestimentosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

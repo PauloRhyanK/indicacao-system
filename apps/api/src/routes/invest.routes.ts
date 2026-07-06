@@ -8,6 +8,7 @@ import {
   getInvestLeads,
   getInvestLeadsCsv,
   getInvestReunioes,
+  getInvestTv,
   patchInvestLead,
   patchInvestLeadEtapa,
   postInvestImport,
@@ -44,6 +45,9 @@ const investQualify = [
 ] as const;
 
 export async function investRoutes(app: FastifyInstance) {
+  // Painel TV — público (sala comercial), como o /goals/daily/today do consórcio.
+  app.get("/investimentos/tv", getInvestTv);
+
   app.get("/investimentos/leads", { preHandler: [...investView] }, getInvestLeads);
 
   app.get("/investimentos/export/csv", { preHandler: [...investView] }, getInvestLeadsCsv);

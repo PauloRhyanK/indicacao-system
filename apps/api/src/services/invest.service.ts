@@ -441,6 +441,60 @@ export async function importInvestLeads(
 }
 
 // ---------------------------------------------------------------------------
+// Painel TV (KUS-146) — ranking BNF por responsável com ganhos
+// ---------------------------------------------------------------------------
+
+export async function getInvestTvData() {
+  const [leads, config] = await Promise.all([
+    prisma.investLead.findMany({ where: activeWhere, include: includeResponsavel }),
+    getInvestConfig(),
+  ]);
+
+  const ganhos = leads.filter((l) => l.etapa === "ganho");
+  const captado = ganhos.reduce((s, l) => s + Number(l.pl), 0);
+
+  let pipePonderado = 0;
+  for (const l of leads) {
+    if (l.etapa !== "ganho" && l.etapa !== "perdido") {
+      pipePonderado += (Number(l.pl) * l.probabilidade) / 100;
+    }
+  }
+
+  const byResp = new Map<string, { name: string; total: number; count: number }>();
+  for (const l of ganhos) {
+    const name = l.responsavel?.name ?? (l.responsavelNome || "Sem responsável");
+    const r = byResp.get(name) ?? { name, total: 0, count: 0 };
+    r.total += Number(l.pl);
+    r.count += 1;
+    byResp.set(name, r);
+  }
+  const ranking = [...byResp.values()]
+    .sort((a, b) => b.total - a.total)
+    .map((r, i) => ({ position: i + 1, ...r }));
+
+  const recentGanhos = ganhos
+    .slice()
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .slice(0, 10)
+    .map((l) => ({
+      nome: l.nome,
+      pl: Number(l.pl),
+      responsavel: l.responsavel?.name ?? l.responsavelNome,
+      faixa: l.faixa,
+      ganhoEm: l.updatedAt.toISOString(),
+    }));
+
+  return {
+    meta: config.meta,
+    captado,
+    ganhoCount: ganhos.length,
+    pipePonderado,
+    ranking,
+    recentGanhos,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Export CSV
 // ---------------------------------------------------------------------------
 

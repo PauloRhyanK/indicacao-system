@@ -23,6 +23,7 @@ import {
   createInvestLead,
   exportInvestLeadsCsv,
   getInvestConfig,
+  getInvestTvData,
   importInvestLeads,
   listInvestLeads,
   qualifyLead,
@@ -76,6 +77,11 @@ export async function postInvestQualify(request: FastifyRequest, reply: FastifyR
 
 export async function getInvestConfigHandler(_request: FastifyRequest, reply: FastifyReply) {
   const data = await getInvestConfig();
+  return reply.send({ data });
+}
+
+export async function getInvestTv(_request: FastifyRequest, reply: FastifyReply) {
+  const data = await getInvestTvData();
   return reply.send({ data });
 }
 

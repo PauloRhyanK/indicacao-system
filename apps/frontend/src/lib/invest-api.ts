@@ -271,6 +271,28 @@ export async function importInvestLeads(rows: InvestImportRow[]): Promise<Invest
   return res.data;
 }
 
+// --- Painel TV BNF (KUS-146) -----------------------------------------------
+
+export interface InvestTvData {
+  meta: number;
+  captado: number;
+  ganhoCount: number;
+  pipePonderado: number;
+  ranking: { position: number; name: string; total: number; count: number }[];
+  recentGanhos: {
+    nome: string;
+    pl: number;
+    responsavel: string;
+    faixa: InvestFaixa | null;
+    ganhoEm: string;
+  }[];
+}
+
+export async function fetchInvestTv(): Promise<InvestTvData> {
+  const res = await apiFetch<{ data: InvestTvData }>("/investimentos/tv", {}, false);
+  return res.data;
+}
+
 // --- Agenda de reuniões (KUS-153/149) --------------------------------------
 
 export async function fetchAssessoresParaFaixa(faixa: InvestFaixa | null): Promise<AssessorRef[]> {
