@@ -69,7 +69,7 @@ export async function postInvestLead(request: FastifyRequest, reply: FastifyRepl
 export async function patchInvestLead(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const input = updateInvestLeadSchema.parse(request.body);
-  const data = await updateInvestLead(id, input);
+  const data = await updateInvestLead(id, input, actorId(request));
   return reply.send({ data });
 }
 

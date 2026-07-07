@@ -37,15 +37,20 @@ const includeResponsavel = {
   vendedor: { select: { id: true, name: true } },
   coVendedor: { select: { id: true, name: true } },
   qualificadoPor: { select: { id: true, name: true } },
+  sdrRelatoPor: { select: { id: true, name: true } },
+  pitchRef: { select: { id: true, titulo: true, faixa: true } },
 } as const;
 
 type UserRef = { id: string; name: string } | null;
+type PitchRef = { id: string; titulo: string; faixa: string } | null;
 
 type InvestLeadWithUser = InvestLead & {
   responsavel: UserRef;
   vendedor: UserRef;
   coVendedor: UserRef;
   qualificadoPor: UserRef;
+  sdrRelatoPor: UserRef;
+  pitchRef: PitchRef;
 };
 
 function serializeInvestLead(lead: InvestLeadWithUser) {
@@ -55,6 +60,8 @@ function serializeInvestLead(lead: InvestLeadWithUser) {
     origem: lead.origem,
     produto: lead.produto,
     pitch: lead.pitch,
+    pitch_id: lead.pitchId,
+    pitch_ref: lead.pitchRef,
     pl: Number(lead.pl),
     etapa: lead.etapa,
     probabilidade: lead.probabilidade,
@@ -70,6 +77,9 @@ function serializeInvestLead(lead: InvestLeadWithUser) {
     passo: lead.passo,
     retorno: lead.retorno ? lead.retorno.toISOString().slice(0, 10) : null,
     obs: lead.obs,
+    sdr_relato: lead.sdrRelato,
+    sdr_relato_por: lead.sdrRelatoPor,
+    sdr_relato_em: lead.sdrRelatoEm ? lead.sdrRelatoEm.toISOString() : null,
     qualificado_por: lead.qualificadoPor,
     qualificado_em: lead.qualificadoEm ? lead.qualificadoEm.toISOString() : null,
     created_at: lead.createdAt,
@@ -185,12 +195,14 @@ export async function listInvestLeadsGrid(
 }
 
 export async function createInvestLead(input: CreateInvestLeadInput, actorUserId?: string) {
+  const hasRelato = Boolean(input.sdrRelato?.trim());
   const created = await prisma.investLead.create({
     data: {
       nome: input.nome,
       origem: input.origem,
       produto: input.produto,
       pitch: input.pitch,
+      pitchId: input.pitchId ?? null,
       pl: new Prisma.Decimal(input.pl),
       etapa: input.etapa,
       probabilidade: input.probabilidade ?? defaultProb(input.etapa),
@@ -205,6 +217,9 @@ export async function createInvestLead(input: CreateInvestLeadInput, actorUserId
       passo: input.passo,
       retorno: parseRetorno(input.retorno),
       obs: input.obs,
+      sdrRelato: input.sdrRelato ?? "",
+      sdrRelatoPorId: hasRelato ? (actorUserId ?? null) : null,
+      sdrRelatoEm: hasRelato ? new Date() : null,
       createdById: actorUserId ?? null,
     },
     include: includeResponsavel,
@@ -217,9 +232,16 @@ async function findActiveInvestLead(id: string) {
   return prisma.investLead.findFirst({ where: { id, ...activeWhere } });
 }
 
-export async function updateInvestLead(id: string, input: UpdateInvestLeadInput) {
+export async function updateInvestLead(
+  id: string,
+  input: UpdateInvestLeadInput,
+  actorUserId?: string,
+) {
   const existing = await findActiveInvestLead(id);
   if (!existing) throw notFound("Lead não encontrado");
+
+  // Registra autoria/data do relato do SDR sempre que o texto muda.
+  const relatoChanged = input.sdrRelato !== undefined && input.sdrRelato !== existing.sdrRelato;
 
   const updated = await prisma.investLead.update({
     where: { id },
@@ -228,6 +250,7 @@ export async function updateInvestLead(id: string, input: UpdateInvestLeadInput)
       ...(input.origem !== undefined ? { origem: input.origem } : {}),
       ...(input.produto !== undefined ? { produto: input.produto } : {}),
       ...(input.pitch !== undefined ? { pitch: input.pitch } : {}),
+      ...(input.pitchId !== undefined ? { pitchId: input.pitchId } : {}),
       ...(input.pl !== undefined ? { pl: new Prisma.Decimal(input.pl) } : {}),
       ...(input.etapa !== undefined ? { etapa: input.etapa } : {}),
       // Probabilidade é manual por lead (decisão do gestor): só muda quando enviada.
@@ -243,6 +266,13 @@ export async function updateInvestLead(id: string, input: UpdateInvestLeadInput)
       ...(input.passo !== undefined ? { passo: input.passo } : {}),
       ...(input.retorno !== undefined ? { retorno: parseRetorno(input.retorno) } : {}),
       ...(input.obs !== undefined ? { obs: input.obs } : {}),
+      ...(input.sdrRelato !== undefined ? { sdrRelato: input.sdrRelato } : {}),
+      ...(relatoChanged
+        ? {
+            sdrRelatoPorId: input.sdrRelato?.trim() ? (actorUserId ?? null) : null,
+            sdrRelatoEm: input.sdrRelato?.trim() ? new Date() : null,
+          }
+        : {}),
     },
     include: includeResponsavel,
   });

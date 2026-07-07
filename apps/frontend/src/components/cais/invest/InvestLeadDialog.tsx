@@ -1,7 +1,17 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Compass, Loader2, Trash2, CalendarClock, Info } from "lucide-react";
+import {
+  Compass,
+  Loader2,
+  Trash2,
+  CalendarClock,
+  Info,
+  Pencil,
+  ListChecks,
+  Eye,
+  PhoneCall,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,12 +48,15 @@ import {
   createInvestLead,
   deleteInvestLead,
   faixaFromPl,
+  fetchInvestPitches,
   updateInvestLead,
   type InvestEtapa,
   type InvestFaixa,
   type InvestLead,
   type InvestLeadPayload,
+  type InvestPitch,
 } from "@/lib/invest-api";
+import { InvestPitchView } from "@/components/cais/invest/InvestPitchView";
 
 const NONE = "__none__";
 
@@ -101,6 +114,8 @@ interface FormState {
   origem: string;
   produto: string;
   pitch: string;
+  pitchId: string | null;
+  sdrRelato: string;
   pl: string;
   etapa: InvestEtapa;
   probabilidade: string;
@@ -122,6 +137,8 @@ function emptyForm(): FormState {
     origem: "indicacao",
     produto: "carteira",
     pitch: "",
+    pitchId: null,
+    sdrRelato: "",
     pl: "",
     etapa: "lead",
     probabilidade: String(INVEST_ETAPA_INFO.lead.prob),
@@ -144,6 +161,8 @@ function formFromLead(lead: InvestLead): FormState {
     origem: lead.origem,
     produto: lead.produto,
     pitch: lead.pitch,
+    pitchId: lead.pitch_id,
+    sdrRelato: lead.sdr_relato,
     pl: lead.pl ? String(lead.pl) : "",
     etapa: lead.etapa,
     probabilidade: String(lead.probabilidade),
@@ -183,14 +202,48 @@ export function InvestLeadDialog({
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Faixa acompanha o PL até o usuário escolher manualmente.
   const [faixaTouched, setFaixaTouched] = useState(false);
+  // Pitch: modo seletor (biblioteca) x modo personalizado (texto livre).
+  const [pitchCustomMode, setPitchCustomMode] = useState(false);
+  const [pitchViewOpen, setPitchViewOpen] = useState(false);
+
+  // Biblioteca de pitches ativos — carregada ao abrir o diálogo.
+  const { data: pitches = [] } = useQuery({
+    queryKey: ["invest-pitches"],
+    queryFn: () => fetchInvestPitches({ ativo: true }),
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open) {
       setForm(lead ? formFromLead(lead) : emptyForm());
       setConfirmDelete(false);
       setFaixaTouched(Boolean(lead?.faixa));
+      // Se o lead tem texto livre e nenhum pitch selecionado, abre em modo personalizado.
+      setPitchCustomMode(Boolean(lead && !lead.pitch_id && lead.pitch));
+      setPitchViewOpen(false);
     }
   }, [open, lead]);
+
+  // Pitches sugeridos primeiro pela faixa do lead, depois o resto.
+  const orderedPitches = useMemo(() => {
+    const match = pitches.filter((p) => p.faixa === form.faixa);
+    const rest = pitches.filter((p) => p.faixa !== form.faixa);
+    return [...match, ...rest];
+  }, [pitches, form.faixa]);
+
+  const selectedPitch: InvestPitch | undefined = useMemo(
+    () => pitches.find((p) => p.id === form.pitchId),
+    [pitches, form.pitchId],
+  );
+
+  const enterCustomMode = () => {
+    setPitchCustomMode(true);
+    setForm((f) => ({ ...f, pitchId: null }));
+  };
+  const enterSelectMode = () => {
+    setPitchCustomMode(false);
+    setForm((f) => ({ ...f, pitch: "" }));
+  };
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -213,7 +266,10 @@ export function InvestLeadDialog({
         nome: form.nome.trim(),
         origem: form.origem,
         produto: form.produto,
-        pitch: form.pitch.trim(),
+        // Modo seletor: pitchId setado e texto livre vazio. Modo personalizado: o inverso.
+        pitch: form.pitchId ? "" : form.pitch.trim(),
+        pitchId: form.pitchId,
+        sdrRelato: form.sdrRelato.trim(),
         pl: parsePl(form.pl),
         etapa: form.etapa,
         probabilidade: Math.max(0, Math.min(100, parseInt(form.probabilidade, 10) || 0)),
@@ -517,19 +573,69 @@ export function InvestLeadDialog({
               <div className="rounded-lg border border-ouro/40 bg-ouro/5 p-2.5">
                 <div className="mb-1.5 flex items-center gap-2">
                   <Compass className="h-4 w-4 text-ouro-escuro" />
-                  <Label htmlFor="inv-pitch" className="text-ouro-escuro">
-                    Pitch — como vender
-                  </Label>
+                  <Label className="text-ouro-escuro">Pitch — como vender</Label>
                   <FieldHint>O assessor abre o lead e já vê o pitch antes de atender.</FieldHint>
+                  {editable && (
+                    <button
+                      type="button"
+                      onClick={pitchCustomMode ? enterSelectMode : enterCustomMode}
+                      title={
+                        pitchCustomMode ? "Escolher da biblioteca" : "Escrever pitch personalizado"
+                      }
+                      className="ml-auto inline-flex items-center gap-1 rounded border border-ouro/40 px-1.5 py-1 text-[11px] font-medium text-ouro-escuro hover:bg-ouro/10"
+                    >
+                      {pitchCustomMode ? (
+                        <>
+                          <ListChecks className="h-3.5 w-3.5" /> Biblioteca
+                        </>
+                      ) : (
+                        <>
+                          <Pencil className="h-3.5 w-3.5" /> Personalizado
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
-                <Textarea
-                  id="inv-pitch"
-                  value={form.pitch}
-                  onChange={(e) => set("pitch", e.target.value)}
-                  placeholder="Motivos e ganchos: ex.: gestão conta PJ; análise de carteira..."
-                  disabled={!editable}
-                  className="min-h-[56px] bg-branco"
-                />
+
+                {pitchCustomMode ? (
+                  <Textarea
+                    id="inv-pitch"
+                    value={form.pitch}
+                    onChange={(e) => set("pitch", e.target.value)}
+                    placeholder="Motivos e ganchos: ex.: gestão conta PJ; análise de carteira..."
+                    disabled={!editable}
+                    className="min-h-[56px] bg-branco"
+                  />
+                ) : (
+                  <div className="space-y-1.5">
+                    <Select
+                      value={form.pitchId ?? NONE}
+                      onValueChange={(v) => set("pitchId", v === NONE ? null : v)}
+                      disabled={!editable}
+                    >
+                      <SelectTrigger className="bg-branco">
+                        <SelectValue placeholder="Selecione um pitch do playbook" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Sem pitch</SelectItem>
+                        {orderedPitches.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {INVEST_FAIXA_INFO[p.faixa].label} · {p.titulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedPitch && (
+                      <button
+                        type="button"
+                        onClick={() => setPitchViewOpen(true)}
+                        className="inline-flex items-center gap-1 text-[12px] font-medium text-ouro-escuro hover:underline"
+                      >
+                        <Eye className="h-3.5 w-3.5" /> Ver pitch completo
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -542,6 +648,34 @@ export function InvestLeadDialog({
                   disabled={!editable}
                   className="mt-1.5 min-h-[56px]"
                 />
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <PhoneCall className="h-4 w-4 text-slate-500" />
+                  <Label htmlFor="inv-sdr-relato" className="text-slate-600">
+                    Relato da ligação (SDR)
+                  </Label>
+                  <FieldHint>
+                    Como foi a ligação e detalhes do cliente. O assessor lê isso antes da reunião.
+                  </FieldHint>
+                </div>
+                <Textarea
+                  id="inv-sdr-relato"
+                  value={form.sdrRelato}
+                  onChange={(e) => set("sdrRelato", e.target.value)}
+                  placeholder="Pontos da conversa: dores, caixa médio, quem decide, próximos passos..."
+                  disabled={!editable}
+                  className="min-h-[56px] bg-branco"
+                />
+                {lead?.sdr_relato_por && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Preenchido por {lead.sdr_relato_por.name}
+                    {lead.sdr_relato_em
+                      ? ` em ${new Date(lead.sdr_relato_em).toLocaleDateString("pt-BR")}`
+                      : ""}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -645,6 +779,19 @@ export function InvestLeadDialog({
 
           <div className="shrink-0 border-t border-slate-100 px-6 py-4">
             {footer}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Visualização do pitch selecionado (somente leitura) */}
+      <Dialog open={pitchViewOpen} onOpenChange={setPitchViewOpen}>
+        <DialogContent className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-0 p-0">
+          <DialogHeader className="hidden">
+            <DialogTitle>Pitch</DialogTitle>
+            <DialogDescription>Visualização do pitch</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto px-6 py-5">
+            {selectedPitch && <InvestPitchView pitch={selectedPitch} />}
           </div>
         </DialogContent>
       </Dialog>

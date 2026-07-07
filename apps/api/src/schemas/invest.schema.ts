@@ -17,6 +17,8 @@ const investLeadBaseSchema = z.object({
   origem: z.enum(INVEST_ORIGEM_VALUES).default("outro"),
   produto: z.enum(INVEST_PRODUTO_VALUES).default("carteira"),
   pitch: z.string().default(""),
+  pitchId: z.string().uuid().nullable().optional(),
+  sdrRelato: z.string().optional(),
   pl: z.number().min(0).default(0),
   etapa: z.enum(INVEST_ETAPA_VALUES).default("lead"),
   probabilidade: z.number().int().min(0).max(100).optional(),
