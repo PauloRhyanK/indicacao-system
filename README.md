@@ -280,6 +280,26 @@ pnpm docker:prod
 
 Sobe Postgres (rede interna) + API + pgAdmin. API e pgAdmin entram na rede Docker **`proxy-network`** (mesma do Nginx Proxy Manager).
 
+#### Deploy automático (push na `main`)
+
+O workflow [`.github/workflows/deploy-prod.yml`](.github/workflows/deploy-prod.yml) conecta na VPS via SSH e executa `scripts/deploy-prod.sh` (equivalente a `pnpm docker:prod` com `git pull` antes).
+
+Dispara em push na `main` quando há mudanças em API, Docker ou dependências do monorepo. Os frontends (Vercel) continuam com deploy próprio.
+
+**Secrets no GitHub** (Settings → Secrets and variables → Actions):
+
+| Secret | Descrição |
+|--------|-----------|
+| `VPS_HOST` | IP ou hostname da VPS |
+| `VPS_USER` | Usuário SSH (ex.: `deploy` ou `root`) |
+| `VPS_SSH_KEY` | Chave privada SSH (sem passphrase) |
+| `VPS_DEPLOY_PATH` | Caminho do clone na VPS (ex.: `/opt/cais-indicacoes`) |
+| `VPS_SSH_PORT` | *(opcional)* Porta SSH; padrão `22` |
+
+**Pré-requisitos na VPS:** Docker, Docker Compose, repositório clonado, `.env` preenchido na raiz, rede `proxy-network` existente. O usuário SSH precisa de permissão para `docker` (grupo `docker` ou sudo).
+
+Para rodar manualmente na VPS: `./scripts/deploy-prod.sh`. No GitHub: Actions → *Deploy production (VPS)* → *Run workflow*.
+
 ### Nginx Proxy Manager
 
 | Host | Forward | Porta |
