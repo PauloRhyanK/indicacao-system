@@ -188,10 +188,7 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                 />
               </div>
             </div>
-          </div>
 
-          {/* Coluna Direita: Horários e Local */}
-          <div className="space-y-6">
             <div>
               <Label className="mb-2 block">Duração</Label>
               <div className="flex items-center gap-3">
@@ -221,6 +218,22 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="reuniao-local" className="flex items-baseline gap-1">
+                Local <span className="text-slate-400 font-normal text-[11px]">(opcional)</span>
+              </Label>
+              <Input
+                id="reuniao-local"
+                value={local}
+                onChange={(e) => setLocal(e.target.value)}
+                placeholder="ex.: escritório / videochamada"
+                className="mt-1.5"
+              />
+            </div>
+          </div>
+
+          {/* Coluna Direita: Horários e participantes */}
+          <div className="space-y-6">
             <div>
               <Label className="mb-2 block flex items-center gap-2">
                 <Clock className="h-4 w-4 text-slate-500" /> Horários livres
@@ -279,19 +292,6 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                 <Label htmlFor="isOnlineCheckbox" className="font-normal text-slate-700 cursor-pointer">
                   Gerar link do Microsoft Teams
                 </Label>
-              </div>
-
-              <div>
-                <Label htmlFor="reuniao-local" className="flex items-baseline gap-1">
-                  Local <span className="text-slate-400 font-normal text-[11px]">(opcional)</span>
-                </Label>
-                <Input
-                  id="reuniao-local"
-                  value={local}
-                  onChange={(e) => setLocal(e.target.value)}
-                  placeholder="ex.: escritório / videochamada"
-                  className="mt-1.5"
-                />
               </div>
 
               <div>
