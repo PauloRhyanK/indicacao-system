@@ -151,7 +151,14 @@ export async function listInvestLeadsGrid(
       ],
     });
   }
-  if (query.responsavel) and.push({ responsavelNome: query.responsavel });
+  if (query.responsavel) {
+    and.push({
+      OR: [
+        { responsavel: { name: query.responsavel } },
+        { responsavelId: null, responsavelNome: query.responsavel },
+      ],
+    });
+  }
   if (query.etapa) and.push({ etapa: query.etapa });
   if (query.scope === "mine" && actorUserId) and.push({ responsavelId: actorUserId });
   if (query.scope === "unassigned") and.push({ responsavelId: null, responsavelNome: "" });
