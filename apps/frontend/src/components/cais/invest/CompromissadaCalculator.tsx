@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Send } from "lucide-react";
 
 // Porta da calculadora_compromissada_pj.html — mesmas fórmulas de IOF/IR e rendimento.
 // IOF regressivo (idx = dias corridos; 30+ = 0).
@@ -54,7 +55,110 @@ function Kpi({ label, value, foot }: { label: string; value: string; foot: strin
   );
 }
 
-export function CompromissadaCalculator({ caixaInicial }: { caixaInicial?: number }) {
+/** Monta o HTML do resumo para o cliente (janela própria, sem depender do CSS do app). */
+function buildExportHtml(params: {
+  leadNome?: string;
+  caixa: number;
+  dias: number;
+  diasUteis: number;
+  pctCompr: number;
+  cdbPct: number;
+  comprPeriodo: number;
+  cdbPeriodo: number;
+  comprMes: number;
+  vencedor: "compr" | "cdb";
+  dif: number;
+}): string {
+  const {
+    leadNome,
+    caixa,
+    dias,
+    diasUteis,
+    pctCompr,
+    cdbPct,
+    comprPeriodo,
+    cdbPeriodo,
+    comprMes,
+    vencedor,
+    dif,
+  } = params;
+  const hoje = new Date().toLocaleDateString("pt-BR");
+  const maxBar = Math.max(comprPeriodo, cdbPeriodo, 1);
+  const comprWidth = Math.round((comprPeriodo / maxBar) * 100);
+  const cdbWidth = Math.round((cdbPeriodo / maxBar) * 100);
+  const veredito =
+    vencedor === "compr"
+      ? `A compromissada rende ${fmt(dif)} a mais no período — por não pagar IOF no giro curto.`
+      : `Nesse prazo o CDB supera a compromissada em ${fmt(dif)} (o IOF já ficou para trás).`;
+
+  return `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Simulação Compromissada — CAIS Investimentos</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',sans-serif;color:#0c1d30;padding:32px;max-width:640px;margin:0 auto}
+  .tag{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:#b0913f;font-weight:600}
+  h1{font-size:20px;font-weight:600;color:#081421;margin-top:4px}
+  .sub{font-size:12.5px;color:#4a5b6b;margin-top:2px}
+  .kpi{border:1px solid #e6eaee;border-radius:10px;padding:14px 16px;margin-top:18px}
+  .kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#8b9aa8}
+  .kpi .v{font-family:monospace;font-size:26px;font-weight:700;color:#081421;margin-top:2px}
+  .kpi .f{font-size:11.5px;color:#8b9aa8;margin-top:2px}
+  .cmp{margin-top:20px}
+  .row{margin-bottom:12px}
+  .rl{display:flex;justify-content:space-between;font-size:12.5px;color:#4a5b6b;margin-bottom:4px}
+  .rl b{font-family:monospace;color:#0c1d30}
+  .track{height:10px;border-radius:6px;background:#eceff2}
+  .fill{height:10px;border-radius:6px}
+  .verdict{margin-top:8px;border-radius:8px;padding:10px 12px;font-size:12.5px;font-weight:500}
+  .legal{margin-top:28px;border-top:1px solid #e6eaee;padding-top:14px;font-size:10.5px;color:#8b9aa8;line-height:1.6}
+  @media print{ body{padding:0} }
+</style></head>
+<body>
+  <div class="tag">CAIS Investimentos · Simulação</div>
+  <h1>${leadNome ? `Simulação para ${leadNome}` : "Simulação de rendimento"}</h1>
+  <div class="sub">Compromissada BTG × CDB · caixa de ${fmt(caixa)} · ${dias} dias (${diasUteis} úteis) · ${hoje}</div>
+
+  <div class="kpi">
+    <div class="l">Rendimento líquido no período</div>
+    <div class="v">${fmt(comprPeriodo)}</div>
+    <div class="f">compromissada · isenta de IOF · ${pctCompr}% do CDI · após IR</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Projeção em 1 mês aplicado</div>
+    <div class="v">${fmt(comprMes)}</div>
+    <div class="f">30 dias corridos · 21 dias úteis</div>
+  </div>
+
+  <div class="cmp">
+    <div class="row">
+      <div class="rl"><span>Compromissada BTG (${pctCompr}% CDI, isenta de IOF)</span><b>${fmt(comprPeriodo)}</b></div>
+      <div class="track"><div class="fill" style="width:${comprWidth}%;background:#b0913f"></div></div>
+    </div>
+    <div class="row">
+      <div class="rl"><span>CDB ${cdbPct}% CDI (IOF regressivo até 30 dias)</span><b>${fmt(cdbPeriodo)}</b></div>
+      <div class="track"><div class="fill" style="width:${cdbWidth}%;background:#346f93"></div></div>
+    </div>
+    <div class="verdict" style="background:${vencedor === "compr" ? "#f7f0dc" : "#eceff2"};color:${vencedor === "compr" ? "#8a6d1f" : "#346f93"}">
+      ${veredito}
+    </div>
+  </div>
+
+  <div class="legal">
+    Simulação com base no CDI e nas condições vigentes na data acima — não constitui garantia de
+    resultado. Valores e taxas podem mudar; confirme sempre na proposta formal com a mesa BTG.
+    Material de apoio comercial CAIS Investimentos.
+  </div>
+</body></html>`;
+}
+
+export function CompromissadaCalculator({
+  caixaInicial,
+  leadNome,
+}: {
+  caixaInicial?: number;
+  leadNome?: string;
+}) {
   const [caixa, setCaixa] = useState<number>(
     caixaInicial && caixaInicial >= MIN_V ? Math.min(caixaInicial, MAX_V) : 5_000_000,
   );
@@ -71,15 +175,48 @@ export function CompromissadaCalculator({ caixaInicial }: { caixaInicial?: numbe
     const cdbPeriodo = netYield(caixa, cdbPct, cdi, dias, true);
     const comprMes = netYield(caixa, pctCompr, cdi, 30, false);
     const porDiaUtil = comprPeriodo / du(dias);
-    const vencedor = comprPeriodo >= cdbPeriodo ? "compr" : "cdb";
+    const vencedor: "compr" | "cdb" = comprPeriodo >= cdbPeriodo ? "compr" : "cdb";
     const dif = Math.abs(comprPeriodo - cdbPeriodo);
     return { pctCompr, comprPeriodo, cdbPeriodo, comprMes, porDiaUtil, vencedor, dif };
   }, [caixa, dias, cdi, tier1, tier2, corte, cdbPct]);
 
   const maxBar = Math.max(r.comprPeriodo, r.cdbPeriodo, 1);
 
+  const exportarParaCliente = () => {
+    const html = buildExportHtml({
+      leadNome,
+      caixa,
+      dias,
+      diasUteis: du(dias),
+      pctCompr: r.pctCompr,
+      cdbPct,
+      comprPeriodo: r.comprPeriodo,
+      cdbPeriodo: r.cdbPeriodo,
+      comprMes: r.comprMes,
+      vencedor: r.vencedor,
+      dif: r.dif,
+    });
+    const win = window.open("", "_blank", "width=760,height=900");
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={exportarParaCliente}
+          className="inline-flex items-center gap-1.5 rounded-md border border-ouro/40 bg-ouro/10 px-3 py-1.5 text-[12.5px] font-medium text-ouro-escuro hover:bg-ouro/20"
+        >
+          <Send className="h-3.5 w-3.5" /> Exportar para cliente
+        </button>
+      </div>
+
       {/* Controles principais */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>

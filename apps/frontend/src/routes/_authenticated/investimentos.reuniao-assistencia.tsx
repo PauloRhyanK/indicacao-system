@@ -10,8 +10,16 @@ import {
   User,
 } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
+import { Button } from "@/components/cais/Button";
 import { CompromissadaCalculator } from "@/components/cais/invest/CompromissadaCalculator";
 import { InvestPitchView } from "@/components/cais/invest/InvestPitchView";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { requireInvestPerm } from "@/lib/invest-guards";
 import {
   fetchInvestLeads,
@@ -74,6 +82,7 @@ function InvestReuniaoAssistenciaPage() {
   );
 
   const loading = reunioes.isLoading || leads.isLoading;
+  const [calcOpen, setCalcOpen] = useState(false);
 
   return (
     <AppLayout>
@@ -87,12 +96,19 @@ function InvestReuniaoAssistenciaPage() {
               Dados do lead, pitch, relato do SDR e a calculadora — tudo num painel só
             </p>
           </div>
-          <Link
-            to="/investimentos"
-            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-azul-profundo transition-colors hover:bg-slate-100"
-          >
-            <LayoutDashboard className="h-4 w-4" /> Dashboard
-          </Link>
+          <div className="flex items-center gap-2">
+            {lead && (
+              <Button onClick={() => setCalcOpen(true)}>
+                <Calculator className="mr-2 h-4 w-4" /> Calculadora compromissada
+              </Button>
+            )}
+            <Link
+              to="/investimentos"
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-branco px-3 py-2.5 text-sm font-medium text-azul-profundo transition-colors hover:bg-slate-100"
+            >
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -214,19 +230,29 @@ function InvestReuniaoAssistenciaPage() {
                     <p className="text-[12.5px] text-slate-400">Nenhum pitch selecionado para este lead.</p>
                   )}
                 </div>
-
-                {/* Calculadora — só relevante para caixa/tesouraria (PJ) */}
-                <div className="rounded-lg border border-slate-200 bg-branco p-4">
-                  <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-azul-profundo">
-                    <Calculator className="h-4 w-4 text-ouro-escuro" /> Calculadora compromissada PJ
-                  </h2>
-                  <CompromissadaCalculator caixaInicial={lead.pl} />
-                </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Calculadora compromissada — modal sobreposto, aberto pelo botão do topo */}
+      <Dialog open={calcOpen} onOpenChange={setCalcOpen}>
+        <DialogContent className="flex max-h-[92vh] w-full max-w-2xl flex-col gap-0 p-0">
+          <DialogHeader className="hidden">
+            <DialogTitle>Calculadora compromissada</DialogTitle>
+            <DialogDescription>Simulação de rendimento compromissada x CDB</DialogDescription>
+          </DialogHeader>
+          <div className="flex shrink-0 items-center border-b border-slate-100 py-2.5 pl-5 pr-9">
+            <h2 className="flex items-center gap-2 text-[15px] font-semibold text-azul-profundo">
+              <Calculator className="h-4 w-4 text-ouro-escuro" /> Calculadora compromissada PJ
+            </h2>
+          </div>
+          <div className="overflow-y-auto px-5 py-4">
+            {lead && <CompromissadaCalculator caixaInicial={lead.pl} leadNome={lead.nome} />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
