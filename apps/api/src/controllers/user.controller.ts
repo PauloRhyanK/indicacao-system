@@ -29,6 +29,17 @@ export async function patchPersonalDailyTarget(request: FastifyRequest, reply: F
   });
 }
 
+export async function patchUserPersonalDailyTarget(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const input = personalDailyTargetSchema.parse(request.body);
+  const row = await updatePersonalDailyTarget(id, input.amount);
+  return reply.send({
+    data: {
+      amount: row.personalDailyTarget !== null ? Number(row.personalDailyTarget) : null,
+    },
+  });
+}
+
 export async function deleteUserHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const result = await deleteUser(id, request.user.sub);

@@ -22,6 +22,7 @@ export interface Profile {
   access_scope: AccessScope;
   roles: { id: string; name: string; isSystem: boolean }[];
   created_at: string;
+  personal_daily_target: number | null;
 }
 
 export interface AssignedUser {
@@ -319,6 +320,7 @@ function mapProfile(api: ApiUser): Profile {
     access_scope: api.access_scope ?? "INTERNAL",
     roles: api.roles ?? [],
     created_at: api.createdAt,
+    personal_daily_target: api.personalDailyTarget ?? null,
   };
 }
 
@@ -341,6 +343,7 @@ interface ApiUser {
   access_scope?: AccessScope;
   roles: { id: string; name: string; isSystem: boolean }[];
   createdAt: string;
+  personalDailyTarget?: number | null;
 }
 
 interface ApiAssignedUser {
@@ -635,6 +638,20 @@ export async function fetchLead(id: string): Promise<Lead> {
 export async function fetchProfiles(): Promise<Profile[]> {
   const res = await apiFetch<{ data: ApiUser[] }>("/users");
   return res.data.map(mapProfile);
+}
+
+export async function updateUserPersonalDailyTarget(
+  userId: string,
+  amount: number | null,
+): Promise<number | null> {
+  const res = await apiFetch<{ data: { amount: number | null } }>(
+    `/users/${userId}/personal-daily-target`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ amount }),
+    },
+  );
+  return res.data.amount;
 }
 
 export async function fetchSales(): Promise<Sale[]> {

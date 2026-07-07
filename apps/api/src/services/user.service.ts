@@ -13,6 +13,7 @@ const publicSelect = {
   mustChangePassword: true,
   accessScope: true,
   createdAt: true,
+  personalDailyTarget: true,
   userRoles: {
     select: {
       role: { select: { id: true, name: true, isSystem: true } },
@@ -27,6 +28,7 @@ function mapUser(row: {
   mustChangePassword: boolean;
   accessScope: string;
   createdAt: Date;
+  personalDailyTarget: unknown;
   userRoles: { role: { id: string; name: string; isSystem: boolean } }[];
 }) {
   return {
@@ -36,6 +38,8 @@ function mapUser(row: {
     mustChangePassword: row.mustChangePassword,
     access_scope: row.accessScope,
     createdAt: row.createdAt,
+    personalDailyTarget:
+      row.personalDailyTarget !== null ? Number(row.personalDailyTarget) : null,
     roles: row.userRoles.map((ur) => ur.role),
   };
 }

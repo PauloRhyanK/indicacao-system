@@ -6,6 +6,7 @@ import { PersonalDailyGoalCard } from "@/components/cais/PersonalDailyGoalCard";
 import { PeriodGoalCard } from "@/components/cais/PeriodGoalCard";
 import { WeeklyDefaultsGrid } from "@/components/cais/WeeklyDefaultsGrid";
 import { DailyGoalCalendar } from "@/components/cais/DailyGoalCalendar";
+import { TeamPersonalGoalsCard } from "@/components/cais/TeamPersonalGoalsCard";
 import { InvestMetaCard } from "@/components/cais/invest/InvestMetaCard";
 import { usePermissions } from "@/lib/use-permissions";
 import { useActiveSystem } from "@/lib/use-active-system";
@@ -68,6 +69,7 @@ function MetasPage() {
             <WeeklyDefaultsGrid readOnly={!canEditDay} />
             <DailyGoalCalendar readOnly={!canEditDay} />
           </div>
+          {canEditGlobal && <TeamPersonalGoalsCard />}
         </div>
       )}
     </>

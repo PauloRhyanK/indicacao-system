@@ -7,16 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { PersonalDailyGoalCard } from "./PersonalDailyGoalCard";
 
-const SKIPPED_KEY = "cais-personal-goal-skipped";
-
-export function hasSkippedPersonalGoal(): boolean {
-  return localStorage.getItem(SKIPPED_KEY) === "true";
-}
-
-export function markPersonalGoalSkipped(): void {
-  localStorage.setItem(SKIPPED_KEY, "true");
-}
-
 interface PersonalGoalModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,24 +36,11 @@ export function PersonalGoalModal({
         <button
           type="button"
           className="w-full text-center text-[13px] text-azul-medio hover:text-azul-profundo"
-          onClick={() => {
-            markPersonalGoalSkipped();
-            onOpenChange(false);
-          }}
+          onClick={() => onOpenChange(false)}
         >
-          Pular — usar meta da empresa
+          Usar meta da empresa
         </button>
       </DialogContent>
     </Dialog>
   );
-}
-
-export const PERSONAL_GOAL_PROMPTED_KEY = "cais-personal-goal-prompted";
-
-export function hasBeenPromptedForPersonalGoal(): boolean {
-  return localStorage.getItem(PERSONAL_GOAL_PROMPTED_KEY) === "true";
-}
-
-export function markPersonalGoalPrompted(): void {
-  localStorage.setItem(PERSONAL_GOAL_PROMPTED_KEY, "true");
 }

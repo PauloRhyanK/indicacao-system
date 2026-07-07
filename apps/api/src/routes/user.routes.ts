@@ -3,6 +3,7 @@ import {
   deleteUserHandler,
   getUsers,
   patchPersonalDailyTarget,
+  patchUserPersonalDailyTarget,
   postUser,
   requirePasswordSetupHandler,
 } from "../controllers/user.controller.js";
@@ -16,6 +17,11 @@ export async function userRoutes(app: FastifyInstance) {
     postUser,
   );
   app.patch("/users/me/personal-daily-target", { preHandler: [authenticate] }, patchPersonalDailyTarget);
+  app.patch(
+    "/users/:id/personal-daily-target",
+    { preHandler: [authenticate, requirePermission("meta.configure_global")] },
+    patchUserPersonalDailyTarget,
+  );
   app.patch(
     "/users/:id/require-password-setup",
     { preHandler: [authenticate, requirePermission("users.manage")] },

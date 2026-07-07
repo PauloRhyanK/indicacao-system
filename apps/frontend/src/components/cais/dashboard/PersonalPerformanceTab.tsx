@@ -6,12 +6,7 @@ import { PersonalGoalHero } from "@/components/cais/dashboard/PersonalGoalHero";
 import { DailyInsightCard } from "@/components/cais/dashboard/DailyInsightCard";
 import { MySalesTodayList } from "@/components/cais/dashboard/MySalesTodayList";
 import { MyActiveLeadsList } from "@/components/cais/dashboard/MyActiveLeadsList";
-import {
-  PersonalGoalModal,
-  hasBeenPromptedForPersonalGoal,
-  hasSkippedPersonalGoal,
-  markPersonalGoalPrompted,
-} from "@/components/cais/PersonalGoalModal";
+import { PersonalGoalModal } from "@/components/cais/PersonalGoalModal";
 import { fetchPersonalDashboard, formatBRL } from "@/lib/cais-api";
 import { fetchMe } from "@/lib/api/auth";
 
@@ -25,7 +20,6 @@ function useGreeting() {
 export function PersonalPerformanceTab() {
   const greeting = useGreeting();
   const [userName, setUserName] = useState("Assessor");
-  const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [configureOpen, setConfigureOpen] = useState(false);
 
   const dashboard = useQuery({
@@ -38,14 +32,6 @@ export function PersonalPerformanceTab() {
       .then((s) => setUserName(s.user.name.split(" ")[0]))
       .catch(() => setUserName("Assessor"));
   }, []);
-
-  useEffect(() => {
-    if (!dashboard.data) return;
-    if (dashboard.data.personalDailyTarget !== null) return;
-    if (hasBeenPromptedForPersonalGoal() || hasSkippedPersonalGoal()) return;
-    markPersonalGoalPrompted();
-    setGoalModalOpen(true);
-  }, [dashboard.data]);
 
   if (dashboard.isLoading) return <PageLoader />;
   if (!dashboard.data) {
@@ -104,15 +90,8 @@ export function PersonalPerformanceTab() {
       </div>
 
       <PersonalGoalModal
-        open={goalModalOpen || configureOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setGoalModalOpen(false);
-            setConfigureOpen(false);
-          } else {
-            setConfigureOpen(true);
-          }
-        }}
+        open={configureOpen}
+        onOpenChange={setConfigureOpen}
         companyDailyTarget={d.companyDailyTarget}
       />
     </>
