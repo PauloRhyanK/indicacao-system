@@ -13,6 +13,7 @@ import {
   getInvestTv,
   patchInvestLead,
   patchInvestLeadEtapa,
+  postInvestCheckParticipantes,
   postInvestImport,
   postInvestLead,
   postInvestQualify,
@@ -96,6 +97,11 @@ export async function investRoutes(app: FastifyInstance) {
   app.get("/investimentos/assessores", { preHandler: [...investView] }, getInvestAssessores);
   app.get("/investimentos/assessores/:id/slots", { preHandler: [...investSchedule] }, getInvestAssessorSlotsHandler);
   app.get("/investimentos/reunioes", { preHandler: [...investView] }, getInvestReunioes);
+  app.post(
+    "/investimentos/reunioes/check-participantes",
+    { preHandler: [...investSchedule] },
+    postInvestCheckParticipantes,
+  );
   app.post("/investimentos/reunioes", { preHandler: [...investSchedule] }, postInvestReuniao);
   app.delete("/investimentos/reunioes/:id", { preHandler: [...investSchedule] }, deleteInvestReuniao);
   app.get("/investimentos/assessor-faixas", { preHandler: [...investManage] }, getInvestAssessorFaixas);

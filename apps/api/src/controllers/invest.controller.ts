@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
   createInvestLeadSchema,
+  checkParticipantesSchema,
   createInvestReuniaoSchema,
   investGridQuerySchema,
   importInvestLeadsSchema,
@@ -15,6 +16,7 @@ import {
   cancelReuniao,
   createReuniao,
   getAssessorFaixasMap,
+  getParticipantConflicts,
   listAssessoresParaFaixa,
   listReunioes,
   setAssessorFaixas,
@@ -147,6 +149,21 @@ export async function postInvestReuniao(request: FastifyRequest, reply: FastifyR
   const input = createInvestReuniaoSchema.parse(request.body);
   const data = await createReuniao(input, actorId(request));
   return reply.status(201).send({ data });
+}
+
+const CHECK_DEFAULT_DURATION_MS = 60 * 60 * 1000;
+
+export async function postInvestCheckParticipantes(request: FastifyRequest, reply: FastifyReply) {
+  const input = checkParticipantesSchema.parse(request.body);
+  const inicio = new Date(input.dataHoraInicio);
+  if (Number.isNaN(inicio.getTime())) {
+    return reply.status(400).send({ message: "Data/hora inválida." });
+  }
+  const fim = input.dataHoraFim
+    ? new Date(input.dataHoraFim)
+    : new Date(inicio.getTime() + CHECK_DEFAULT_DURATION_MS);
+  const data = await getParticipantConflicts(inicio, fim, input.participantIds);
+  return reply.send({ data });
 }
 
 export async function getInvestReunioes(request: FastifyRequest, reply: FastifyReply) {

@@ -118,6 +118,17 @@ export const listReunioesQuerySchema = z.object({
   scope: z.enum(["mine", "all"]).optional(),
 });
 
+export const checkParticipantesSchema = z.object({
+  dataHoraInicio: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
+  dataHoraFim: z.string().optional().nullable(),
+  participantIds: z.array(z.string().uuid()).default([]),
+});
+
+export type CheckParticipantesInput = z.infer<typeof checkParticipantesSchema>;
+
 export const setAssessorFaixasSchema = z.object({
   faixas: z.array(z.enum(INVEST_FAIXA_VALUES)),
 });

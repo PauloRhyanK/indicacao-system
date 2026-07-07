@@ -11,6 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +36,7 @@ import { Button } from "@/components/cais/Button";
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
 import {
   INVEST_FAIXA_INFO,
+  checkParticipantConflicts,
   createInvestReuniao,
   fetchAssessoresParaFaixa,
   fetchAssessorSlots,
@@ -60,6 +71,10 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
   const [isOnline, setIsOnline] = useState(false);
   const [duracaoMinutos, setDuracaoMinutos] = useState(60);
   const [participanteIds, setParticipanteIds] = useState<string[]>([]);
+  // Aviso (soft) de participantes ocupados no horário escolhido.
+  const [checking, setChecking] = useState(false);
+  const [conflitos, setConflitos] = useState<{ id: string; name: string }[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const assessores = useQuery({
     queryKey: ["invest-assessores", lead?.faixa ?? "none"],
@@ -90,6 +105,9 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
       setIsOnline(false);
       setDuracaoMinutos(60);
       setParticipanteIds([]);
+      setChecking(false);
+      setConflitos([]);
+      setConfirmOpen(false);
     }
   }, [open, lead]);
 
@@ -123,7 +141,37 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
   });
 
   const faixaInfo = lead?.faixa ? INVEST_FAIXA_INFO[lead.faixa] : null;
-  const canSave = !!assessorId && !!dataHora && !mutation.isPending;
+  const canSave = !!assessorId && !!dataHora && !mutation.isPending && !checking;
+
+  // Confirmar: se há participantes, avisa (sem bloquear) quem já tem compromisso no horário.
+  async function handleConfirm() {
+    if (!dataHora) return;
+    if (participanteIds.length === 0) {
+      mutation.mutate();
+      return;
+    }
+    const inicio = new Date(dataHora);
+    const fim = new Date(inicio.getTime() + duracaoMinutos * 60 * 1000);
+    try {
+      setChecking(true);
+      const ocupados = await checkParticipantConflicts({
+        dataHoraInicio: dataHora,
+        dataHoraFim: fim.toISOString(),
+        participantIds: participanteIds,
+      });
+      if (ocupados.length > 0) {
+        setConflitos(ocupados);
+        setConfirmOpen(true);
+        return;
+      }
+      mutation.mutate();
+    } catch {
+      // Se a checagem falhar, não travar o agendamento — segue com a criação.
+      mutation.mutate();
+    } finally {
+      setChecking(false);
+    }
+  }
 
   function toggleParticipante(id: string) {
     setParticipanteIds((prev) =>
@@ -324,12 +372,39 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
           <Button variant="ghost" onClick={onClose} disabled={mutation.isPending}>
             Cancelar
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={!canSave}>
-            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={handleConfirm} disabled={!canSave}>
+            {(mutation.isPending || checking) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar agendamento
           </Button>
         </div>
       </DialogContent>
+
+      {/* Aviso (soft) de participantes com conflito — não bloqueia o agendamento. */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Participantes com compromisso</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estes participantes já têm reunião nesse horário:
+              <span className="mt-2 block font-medium text-azul-profundo">
+                {conflitos.map((c) => c.name).join(", ")}
+              </span>
+              <span className="mt-2 block">Deseja confirmar mesmo assim?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                mutation.mutate();
+              }}
+            >
+              Confirmar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

@@ -10,6 +10,39 @@ import type {
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000; // 1h quando não há fim informado
 
+interface BusyInterval {
+  start: Date;
+  end: Date;
+}
+
+/**
+ * Ocupação de um usuário vinda do banco (fonte da verdade): toda reunião ativa em
+ * que ele é ASSESSOR ou PARTICIPANTE. Independe de calendário externo conectado —
+ * garante que reuniões marcadas no CAIS sempre bloqueiem o horário de todos os envolvidos.
+ */
+export async function getDbBusyIntervals(
+  userId: string,
+  start: Date,
+  end: Date,
+): Promise<BusyInterval[]> {
+  const reunioes = await prisma.investReuniao.findMany({
+    where: {
+      deletedAt: null,
+      status: { not: "cancelada" },
+      dataHoraInicio: { lt: end },
+      OR: [{ assessorId: userId }, { participantes: { some: { userId } } }],
+    },
+    select: { dataHoraInicio: true, dataHoraFim: true },
+  });
+
+  return reunioes
+    .map((r) => ({
+      start: r.dataHoraInicio,
+      end: r.dataHoraFim ?? new Date(r.dataHoraInicio.getTime() + DEFAULT_DURATION_MS),
+    }))
+    .filter((iv) => iv.start < end && iv.end > start);
+}
+
 /**
  * Assessores compatíveis com uma faixa. Regra: um assessor atende a faixa se
  * tem competência cadastrada para ela; assessor SEM nenhuma competência
@@ -107,20 +140,11 @@ export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId
   if (Number.isNaN(inicio.getTime())) throw badRequest("Data/hora inválida");
   const fim = input.dataHoraFim ? new Date(input.dataHoraFim) : new Date(inicio.getTime() + DEFAULT_DURATION_MS);
 
-  // Anti double-booking: sem sobreposição para o mesmo assessor.
-  const conflito = await prisma.investReuniao.findFirst({
-    where: {
-      assessorId: input.assessorId,
-      deletedAt: null,
-      status: { not: "cancelada" },
-      dataHoraInicio: { lt: fim },
-      OR: [
-        { dataHoraFim: { gt: inicio } },
-        { dataHoraFim: null, dataHoraInicio: { gt: new Date(inicio.getTime() - DEFAULT_DURATION_MS) } },
-      ],
-    },
-  });
-  if (conflito) throw conflict("Assessor já tem reunião nesse horário");
+  // Anti double-booking: bloqueio duro só do ASSESSOR (reuniões dele como assessor OU participante).
+  const dbBusy = await getDbBusyIntervals(input.assessorId, inicio, fim);
+  if (dbBusy.some((iv) => inicio < iv.end && fim > iv.start)) {
+    throw conflict("Assessor já tem reunião nesse horário");
+  }
 
   // Dupla checagem: verificar se o horário continua livre no Outlook no exato momento de agendar
   const outlookEvents = await getOutlookFreeBusy(input.assessorId, inicio, fim).catch(() => []);
@@ -204,18 +228,9 @@ export async function getAssessorSlots(assessorId: string, date: string, duratio
   const startOfDay = new Date(`${date}T00:00:00.000-03:00`);
   const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
 
-  const [reunioes, outlookEvents] = await Promise.all([
-    prisma.investReuniao.findMany({
-      where: {
-        assessorId,
-        deletedAt: null,
-        status: { not: "cancelada" },
-        dataHoraInicio: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-    }),
+  // Ocupação do assessor: banco (sempre) ∪ Outlook ao vivo (se conectado).
+  const [dbBusy, outlookEvents] = await Promise.all([
+    getDbBusyIntervals(assessorId, startOfDay, endOfDay),
     getOutlookFreeBusy(assessorId, startOfDay, endOfDay).catch(() => [])
   ]);
 
@@ -228,12 +243,8 @@ export async function getAssessorSlots(assessorId: string, date: string, duratio
       const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}:00.000-03:00`);
       const slotEnd = new Date(slotStart.getTime() + durationMs);
 
-      // Checar sobreposição no CAIS
-      const hasCaisOverlap = reunioes.some((r: any) => {
-        const rStart = r.dataHoraInicio;
-        const rEnd = r.dataHoraFim ? r.dataHoraFim : new Date(rStart.getTime() + DEFAULT_DURATION_MS);
-        return slotStart < rEnd && slotEnd > rStart;
-      });
+      // Checar sobreposição no CAIS (banco — assessor ou participante)
+      const hasCaisOverlap = dbBusy.some((iv) => slotStart < iv.end && slotEnd > iv.start);
 
       // Checar sobreposição no Outlook
       const hasOutlookOverlap = outlookEvents.some((e: any) => {
@@ -247,6 +258,40 @@ export async function getAssessorSlots(assessorId: string, date: string, duratio
   }
 
   return slots;
+}
+
+/**
+ * Conflitos dos participantes adicionais para um horário proposto. NÃO bloqueia —
+ * só informa quem já tem compromisso (banco ∪ Outlook se conectado) para o modal de aviso.
+ */
+export async function getParticipantConflicts(
+  start: Date,
+  end: Date,
+  participantIds: string[],
+): Promise<{ id: string; name: string }[]> {
+  const ids = Array.from(new Set(participantIds));
+  if (ids.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: ids }, ...activeUserWhere },
+    select: { id: true, name: true },
+  });
+
+  const conflicts: { id: string; name: string }[] = [];
+  await Promise.all(
+    users.map(async (u) => {
+      const [dbBusy, outlook] = await Promise.all([
+        getDbBusyIntervals(u.id, start, end),
+        getOutlookFreeBusy(u.id, start, end).catch(() => []),
+      ]);
+      const ocupado =
+        dbBusy.some((iv) => start < iv.end && end > iv.start) ||
+        outlook.some((e: BusyInterval) => start < e.end && end > e.start);
+      if (ocupado) conflicts.push({ id: u.id, name: u.name });
+    }),
+  );
+
+  return conflicts;
 }
 
 export async function cancelReuniao(id: string) {

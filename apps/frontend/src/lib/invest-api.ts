@@ -485,6 +485,22 @@ export async function createInvestReuniao(input: {
   return res.data;
 }
 
+/**
+ * Checa (sem bloquear) quais participantes adicionais já têm compromisso no horário.
+ * Usado para o modal de aviso antes de confirmar a marcação.
+ */
+export async function checkParticipantConflicts(input: {
+  dataHoraInicio: string;
+  dataHoraFim?: string | null;
+  participantIds: string[];
+}): Promise<{ id: string; name: string }[]> {
+  const res = await apiFetch<{ data: { id: string; name: string }[] }>(
+    "/investimentos/reunioes/check-participantes",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data;
+}
+
 export async function fetchInvestReunioes(params: {
   scope?: "mine" | "all";
   assessorId?: string;
