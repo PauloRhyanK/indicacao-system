@@ -6,8 +6,8 @@ import { apiFetch, getApiBaseUrl, getToken } from "@/lib/api/client";
 
 export const INVEST_ETAPAS = [
   "lead",
-  "contato",
   "qualificado",
+  "contato",
   "reuniao",
   "proposta",
   "negociacao",
@@ -19,8 +19,8 @@ export type InvestEtapa = (typeof INVEST_ETAPAS)[number];
 
 export const INVEST_ETAPAS_ABERTAS: InvestEtapa[] = [
   "lead",
-  "contato",
   "qualificado",
+  "contato",
   "reuniao",
   "proposta",
   "negociacao",

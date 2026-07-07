@@ -6,18 +6,14 @@ import { ArrowRight } from "lucide-react";
 import { AppLayout } from "@/components/cais/AppLayout";
 import { KPICard } from "@/components/cais/KPICard";
 import { Input } from "@/components/ui/input";
-import {
-  InvestFaixaDonut,
-  InvestFunnelChart,
-  InvestTrendChart,
-} from "@/components/cais/invest/InvestCharts";
+import { InvestFaixaDonut, InvestTrendChart } from "@/components/cais/invest/InvestCharts";
 import { usePermissions } from "@/lib/use-permissions";
 import {
   fetchInvestLeads,
   formatBRLCompact,
+  formatBRL,
   investPipeByResponsavel,
   investTotals,
-  investWinRate,
   updateInvestConfig,
 } from "@/lib/invest-api";
 
@@ -55,7 +51,6 @@ function InvestDashboardPage() {
 
   const totals = useMemo(() => investTotals(leads), [leads]);
   const porResponsavel = useMemo(() => investPipeByResponsavel(leads), [leads]);
-  const win = useMemo(() => investWinRate(leads), [leads]);
   const closed = totals.ganhoN + totals.perdidoN;
   const conversao = closed ? Math.round((totals.ganhoN / closed) * 100) : null;
 
@@ -183,7 +178,20 @@ function InvestDashboardPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <InvestFunnelChart leads={leads} winRate={win.taxa} />
+          <div className="grid grid-cols-2 gap-3">
+            <KPICard
+              label="Meta atingida"
+              value={meta ? `${confPct.toFixed(1)}%` : "—"}
+              sub={meta ? `de ${formatBRL(meta)} de meta` : "Defina a meta acima"}
+              valueClassName="text-emerald-700"
+            />
+            <KPICard
+              label="Valor captado"
+              value={formatBRL(totals.ganhoVal)}
+              sub={`${totals.ganhoN} cliente${totals.ganhoN === 1 ? "" : "s"} ganho${totals.ganhoN === 1 ? "" : "s"}`}
+              valueClassName="text-emerald-700"
+            />
+          </div>
           <InvestTrendChart leads={leads} />
         </div>
 

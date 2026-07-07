@@ -2,8 +2,8 @@
 
 export const INVEST_ETAPA_VALUES = [
   "lead",
-  "contato",
   "qualificado",
+  "contato",
   "reuniao",
   "proposta",
   "negociacao",

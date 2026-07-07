@@ -61,7 +61,7 @@ const SORT_OPTIONS: { value: SdrSortBy; label: string }[] = [
 ];
 
 // Etapas possíveis dentro do catch-all "ativas" (exclui negociação/ganho/perdido, que têm bucket próprio).
-const ATIVAS_ETAPA_ORDER: InvestEtapa[] = ["lead", "contato", "qualificado", "reuniao", "proposta"];
+const ATIVAS_ETAPA_ORDER: InvestEtapa[] = ["lead", "qualificado", "contato", "reuniao", "proposta"];
 
 function sortLeads(a: InvestLead, b: InvestLead, sortBy: SdrSortBy): number {
   switch (sortBy) {
