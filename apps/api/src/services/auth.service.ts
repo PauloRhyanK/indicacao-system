@@ -75,11 +75,11 @@ export async function setInitialPassword(input: SetInitialPasswordInput) {
     return restored;
   }
 
-  if (user.accessScope === "INTERNAL") {
+  if (user.accessScope === "INTERNAL" && !user.mustChangePassword) {
     throw badRequest("Este e-mail já está cadastrado no sistema admin.");
   }
 
-  if (user.accessScope !== "CONFIDENCIAL") {
+  if (user.accessScope !== "CONFIDENCIAL" && user.accessScope !== "INTERNAL") {
     throw unauthorized("E-mail não encontrado");
   }
 
