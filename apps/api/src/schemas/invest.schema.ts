@@ -47,6 +47,7 @@ export const updateInvestEtapaSchema = z.object({
 
 export const qualifyInvestLeadSchema = z.object({
   faixa: z.enum(INVEST_FAIXA_VALUES).nullable().optional(),
+  pitchId: z.string().uuid().nullable().optional(),
 });
 
 export type QualifyInvestLeadInput = z.infer<typeof qualifyInvestLeadSchema>;

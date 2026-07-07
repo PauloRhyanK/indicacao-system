@@ -309,6 +309,7 @@ export async function qualifyLead(
   id: string,
   faixa: string | null | undefined,
   actorUserId?: string,
+  pitchId?: string | null,
 ) {
   const existing = await findActiveInvestLead(id);
   if (!existing) throw notFound("Lead não encontrado");
@@ -324,6 +325,8 @@ export async function qualifyLead(
       etapa: novaEtapa,
       qualificadoPorId: actorUserId ?? null,
       qualificadoEm: new Date(),
+      // Pitch escolhido na qualificação — só sobrescreve quando enviado.
+      ...(pitchId !== undefined ? { pitchId } : {}),
     },
     include: includeResponsavel,
   });

@@ -392,10 +392,11 @@ export async function updateInvestLead(
 export async function qualifyInvestLead(
   id: string,
   faixa: InvestFaixa | null,
+  pitchId?: string | null,
 ): Promise<InvestLead> {
   const res = await apiFetch<{ data: InvestLead }>(`/investimentos/leads/${id}/qualificar`, {
     method: "POST",
-    body: JSON.stringify({ faixa }),
+    body: JSON.stringify({ faixa, ...(pitchId !== undefined ? { pitchId } : {}) }),
   });
   return res.data;
 }

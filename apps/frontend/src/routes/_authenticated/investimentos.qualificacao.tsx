@@ -18,13 +18,17 @@ import {
   INVEST_FAIXA_INFO,
   faixaFromPl,
   fetchInvestLeads,
+  fetchInvestPitches,
   formatBRL,
   investNeedsQualification,
   investOrigemLabel,
   qualifyInvestLead,
   type InvestFaixa,
   type InvestLead,
+  type InvestPitch,
 } from "@/lib/invest-api";
+
+const NONE = "__none__";
 
 export const Route = createFileRoute("/_authenticated/investimentos/qualificacao")({
   head: () => ({ meta: [{ title: "Qualificação · Investimentos — CAIS" }] }),
@@ -36,6 +40,10 @@ export const Route = createFileRoute("/_authenticated/investimentos/qualificacao
 function InvestQualificacaoPage() {
   const queryClient = useQueryClient();
   const data = useQuery({ queryKey: ["invest-leads"], queryFn: fetchInvestLeads });
+  const pitches = useQuery({
+    queryKey: ["invest-pitches"],
+    queryFn: () => fetchInvestPitches({ ativo: true }),
+  });
   const leads = useMemo(() => data.data?.leads ?? [], [data.data]);
   const fila = useMemo(
     () => leads.filter(investNeedsQualification).sort((a, b) => b.pl - a.pl),
@@ -76,7 +84,12 @@ function InvestQualificacaoPage() {
         ) : (
           <div className="space-y-2">
             {fila.map((lead) => (
-              <QualificaRow key={lead.id} lead={lead} onDone={() => queryClient.invalidateQueries({ queryKey: ["invest-leads"] })} />
+              <QualificaRow
+                key={lead.id}
+                lead={lead}
+                pitches={pitches.data ?? []}
+                onDone={() => queryClient.invalidateQueries({ queryKey: ["invest-leads"] })}
+              />
             ))}
           </div>
         )}
@@ -85,11 +98,27 @@ function InvestQualificacaoPage() {
   );
 }
 
-function QualificaRow({ lead, onDone }: { lead: InvestLead; onDone: () => void }) {
+function QualificaRow({
+  lead,
+  pitches,
+  onDone,
+}: {
+  lead: InvestLead;
+  pitches: InvestPitch[];
+  onDone: () => void;
+}) {
   const [faixa, setFaixa] = useState<InvestFaixa>(lead.faixa ?? faixaFromPl(lead.pl));
+  const [pitchId, setPitchId] = useState<string | null>(lead.pitch_id);
+
+  // Pitches sugeridos primeiro pela faixa escolhida, depois o resto.
+  const orderedPitches = useMemo(() => {
+    const match = pitches.filter((p) => p.faixa === faixa);
+    const rest = pitches.filter((p) => p.faixa !== faixa);
+    return [...match, ...rest];
+  }, [pitches, faixa]);
 
   const mutation = useMutation({
-    mutationFn: () => qualifyInvestLead(lead.id, faixa),
+    mutationFn: () => qualifyInvestLead(lead.id, faixa, pitchId),
     onSuccess: () => {
       toast.success(`${lead.nome} qualificado como ${INVEST_FAIXA_INFO[faixa].label}`);
       onDone();
@@ -107,7 +136,7 @@ function QualificaRow({ lead, onDone }: { lead: InvestLead; onDone: () => void }
           {lead.abaixo_do_piso ? " · ⚠ abaixo do piso" : ""}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Select value={faixa} onValueChange={(v) => setFaixa(v as InvestFaixa)}>
           <SelectTrigger className="w-[130px]">
             <SelectValue />
@@ -116,6 +145,22 @@ function QualificaRow({ lead, onDone }: { lead: InvestLead; onDone: () => void }
             {INVEST_FAIXAS.map((f) => (
               <SelectItem key={f} value={f}>
                 {INVEST_FAIXA_INFO[f].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={pitchId ?? NONE}
+          onValueChange={(v) => setPitchId(v === NONE ? null : v)}
+        >
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Pitch — como vender" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>Sem pitch</SelectItem>
+            {orderedPitches.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {INVEST_FAIXA_INFO[p.faixa].label} · {p.titulo}
               </SelectItem>
             ))}
           </SelectContent>

@@ -89,7 +89,7 @@ export async function deleteInvestLead(request: FastifyRequest, reply: FastifyRe
 export async function postInvestQualify(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const input = qualifyInvestLeadSchema.parse(request.body);
-  const data = await qualifyLead(id, input.faixa, actorId(request));
+  const data = await qualifyLead(id, input.faixa, actorId(request), input.pitchId);
   return reply.send({ data });
 }
 
