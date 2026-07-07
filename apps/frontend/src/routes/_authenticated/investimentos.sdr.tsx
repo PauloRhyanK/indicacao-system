@@ -321,7 +321,7 @@ function InvestSdrPage() {
             Carregando fila...
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 md:h-[calc(100vh-240px)] md:grid-cols-2 md:grid-rows-2 xl:grid-cols-4 xl:grid-rows-1">
             {INVEST_SDR_BUCKETS.map((bucket) => {
               const items = buckets[bucket.key];
               const groups = bucket.key === "ativas" ? groupByEtapa(items) : null;
@@ -329,9 +329,9 @@ function InvestSdrPage() {
               return (
                 <div
                   key={bucket.key}
-                  className="flex flex-col rounded-md border border-slate-200 bg-slate-50/70"
+                  className="flex max-h-[min(55vh,480px)] min-h-0 flex-col overflow-hidden rounded-md border border-slate-200 bg-slate-50/70 md:max-h-none md:h-full"
                 >
-                  <div className="border-b border-slate-200 px-3 py-2.5">
+                  <div className="shrink-0 border-b border-slate-200 px-3 py-2.5">
                     <div className="flex items-center gap-2 text-sm font-semibold text-azul-profundo">
                       <span className="h-2 w-2 rounded-[2px]" style={{ background: bucket.color }} />
                       {bucket.label}
@@ -341,7 +341,7 @@ function InvestSdrPage() {
                     </div>
                     <div className="mt-0.5 text-[11px] text-slate-400">{bucket.hint}</div>
                   </div>
-                  <div className="flex min-h-[80px] flex-col gap-3 p-2">
+                  <div className="flex min-h-[80px] flex-1 flex-col gap-3 overflow-y-auto p-2">
                     {items.length === 0 ? (
                       <div className="rounded-md border border-dashed border-slate-300 px-2 py-4 text-center text-[11px] text-slate-400">
                         Nada aqui

@@ -276,7 +276,7 @@ function InvestPipelinePage() {
             onEtapa={(id, etapa) => etapaMutation.mutate({ id, etapa })}
           />
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-3">
+          <div className="flex h-[calc(100vh-320px)] gap-3 overflow-x-auto pb-3 md:h-[calc(100vh-260px)]">
             {INVEST_ETAPAS.map((etapa) => {
               const info = INVEST_ETAPA_INFO[etapa];
               const cards = filtered.filter((l) => l.etapa === etapa).sort((a, b) => b.pl - a.pl);
@@ -285,7 +285,7 @@ function InvestPipelinePage() {
                 <div
                   key={etapa}
                   className={cn(
-                    "flex w-[250px] flex-none flex-col rounded-md border bg-slate-50/70",
+                    "flex h-full max-h-full w-[250px] flex-none flex-col overflow-hidden rounded-md border bg-slate-50/70",
                     dragOverCol === etapa ? "border-ouro bg-branco" : "border-slate-200",
                   )}
                   onDragOver={(e) => {
@@ -298,7 +298,7 @@ function InvestPipelinePage() {
                     handleDrop(etapa);
                   }}
                 >
-                  <div className="border-b border-slate-200 px-3 py-2.5">
+                  <div className="shrink-0 border-b border-slate-200 px-3 py-2.5">
                     <div className="flex items-center gap-2 text-xs font-semibold text-azul-profundo">
                       <span className="h-2 w-2 rounded-[2px]" style={{ background: info.color }} />
                       {info.label}
@@ -307,7 +307,7 @@ function InvestPipelinePage() {
                       {cards.length} lead{cards.length === 1 ? "" : "s"} · {formatBRLCompact(sumPl)}
                     </div>
                   </div>
-                  <div className="flex min-h-[72px] flex-col gap-2 p-2">
+                  <div className="flex min-h-[72px] flex-1 flex-col gap-2 overflow-y-auto p-2">
                     {cards.length === 0 ? (
                       <div className="rounded-md border border-dashed border-slate-300 px-2 py-4 text-center text-[11px] text-slate-400">
                         Solte um card aqui
