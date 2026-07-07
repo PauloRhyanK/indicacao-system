@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarClock, Loader2, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { CalendarClock, Loader2, Calendar as CalendarIcon, Clock, Minus, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,18 @@ import {
   type InvestLead,
 } from "@/lib/invest-api";
 
+const DURATION_STEP_MIN = 30;
+const DURATION_MIN_MIN = 30;
+const DURATION_MAX_MIN = 240;
+
+function formatDuration(minutos: number) {
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${m}min`;
+}
+
 interface InvestReuniaoDialogProps {
   open: boolean;
   onClose: () => void;
@@ -45,6 +58,8 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
   const [dataHora, setDataHora] = useState("");
   const [local, setLocal] = useState("");
   const [isOnline, setIsOnline] = useState(false);
+  const [duracaoMinutos, setDuracaoMinutos] = useState(60);
+  const [participanteIds, setParticipanteIds] = useState<string[]>([]);
 
   const assessores = useQuery({
     queryKey: ["invest-assessores", lead?.faixa ?? "none"],
@@ -52,10 +67,17 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
     enabled: open && !!lead,
   });
 
+  // Lista completa de colegas para convidar como participantes (não restrita à faixa do lead).
+  const colegas = useQuery({
+    queryKey: ["invest-assessores", "todos"],
+    queryFn: () => fetchAssessoresParaFaixa(null),
+    enabled: open,
+  });
+
   const dateStr = date ? format(date, "yyyy-MM-dd") : null;
   const slots = useQuery({
-    queryKey: ["invest-assessor-slots", assessorId, dateStr],
-    queryFn: () => fetchAssessorSlots(assessorId, dateStr!),
+    queryKey: ["invest-assessor-slots", assessorId, dateStr, duracaoMinutos],
+    queryFn: () => fetchAssessorSlots(assessorId, dateStr!, duracaoMinutos),
     enabled: open && !!assessorId && !!dateStr,
   });
 
@@ -66,23 +88,29 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
       setDataHora("");
       setLocal("");
       setIsOnline(false);
+      setDuracaoMinutos(60);
+      setParticipanteIds([]);
     }
   }, [open, lead]);
 
-  // Se mudar de dia ou de assessor, limpa o horário selecionado
+  // Se mudar de dia, assessor ou duração, limpa o horário selecionado
   useEffect(() => {
     setDataHora("");
-  }, [dateStr, assessorId]);
+  }, [dateStr, assessorId, duracaoMinutos]);
 
   const mutation = useMutation({
     mutationFn: () => {
       if (!lead) throw new Error("Lead ausente");
+      const inicio = new Date(dataHora);
+      const fim = new Date(inicio.getTime() + duracaoMinutos * 60 * 1000);
       return createInvestReuniao({
         leadId: lead.id,
         assessorId,
         dataHoraInicio: dataHora,
+        dataHoraFim: fim.toISOString(),
         local: local.trim(),
         isOnline,
+        participanteIds,
       });
     },
     onSuccess: () => {
@@ -96,6 +124,12 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
 
   const faixaInfo = lead?.faixa ? INVEST_FAIXA_INFO[lead.faixa] : null;
   const canSave = !!assessorId && !!dataHora && !mutation.isPending;
+
+  function toggleParticipante(id: string) {
+    setParticipanteIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -159,10 +193,39 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
           {/* Coluna Direita: Horários e Local */}
           <div className="space-y-6">
             <div>
+              <Label className="mb-2 block">Duração</Label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDuracaoMinutos((d) => Math.max(DURATION_MIN_MIN, d - DURATION_STEP_MIN))
+                  }
+                  disabled={duracaoMinutos <= DURATION_MIN_MIN}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="w-16 text-center text-sm font-medium text-azul-profundo">
+                  {formatDuration(duracaoMinutos)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDuracaoMinutos((d) => Math.min(DURATION_MAX_MIN, d + DURATION_STEP_MIN))
+                  }
+                  disabled={duracaoMinutos >= DURATION_MAX_MIN}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div>
               <Label className="mb-2 block flex items-center gap-2">
                 <Clock className="h-4 w-4 text-slate-500" /> Horários livres
               </Label>
-              
+
               {!assessorId ? (
                 <div className="rounded-md border border-dashed border-slate-300 p-8 text-center text-sm text-slate-400">
                   Selecione um assessor primeiro.
@@ -229,6 +292,29 @@ export function InvestReuniaoDialog({ open, onClose, lead }: InvestReuniaoDialog
                   placeholder="ex.: escritório / videochamada"
                   className="mt-1.5"
                 />
+              </div>
+
+              <div>
+                <Label className="mb-1.5 block flex items-baseline gap-1">
+                  Outros participantes{" "}
+                  <span className="text-slate-400 font-normal text-[11px]">(opcional)</span>
+                </Label>
+                <div className="max-h-32 overflow-y-auto rounded-md border border-slate-200 p-2 space-y-1">
+                  {(colegas.data ?? [])
+                    .filter((c) => c.id !== assessorId)
+                    .map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-2 rounded px-1.5 py-1 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={participanteIds.includes(c.id)}
+                          onCheckedChange={() => toggleParticipante(c.id)}
+                        />
+                        {c.name}
+                      </label>
+                    ))}
+                </div>
               </div>
             </div>
           </div>

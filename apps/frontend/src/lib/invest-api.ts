@@ -319,6 +319,7 @@ export interface InvestReuniao {
   faixa: InvestFaixa | null;
   lead: { id: string; nome: string; faixa: InvestFaixa | null; pitch: string };
   assessor: { id: string; name: string };
+  participantes: { id: string; name: string }[];
 }
 
 export async function fetchOutlookAuthUrl(): Promise<string> {
@@ -475,6 +476,7 @@ export async function createInvestReuniao(input: {
   titulo?: string;
   local?: string;
   isOnline?: boolean;
+  participanteIds?: string[];
 }): Promise<InvestReuniao> {
   const res = await apiFetch<{ data: InvestReuniao }>("/investimentos/reunioes", {
     method: "POST",
@@ -738,7 +740,13 @@ export function investTotals(leads: InvestLead[]) {
   return { plOpen, prevOpen, ganhoVal, ganhoN, perdidoN, ativosN, prevTotal: ganhoVal + prevOpen };
 }
 
-export async function fetchAssessorSlots(assessorId: string, date: string): Promise<string[]> {
-  const data = await apiFetch<{ data: string[] }>(`/investimentos/assessores/${assessorId}/slots?date=${date}`);
+export async function fetchAssessorSlots(
+  assessorId: string,
+  date: string,
+  duracaoMinutos = 60,
+): Promise<string[]> {
+  const data = await apiFetch<{ data: string[] }>(
+    `/investimentos/assessores/${assessorId}/slots?date=${date}&duracaoMinutos=${duracaoMinutos}`,
+  );
   return data.data;
 }

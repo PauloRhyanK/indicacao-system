@@ -109,6 +109,7 @@ export const createInvestReuniaoSchema = z.object({
   titulo: z.string().default(""),
   local: z.string().default(""),
   isOnline: z.boolean().optional().default(false),
+  participanteIds: z.array(z.string().uuid()).optional().default([]),
 });
 
 export const listReunioesQuerySchema = z.object({

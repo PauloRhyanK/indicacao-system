@@ -133,11 +133,13 @@ export async function getInvestAssessores(request: FastifyRequest, reply: Fastif
 
 export async function getInvestAssessorSlotsHandler(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
-  const { date } = request.query as { date: string }; // YYYY-MM-DD
+  const { date, duracaoMinutos } = request.query as { date: string; duracaoMinutos?: string }; // YYYY-MM-DD
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return reply.status(400).send({ message: "Data inválida ou ausente (use YYYY-MM-DD)." });
   }
-  const data = await getAssessorSlots(id, date);
+  const minutos = duracaoMinutos ? Number(duracaoMinutos) : 60;
+  const durationMs = (Number.isFinite(minutos) && minutos > 0 ? minutos : 60) * 60 * 1000;
+  const data = await getAssessorSlots(id, date, durationMs);
   return reply.send({ data });
 }
 

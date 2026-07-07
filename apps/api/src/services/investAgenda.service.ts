@@ -67,6 +67,7 @@ function serializeReuniao(r: {
   faixa: string | null;
   lead: { id: string; nome: string; faixa: string | null; pitch: string };
   assessor: { id: string; name: string };
+  participantes: { user: { id: string; name: string } }[];
 }) {
   return {
     id: r.id,
@@ -78,12 +79,14 @@ function serializeReuniao(r: {
     faixa: r.faixa,
     lead: r.lead,
     assessor: r.assessor,
+    participantes: r.participantes.map((p) => p.user),
   };
 }
 
 const reuniaoInclude = {
   lead: { select: { id: true, nome: true, faixa: true, pitch: true } },
   assessor: { select: { id: true, name: true } },
+  participantes: { select: { user: { select: { id: true, name: true } } } },
 } as const;
 
 export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId?: string) {
@@ -149,17 +152,24 @@ export async function createReuniao(input: CreateInvestReuniaoInput, actorUserId
     console.error("Falha ao criar evento no Outlook (Silenciada):", err);
   }
 
+  const participanteIds = Array.from(new Set(input.participanteIds ?? [])).filter(
+    (id) => id !== input.assessorId,
+  );
+
   const created = await prisma.investReuniao.create({
     data: {
       leadId: input.leadId,
       assessorId: input.assessorId,
       dataHoraInicio: inicio,
-      dataHoraFim: input.dataHoraFim ? fim : null,
+      dataHoraFim: fim,
       titulo: input.titulo,
       local: finalLocal,
       faixa: lead.faixa,
       criadoPorId: actorUserId ?? null,
       outlookEventId,
+      participantes: {
+        create: participanteIds.map((userId) => ({ userId })),
+      },
     },
     include: reuniaoInclude,
   });
@@ -189,7 +199,7 @@ export async function listReunioes(params: {
   return reunioes.map(serializeReuniao);
 }
 
-export async function getAssessorSlots(assessorId: string, date: string) {
+export async function getAssessorSlots(assessorId: string, date: string, durationMs = DEFAULT_DURATION_MS) {
   // date format: YYYY-MM-DD
   const startOfDay = new Date(`${date}T00:00:00.000-03:00`);
   const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
@@ -216,7 +226,7 @@ export async function getAssessorSlots(assessorId: string, date: string) {
       if (hour === 22 && min === 30) continue; // max 22:00
       
       const slotStart = new Date(`${date}T${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}:00.000-03:00`);
-      const slotEnd = new Date(slotStart.getTime() + DEFAULT_DURATION_MS);
+      const slotEnd = new Date(slotStart.getTime() + durationMs);
 
       // Checar sobreposição no CAIS
       const hasCaisOverlap = reunioes.some((r: any) => {

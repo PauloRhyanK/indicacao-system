@@ -64,26 +64,27 @@ model User {
   outlookAccessToken    String?   @map("outlook_access_token")
   outlookTokenExpiresAt DateTime? @map("outlook_token_expires_at")
 
-  leadsAsResponsavel         Lead[]                  @relation("LeadResponsavel")
-  leadsAsCoVendedor          Lead[]                  @relation("LeadCoVendedor")
-  leadsCreated               Lead[]                  @relation("LeadCreatedBy")
-  leadsFirstContact          Lead[]                  @relation("LeadFirstContact")
-  investLeadsAsResponsavel   InvestLead[]            @relation("InvestLeadResponsavel")
-  investLeadsAsVendedor      InvestLead[]            @relation("InvestLeadVendedor")
-  investLeadsAsCoVendedor    InvestLead[]            @relation("InvestLeadCoVendedor")
-  investLeadsCreated         InvestLead[]            @relation("InvestLeadCreatedBy")
-  investReunioesComoAssessor InvestReuniao[]         @relation("InvestReuniaoAssessor")
-  investReunioesCriadas      InvestReuniao[]         @relation("InvestReuniaoCriador")
+  leadsAsResponsavel         Lead[]                      @relation("LeadResponsavel")
+  leadsAsCoVendedor          Lead[]                      @relation("LeadCoVendedor")
+  leadsCreated               Lead[]                      @relation("LeadCreatedBy")
+  leadsFirstContact          Lead[]                      @relation("LeadFirstContact")
+  investLeadsAsResponsavel   InvestLead[]                @relation("InvestLeadResponsavel")
+  investLeadsAsVendedor      InvestLead[]                @relation("InvestLeadVendedor")
+  investLeadsAsCoVendedor    InvestLead[]                @relation("InvestLeadCoVendedor")
+  investLeadsCreated         InvestLead[]                @relation("InvestLeadCreatedBy")
+  investReunioesComoAssessor InvestReuniao[]             @relation("InvestReuniaoAssessor")
+  investReunioesCriadas      InvestReuniao[]             @relation("InvestReuniaoCriador")
   investAssessorFaixas       InvestAssessorFaixa[]
-  investLeadsQualificados    InvestLead[]            @relation("InvestLeadQualificador")
-  investLeadsSdrRelato       InvestLead[]            @relation("InvestLeadSdrRelato")
-  investPitchesCreated       InvestPitch[]           @relation("InvestPitchCreatedBy")
-  purchasesAsResponsavel     Purchase[]              @relation("PurchaseResponsavel")
-  campaignRewardsPaid        CampaignReward[]        @relation("CampaignRewardPaidBy")
+  investLeadsQualificados    InvestLead[]                @relation("InvestLeadQualificador")
+  investLeadsSdrRelato       InvestLead[]                @relation("InvestLeadSdrRelato")
+  investPitchesCreated       InvestPitch[]               @relation("InvestPitchCreatedBy")
+  purchasesAsResponsavel     Purchase[]                  @relation("PurchaseResponsavel")
+  campaignRewardsPaid        CampaignReward[]            @relation("CampaignRewardPaidBy")
   userRoles                  UserRole[]
   aliases                    UserAlias[]
-  rjReunioesCriadas          RjReuniao[]             @relation("RjReuniaoCriador")
+  rjReunioesCriadas          RjReuniao[]                 @relation("RjReuniaoCriador")
   rjParticipacoesReuniao     RjReuniaoParticipante[]
+  investParticipacoesReuniao InvestReuniaoParticipante[]
 
   @@index([deletedAt])
   @@map("users")
@@ -388,14 +389,28 @@ model InvestReuniao {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  lead      InvestLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  assessor  User       @relation("InvestReuniaoAssessor", fields: [assessorId], references: [id], onDelete: Cascade)
-  criadoPor User?      @relation("InvestReuniaoCriador", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  lead          InvestLead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assessor      User                        @relation("InvestReuniaoAssessor", fields: [assessorId], references: [id], onDelete: Cascade)
+  criadoPor     User?                       @relation("InvestReuniaoCriador", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  participantes InvestReuniaoParticipante[]
 
   @@index([assessorId, dataHoraInicio])
   @@index([leadId])
   @@index([deletedAt])
   @@map("invest_reunioes")
+}
+
+model InvestReuniaoParticipante {
+  id        String        @id @default(uuid()) @db.Uuid
+  reuniaoId String        @map("reuniao_id") @db.Uuid
+  reuniao   InvestReuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  userId    String        @map("user_id") @db.Uuid
+  user      User          @relation(fields: [userId], references: [id])
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@unique([reuniaoId, userId])
+  @@index([userId])
+  @@map("invest_reuniao_participantes")
 }
 
 model InvestAssessorFaixa {
