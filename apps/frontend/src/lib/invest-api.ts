@@ -98,8 +98,124 @@ export function investProdutoLabel(value: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Pitches (playbook) — biblioteca comercial classificada por faixa
+// ---------------------------------------------------------------------------
+
+export interface InvestPitchObjecao {
+  q: string;
+  a: string;
+}
+
+export interface InvestPitchConteudo {
+  sdr: {
+    missao: string;
+    aberturaLigacao: string;
+    qualificacao: string[];
+    objecoes: InvestPitchObjecao[];
+    fechamentoAgenda: string;
+  };
+  assessor: {
+    preparacao: string[];
+    aberturaReuniao: string;
+    descoberta: string[];
+    racional: string;
+    arsenal: string[];
+    objecoes: InvestPitchObjecao[];
+    proximoPasso: string;
+  };
+}
+
+export interface InvestPitch {
+  id: string;
+  faixa: InvestFaixa;
+  titulo: string;
+  gancho: string;
+  padrao_do_segmento: boolean;
+  ativo: boolean;
+  conteudo: InvestPitchConteudo;
+  created_by: { id: string; name: string } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvestPitchPayload {
+  faixa: InvestFaixa;
+  titulo: string;
+  gancho: string;
+  padraoDoSegmento: boolean;
+  ativo: boolean;
+  conteudo: InvestPitchConteudo;
+}
+
+/** Conteúdo vazio com todas as seções — base para o formulário de cadastro. */
+export function emptyPitchConteudo(): InvestPitchConteudo {
+  return {
+    sdr: {
+      missao: "",
+      aberturaLigacao: "",
+      qualificacao: [],
+      objecoes: [],
+      fechamentoAgenda: "",
+    },
+    assessor: {
+      preparacao: [],
+      aberturaReuniao: "",
+      descoberta: [],
+      racional: "",
+      arsenal: [],
+      objecoes: [],
+      proximoPasso: "",
+    },
+  };
+}
+
+export async function fetchInvestPitches(params: {
+  faixa?: InvestFaixa;
+  ativo?: boolean;
+  q?: string;
+} = {}): Promise<InvestPitch[]> {
+  const qs = new URLSearchParams();
+  if (params.faixa) qs.set("faixa", params.faixa);
+  if (params.ativo !== undefined) qs.set("ativo", String(params.ativo));
+  if (params.q) qs.set("q", params.q);
+  const res = await apiFetch<{ data: InvestPitch[] }>(
+    `/investimentos/pitches${qs.toString() ? `?${qs}` : ""}`,
+  );
+  return res.data;
+}
+
+export async function createInvestPitch(payload: InvestPitchPayload): Promise<InvestPitch> {
+  const res = await apiFetch<{ data: InvestPitch }>("/investimentos/pitches", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function updateInvestPitch(
+  id: string,
+  payload: Partial<InvestPitchPayload>,
+): Promise<InvestPitch> {
+  const res = await apiFetch<{ data: InvestPitch }>(`/investimentos/pitches/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.data;
+}
+
+export async function deleteInvestPitch(id: string): Promise<void> {
+  await apiFetch<void>(`/investimentos/pitches/${id}`, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
 // Tipos
 // ---------------------------------------------------------------------------
+
+export interface InvestPitchRef {
+  id: string;
+  titulo: string;
+  faixa: string;
+}
 
 export interface InvestLead {
   id: string;
@@ -107,6 +223,8 @@ export interface InvestLead {
   origem: string;
   produto: string;
   pitch: string;
+  pitch_id: string | null;
+  pitch_ref: InvestPitchRef | null;
   pl: number;
   etapa: InvestEtapa;
   probabilidade: number;
@@ -122,6 +240,9 @@ export interface InvestLead {
   passo: string;
   retorno: string | null;
   obs: string;
+  sdr_relato: string;
+  sdr_relato_por: { id: string; name: string } | null;
+  sdr_relato_em: string | null;
   qualificado_por: { id: string; name: string } | null;
   qualificado_em: string | null;
   created_at: string;
@@ -147,6 +268,8 @@ export interface InvestLeadPayload {
   origem: string;
   produto: string;
   pitch: string;
+  pitchId?: string | null;
+  sdrRelato?: string;
   pl: number;
   etapa: InvestEtapa;
   probabilidade?: number;

@@ -109,3 +109,26 @@ export const INVEST_PRODUTO_LABELS: Record<InvestProduto, string> = {
   cambio: "Câmbio",
   outro: "Outro",
 };
+
+// Biblioteca de pitches (playbook). O pitch é classificado pela mesma faixa do lead
+// (PJ/Digital/Private/Wealth) e o conteúdo é estruturado nas etapas SDR e Assessor.
+// Estrutura do campo `conteudo` (espelhada no schema Zod e no frontend):
+//   sdr:      { missao, aberturaLigacao, qualificacao[], objecoes[{q,a}], fechamentoAgenda }
+//   assessor: { preparacao[], aberturaReuniao, descoberta[], racional, arsenal[], objecoes[{q,a}], proximoPasso }
+export const INVEST_PITCH_SDR_CAMPOS = [
+  "missao",
+  "aberturaLigacao",
+  "qualificacao",
+  "objecoes",
+  "fechamentoAgenda",
+] as const;
+
+export const INVEST_PITCH_ASSESSOR_CAMPOS = [
+  "preparacao",
+  "aberturaReuniao",
+  "descoberta",
+  "racional",
+  "arsenal",
+  "objecoes",
+  "proximoPasso",
+] as const;

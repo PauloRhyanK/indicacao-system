@@ -22,6 +22,13 @@ import {
   getInvestOutlookAuth,
   getInvestOutlookCallback,
 } from "../controllers/invest.controller.js";
+import {
+  deleteInvestPitch,
+  getInvestPitchById,
+  getInvestPitches,
+  patchInvestPitch,
+  postInvestPitch,
+} from "../controllers/invest-pitch.controller.js";
 import { authenticate, requirePermission } from "../middlewares/auth.js";
 
 const investView = [authenticate, requirePermission("investimentos.view")] as const;
@@ -77,6 +84,13 @@ export async function investRoutes(app: FastifyInstance) {
   app.put("/investimentos/config", { preHandler: [...investManage] }, putInvestConfig);
 
   app.post("/investimentos/import", { preHandler: [...investImport] }, postInvestImport);
+
+  // Biblioteca de pitches (playbook) — leitura para todos com view, gestão para manage.
+  app.get("/investimentos/pitches", { preHandler: [...investView] }, getInvestPitches);
+  app.get("/investimentos/pitches/:id", { preHandler: [...investView] }, getInvestPitchById);
+  app.post("/investimentos/pitches", { preHandler: [...investManage] }, postInvestPitch);
+  app.patch("/investimentos/pitches/:id", { preHandler: [...investManage] }, patchInvestPitch);
+  app.delete("/investimentos/pitches/:id", { preHandler: [...investManage] }, deleteInvestPitch);
 
   // Agenda de reuniões (KUS-153/149)
   app.get("/investimentos/assessores", { preHandler: [...investView] }, getInvestAssessores);

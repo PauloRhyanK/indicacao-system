@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { assignRoleToUser, ensureSystemRoles } from "./lib/seed-rbac.js";
 import { slugify } from "./lib/slugify.js";
+import { INVEST_PITCH_SEED } from "./data/invest-pitches.js";
 
 const prisma = new PrismaClient();
 
@@ -104,8 +105,36 @@ async function seedRjAdminUser(adminRjRoleId: string) {
   return user.email;
 }
 
+/**
+ * Semeia a biblioteca de pitches do playbook. Idempotente: identifica cada pitch
+ * pela combinação (faixa + título) entre os não-excluídos e atualiza o conteúdo,
+ * criando quando não existe. Não sobrescreve pitches criados manualmente.
+ */
+async function seedInvestPitches() {
+  for (const p of INVEST_PITCH_SEED) {
+    const existing = await prisma.investPitch.findFirst({
+      where: { faixa: p.faixa, titulo: p.titulo, deletedAt: null },
+      select: { id: true },
+    });
+    const data = {
+      faixa: p.faixa,
+      titulo: p.titulo,
+      gancho: p.gancho,
+      padraoDoSegmento: p.padraoDoSegmento,
+      ativo: true,
+      conteudo: p.conteudo,
+    };
+    if (existing) {
+      await prisma.investPitch.update({ where: { id: existing.id }, data });
+    } else {
+      await prisma.investPitch.create({ data });
+    }
+  }
+}
+
 async function main() {
   await seedLookups();
+  await seedInvestPitches();
   const { adminRoleId, adminRjRoleId } = await ensureSystemRoles(prisma);
   const adminEmail = await seedAdminUser(adminRoleId);
   const rjAdminEmail = await seedRjAdminUser(adminRjRoleId);

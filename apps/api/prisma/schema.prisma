@@ -47,41 +47,43 @@ enum UserAccessScope {
 }
 
 model User {
-  id                  String           @id @default(uuid()) @db.Uuid
-  name                String
-  email               String           @unique
-  phone               String?
-  passwordHash        String           @map("password_hash")
-  mustChangePassword  Boolean          @default(false) @map("must_change_password")
-  accessScope         UserAccessScope  @default(INTERNAL) @map("access_scope")
-  confidencialApprovedAt DateTime?     @map("confidencial_approved_at")
-  personalDailyTarget Decimal?         @map("personal_daily_target") @db.Decimal(14, 2)
-  createdAt           DateTime         @default(now()) @map("created_at")
-  deletedAt           DateTime?        @map("deleted_at")
+  id                     String          @id @default(uuid()) @db.Uuid
+  name                   String
+  email                  String          @unique
+  phone                  String?
+  passwordHash           String          @map("password_hash")
+  mustChangePassword     Boolean         @default(false) @map("must_change_password")
+  accessScope            UserAccessScope @default(INTERNAL) @map("access_scope")
+  confidencialApprovedAt DateTime?       @map("confidencial_approved_at")
+  personalDailyTarget    Decimal?        @map("personal_daily_target") @db.Decimal(14, 2)
+  createdAt              DateTime        @default(now()) @map("created_at")
+  deletedAt              DateTime?       @map("deleted_at")
 
   // Integração Microsoft Outlook
-  outlookRefreshToken String?          @map("outlook_refresh_token")
-  outlookAccessToken  String?          @map("outlook_access_token")
-  outlookTokenExpiresAt DateTime?      @map("outlook_token_expires_at")
+  outlookRefreshToken   String?   @map("outlook_refresh_token")
+  outlookAccessToken    String?   @map("outlook_access_token")
+  outlookTokenExpiresAt DateTime? @map("outlook_token_expires_at")
 
-  leadsAsResponsavel     Lead[]     @relation("LeadResponsavel")
-  leadsAsCoVendedor      Lead[]     @relation("LeadCoVendedor")
-  leadsCreated           Lead[]     @relation("LeadCreatedBy")
-  leadsFirstContact      Lead[]     @relation("LeadFirstContact")
-  investLeadsAsResponsavel InvestLead[] @relation("InvestLeadResponsavel")
-  investLeadsAsVendedor    InvestLead[] @relation("InvestLeadVendedor")
-  investLeadsAsCoVendedor  InvestLead[] @relation("InvestLeadCoVendedor")
-  investLeadsCreated       InvestLead[] @relation("InvestLeadCreatedBy")
-  investReunioesComoAssessor InvestReuniao[] @relation("InvestReuniaoAssessor")
-  investReunioesCriadas      InvestReuniao[] @relation("InvestReuniaoCriador")
+  leadsAsResponsavel         Lead[]                  @relation("LeadResponsavel")
+  leadsAsCoVendedor          Lead[]                  @relation("LeadCoVendedor")
+  leadsCreated               Lead[]                  @relation("LeadCreatedBy")
+  leadsFirstContact          Lead[]                  @relation("LeadFirstContact")
+  investLeadsAsResponsavel   InvestLead[]            @relation("InvestLeadResponsavel")
+  investLeadsAsVendedor      InvestLead[]            @relation("InvestLeadVendedor")
+  investLeadsAsCoVendedor    InvestLead[]            @relation("InvestLeadCoVendedor")
+  investLeadsCreated         InvestLead[]            @relation("InvestLeadCreatedBy")
+  investReunioesComoAssessor InvestReuniao[]         @relation("InvestReuniaoAssessor")
+  investReunioesCriadas      InvestReuniao[]         @relation("InvestReuniaoCriador")
   investAssessorFaixas       InvestAssessorFaixa[]
-  investLeadsQualificados    InvestLead[] @relation("InvestLeadQualificador")
-  purchasesAsResponsavel Purchase[]     @relation("PurchaseResponsavel")
-  campaignRewardsPaid    CampaignReward[] @relation("CampaignRewardPaidBy")
-  userRoles              UserRole[]
-  aliases            UserAlias[]
-  rjReunioesCriadas       RjReuniao[]              @relation("RjReuniaoCriador")
-  rjParticipacoesReuniao  RjReuniaoParticipante[]
+  investLeadsQualificados    InvestLead[]            @relation("InvestLeadQualificador")
+  investLeadsSdrRelato       InvestLead[]            @relation("InvestLeadSdrRelato")
+  investPitchesCreated       InvestPitch[]           @relation("InvestPitchCreatedBy")
+  purchasesAsResponsavel     Purchase[]              @relation("PurchaseResponsavel")
+  campaignRewardsPaid        CampaignReward[]        @relation("CampaignRewardPaidBy")
+  userRoles                  UserRole[]
+  aliases                    UserAlias[]
+  rjReunioesCriadas          RjReuniao[]             @relation("RjReuniaoCriador")
+  rjParticipacoesReuniao     RjReuniaoParticipante[]
 
   @@index([deletedAt])
   @@map("users")
@@ -124,8 +126,8 @@ model Role {
 }
 
 model RolePermission {
-  roleId         String @map("role_id") @db.Uuid
-  permissionKey  String @map("permission_key")
+  roleId        String @map("role_id") @db.Uuid
+  permissionKey String @map("permission_key")
 
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
@@ -166,30 +168,30 @@ model ConsortiumType {
 }
 
 model Lead {
-  id                 String    @id @default(uuid()) @db.Uuid
-  externalCode       String?   @unique @map("external_code")
-  name               String
-  phone              String?
-  responsavelId      String?   @map("responsavel_id") @db.Uuid
-  coVendedorId       String?   @map("co_vendedor_id") @db.Uuid
-  createdById        String?   @map("created_by_id") @db.Uuid
-  firstContactId     String?   @map("first_contact_id") @db.Uuid
-  salesStatusId      String?           @map("sales_status_id") @db.Uuid
-  opportunityGrade   OpportunityGrade? @map("opportunity_grade")
-  notes              String?
-  offeredAmount      Decimal?  @map("offered_amount") @db.Decimal(15, 2)
-  closedAmount       Decimal?  @map("closed_amount") @db.Decimal(15, 2)
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-  deletedAt          DateTime? @map("deleted_at")
+  id               String            @id @default(uuid()) @db.Uuid
+  externalCode     String?           @unique @map("external_code")
+  name             String
+  phone            String?
+  responsavelId    String?           @map("responsavel_id") @db.Uuid
+  coVendedorId     String?           @map("co_vendedor_id") @db.Uuid
+  createdById      String?           @map("created_by_id") @db.Uuid
+  firstContactId   String?           @map("first_contact_id") @db.Uuid
+  salesStatusId    String?           @map("sales_status_id") @db.Uuid
+  opportunityGrade OpportunityGrade? @map("opportunity_grade")
+  notes            String?
+  offeredAmount    Decimal?          @map("offered_amount") @db.Decimal(15, 2)
+  closedAmount     Decimal?          @map("closed_amount") @db.Decimal(15, 2)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  deletedAt        DateTime?         @map("deleted_at")
 
-  salesStatus      LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
-  responsavel      User?       @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  coVendedor       User?       @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
-  createdBy        User?       @relation("LeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  firstContact     User?       @relation("LeadFirstContact", fields: [firstContactId], references: [id], onDelete: SetNull)
-  purchases        Purchase[]
-  referralsAsLead  Referral[]  @relation("ReferredLead")
+  salesStatus     LeadStatus? @relation(fields: [salesStatusId], references: [id], onDelete: SetNull)
+  responsavel     User?       @relation("LeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  coVendedor      User?       @relation("LeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
+  createdBy       User?       @relation("LeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  firstContact    User?       @relation("LeadFirstContact", fields: [firstContactId], references: [id], onDelete: SetNull)
+  purchases       Purchase[]
+  referralsAsLead Referral[]  @relation("ReferredLead")
 
   @@index([externalCode])
   @@index([salesStatusId])
@@ -226,9 +228,9 @@ model Purchase {
   createdAt        DateTime  @default(now()) @map("created_at")
   deletedAt        DateTime? @map("deleted_at")
 
-  lead           Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  responsavel    User?           @relation("PurchaseResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  consortiumType ConsortiumType? @relation(fields: [consortiumTypeId], references: [id], onDelete: SetNull)
+  lead            Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  responsavel     User?            @relation("PurchaseResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  consortiumType  ConsortiumType?  @relation(fields: [consortiumTypeId], references: [id], onDelete: SetNull)
   campaignRewards CampaignReward[]
 
   @@index([leadId])
@@ -288,55 +290,85 @@ model MetaDailyDefault {
 }
 
 model MetaDailyOverride {
-  id         String    @id @default(uuid()) @db.Uuid
-  date       DateTime  @unique @db.Date
-  amount     Decimal?  @db.Decimal(15, 2)
-  presetSlug String?   @map("preset_slug")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  date       DateTime @unique @db.Date
+  amount     Decimal? @db.Decimal(15, 2)
+  presetSlug String?  @map("preset_slug")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@map("meta_daily_overrides")
 }
 
 model InvestLead {
-  id              String    @id @default(uuid()) @db.Uuid
-  nome            String
-  origem          String    @default("outro")
-  produto         String    @default("carteira")
-  pitch           String    @default("")
-  pl              Decimal   @default(0) @db.Decimal(15, 2)
-  etapa           String    @default("lead")
-  probabilidade   Int       @default(5)
-  faixa           String?
-  responsavelId   String?   @map("responsavel_id") @db.Uuid
-  responsavelNome String    @default("") @map("responsavel_nome")
-  vendedorId      String?   @map("vendedor_id") @db.Uuid
-  coVendedorId    String?   @map("co_vendedor_id") @db.Uuid
-  indicadoPor     String    @default("") @map("indicado_por")
-  celular         String    @default("")
-  contato         String    @default("")
-  passo           String    @default("")
-  retorno         DateTime? @db.Date
-  obs             String    @default("")
-  qualificadoPorId String?  @map("qualificado_por_id") @db.Uuid
+  id               String    @id @default(uuid()) @db.Uuid
+  nome             String
+  origem           String    @default("outro")
+  produto          String    @default("carteira")
+  pitch            String    @default("")
+  pitchId          String?   @map("pitch_id") @db.Uuid
+  pl               Decimal   @default(0) @db.Decimal(15, 2)
+  etapa            String    @default("lead")
+  probabilidade    Int       @default(5)
+  faixa            String?
+  responsavelId    String?   @map("responsavel_id") @db.Uuid
+  responsavelNome  String    @default("") @map("responsavel_nome")
+  vendedorId       String?   @map("vendedor_id") @db.Uuid
+  coVendedorId     String?   @map("co_vendedor_id") @db.Uuid
+  indicadoPor      String    @default("") @map("indicado_por")
+  celular          String    @default("")
+  contato          String    @default("")
+  passo            String    @default("")
+  retorno          DateTime? @db.Date
+  obs              String    @default("")
+  sdrRelato        String    @default("") @map("sdr_relato")
+  sdrRelatoPorId   String?   @map("sdr_relato_por_id") @db.Uuid
+  sdrRelatoEm      DateTime? @map("sdr_relato_em")
+  qualificadoPorId String?   @map("qualificado_por_id") @db.Uuid
   qualificadoEm    DateTime? @map("qualificado_em")
-  createdById     String?   @map("created_by_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
+  createdById      String?   @map("created_by_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
 
-  responsavel User? @relation("InvestLeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
-  vendedor    User? @relation("InvestLeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
-  coVendedor  User? @relation("InvestLeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
-  createdBy   User? @relation("InvestLeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  qualificadoPor User? @relation("InvestLeadQualificador", fields: [qualificadoPorId], references: [id], onDelete: SetNull)
-  reunioes    InvestReuniao[]
+  responsavel    User?           @relation("InvestLeadResponsavel", fields: [responsavelId], references: [id], onDelete: SetNull)
+  vendedor       User?           @relation("InvestLeadVendedor", fields: [vendedorId], references: [id], onDelete: SetNull)
+  coVendedor     User?           @relation("InvestLeadCoVendedor", fields: [coVendedorId], references: [id], onDelete: SetNull)
+  createdBy      User?           @relation("InvestLeadCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  qualificadoPor User?           @relation("InvestLeadQualificador", fields: [qualificadoPorId], references: [id], onDelete: SetNull)
+  sdrRelatoPor   User?           @relation("InvestLeadSdrRelato", fields: [sdrRelatoPorId], references: [id], onDelete: SetNull)
+  pitchRef       InvestPitch?    @relation(fields: [pitchId], references: [id], onDelete: SetNull)
+  reunioes       InvestReuniao[]
 
   @@index([etapa])
   @@index([responsavelId])
   @@index([vendedorId])
+  @@index([pitchId])
   @@index([deletedAt])
   @@map("invest_leads")
+}
+
+/// Biblioteca de pitches comerciais por segmento (playbook). Conteúdo estruturado
+/// em JSON (etapa SDR + etapa Assessor) validado no schema Zod.
+model InvestPitch {
+  id               String    @id @default(uuid()) @db.Uuid
+  faixa            String
+  titulo           String
+  gancho           String    @default("")
+  padraoDoSegmento Boolean   @default(false) @map("padrao_do_segmento")
+  ativo            Boolean   @default(true)
+  conteudo         Json      @default("{}")
+  createdById      String?   @map("created_by_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  createdBy User?        @relation("InvestPitchCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  leads     InvestLead[]
+
+  @@index([faixa])
+  @@index([deletedAt])
+  @@map("invest_pitches")
 }
 
 model InvestReuniao {
@@ -352,9 +384,9 @@ model InvestReuniao {
   criadoPorId    String?   @map("criado_por_id") @db.Uuid
   outlookEventId String?   @map("outlook_event_id")
 
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   lead      InvestLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
   assessor  User       @relation("InvestReuniaoAssessor", fields: [assessorId], references: [id], onDelete: Cascade)
@@ -400,7 +432,7 @@ model RjCredor {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  reunioes  RjReuniao[]
+  reunioes RjReuniao[]
 
   @@index([deletedAt])
   @@index([status])
@@ -409,9 +441,9 @@ model RjCredor {
 }
 
 model RjReuniao {
-  id             String    @id @default(uuid()) @db.Uuid
-  credorId       String    @map("credor_id") @db.Uuid
-  credor         RjCredor  @relation(fields: [credorId], references: [id])
+  id       String   @id @default(uuid()) @db.Uuid
+  credorId String   @map("credor_id") @db.Uuid
+  credor   RjCredor @relation(fields: [credorId], references: [id])
 
   titulo         String
   dataHoraInicio DateTime  @map("data_hora_inicio")
@@ -419,18 +451,18 @@ model RjReuniao {
   local          String?
   linkOnline     String?   @map("link_online")
 
-  status         String    @default("agendada")
-  pauta          String?
-  resultado      String?
+  status    String  @default("agendada")
+  pauta     String?
+  resultado String?
 
-  criadoPorId    String    @map("criado_por_id") @db.Uuid
-  criador        User      @relation("RjReuniaoCriador", fields: [criadoPorId], references: [id])
+  criadoPorId String @map("criado_por_id") @db.Uuid
+  criador     User   @relation("RjReuniaoCriador", fields: [criadoPorId], references: [id])
 
-  participantes  RjReuniaoParticipante[]
+  participantes RjReuniaoParticipante[]
 
-  deletedAt      DateTime? @map("deleted_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@index([credorId])
   @@index([dataHoraInicio])
