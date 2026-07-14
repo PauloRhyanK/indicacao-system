@@ -53,7 +53,7 @@ type InvestLeadWithUser = InvestLead & {
   pitchRef: PitchRef;
 };
 
-function serializeInvestLead(lead: InvestLeadWithUser) {
+export function serializeInvestLead(lead: InvestLeadWithUser) {
   return {
     id: lead.id,
     nome: lead.nome,
@@ -82,6 +82,7 @@ function serializeInvestLead(lead: InvestLeadWithUser) {
     sdr_relato_em: lead.sdrRelatoEm ? lead.sdrRelatoEm.toISOString() : null,
     qualificado_por: lead.qualificadoPor,
     qualificado_em: lead.qualificadoEm ? lead.qualificadoEm.toISOString() : null,
+    invest_cliente_id: lead.investClienteId,
     created_at: lead.createdAt,
     updated_at: lead.updatedAt,
   };

@@ -1,0 +1,8 @@
+{
+  "version": "0.0.1",
+  "autoPort": true,
+  "configurations": [
+    { "name": "frontend", "runtimeExecutable": "pnpm", "runtimeArgs": ["--filter", "tanstack_start_ts", "dev"], "port": 8080, "autoPort": true },
+    { "name": "api", "runtimeExecutable": "pnpm", "runtimeArgs": ["--filter", "api", "dev"], "port": 3001, "autoPort": true }
+  ]
+}

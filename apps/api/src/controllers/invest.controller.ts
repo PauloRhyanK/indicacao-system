@@ -38,6 +38,18 @@ import {
   updateInvestLead,
 } from "../services/invest.service.js";
 import { getOutlookAuthUrl, handleOutlookCallback } from "../services/outlook.service.js";
+import {
+  convertInvestClienteToLead,
+  getInvestClienteById,
+  importInvestClientes,
+  listInvestClienteAssessores,
+  listInvestClientes,
+} from "../services/investCliente.service.js";
+import {
+  convertInvestClienteSchema,
+  importInvestClientesSchema,
+  investClientesQuerySchema,
+} from "../schemas/investCliente.schema.js";
 
 function actorId(request: FastifyRequest) {
   return request.user?.sub;
@@ -269,4 +281,36 @@ export async function getInvestOutlookCallback(request: FastifyRequest, reply: F
   // Redireciona de volta para a página de reuniões
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   return reply.redirect(`${frontendUrl}/investimentos/reunioes?outlook=connected`);
+}
+
+// --- Clientes BTG ----------------------------------------------------------------
+
+export async function getInvestClientes(request: FastifyRequest, reply: FastifyReply) {
+  const query = investClientesQuerySchema.parse(request.query);
+  const data = await listInvestClientes(query);
+  return reply.send({ data });
+}
+
+export async function getInvestCliente(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const data = await getInvestClienteById(id);
+  return reply.send({ data });
+}
+
+export async function getInvestClienteAssessores(_request: FastifyRequest, reply: FastifyReply) {
+  const data = await listInvestClienteAssessores();
+  return reply.send({ data });
+}
+
+export async function postInvestClientesImport(request: FastifyRequest, reply: FastifyReply) {
+  const input = importInvestClientesSchema.parse(request.body);
+  const data = await importInvestClientes(input.rows, actorId(request));
+  return reply.send({ data });
+}
+
+export async function postInvestClienteConverter(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+  const input = convertInvestClienteSchema.parse(request.body);
+  const data = await convertInvestClienteToLead(id, input, actorId(request));
+  return reply.status(data.alreadyConverted ? 200 : 201).send({ data });
 }

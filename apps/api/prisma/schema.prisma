@@ -327,6 +327,7 @@ model InvestLead {
   sdrRelatoEm      DateTime? @map("sdr_relato_em")
   qualificadoPorId String?   @map("qualificado_por_id") @db.Uuid
   qualificadoEm    DateTime? @map("qualificado_em")
+  investClienteId  String?   @unique @map("invest_cliente_id") @db.Uuid
   createdById      String?   @map("created_by_id") @db.Uuid
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
@@ -339,6 +340,7 @@ model InvestLead {
   qualificadoPor User?           @relation("InvestLeadQualificador", fields: [qualificadoPorId], references: [id], onDelete: SetNull)
   sdrRelatoPor   User?           @relation("InvestLeadSdrRelato", fields: [sdrRelatoPorId], references: [id], onDelete: SetNull)
   pitchRef       InvestPitch?    @relation(fields: [pitchId], references: [id], onDelete: SetNull)
+  investCliente  InvestCliente?  @relation(fields: [investClienteId], references: [id], onDelete: SetNull)
   reunioes       InvestReuniao[]
 
   @@index([etapa])
@@ -346,7 +348,38 @@ model InvestLead {
   @@index([vendedorId])
   @@index([pitchId])
   @@index([deletedAt])
+  @@index([investClienteId])
   @@map("invest_leads")
+}
+
+/// Carteira de clientes importada da Base BTG — separada do funil de prospecção.
+model InvestCliente {
+  id              String    @id @default(uuid()) @db.Uuid
+  conta           String    @unique
+  btgClienteId    String?   @unique @map("btg_cliente_id")
+  nome            String
+  email           String    @default("")
+  assessorNome    String    @default("") @map("assessor_nome")
+  assessorEmail   String    @default("") @map("assessor_email")
+  plTotal         Decimal   @default(0) @map("pl_total") @db.Decimal(15, 2)
+  plDeclarado     Decimal   @default(0) @map("pl_declarado") @db.Decimal(15, 2)
+  faixaBtg        String    @default("") @map("faixa_btg")
+  faixa           String?
+  cidade          String    @default("")
+  estado          String    @default("")
+  profissao       String    @default("")
+  tipoInvestidor  String    @default("") @map("tipo_investidor")
+  dadosExtras     Json      @default("{}") @map("dados_extras")
+  importedAt      DateTime  @default(now()) @map("imported_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  lead InvestLead?
+
+  @@index([assessorNome])
+  @@index([faixa])
+  @@index([nome])
+  @@map("invest_clientes")
 }
 
 /// Biblioteca de pitches comerciais por segmento (playbook). Conteúdo estruturado

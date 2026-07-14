@@ -245,6 +245,7 @@ export interface InvestLead {
   sdr_relato_em: string | null;
   qualificado_por: { id: string; name: string } | null;
   qualificado_em: string | null;
+  invest_cliente_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -436,6 +437,164 @@ export async function importInvestLeads(
     body: JSON.stringify({ rows, aliases }),
   });
   return res.data;
+}
+
+// --- Clientes BTG (carteira importada) ---------------------------------------
+
+export type InvestClienteStatus = "novo" | "convertido" | "all";
+
+export interface InvestCliente {
+  id: string;
+  conta: string;
+  btg_cliente_id: string | null;
+  nome: string;
+  email: string;
+  assessor_nome: string;
+  assessor_email: string;
+  pl_total: number;
+  pl_declarado: number;
+  pl_efetivo: number;
+  faixa_btg: string;
+  faixa: InvestFaixa | null;
+  cidade: string;
+  estado: string;
+  profissao: string;
+  tipo_investidor: string;
+  dados_extras: Record<string, unknown>;
+  convertido: boolean;
+  lead_id: string | null;
+  lead_etapa: string | null;
+  imported_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvestClientesGridResult {
+  clientes: InvestCliente[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface InvestBtgImportRow {
+  conta: string;
+  nome: string;
+  btgClienteId?: string;
+  email?: string;
+  assessorNome?: string;
+  assessorEmail?: string;
+  plTotal?: number | string;
+  plDeclarado?: number | string;
+  faixaBtg?: string;
+  cidade?: string;
+  estado?: string;
+  profissao?: string;
+  tipoInvestidor?: string;
+  dadosExtras?: Record<string, unknown>;
+}
+
+export interface InvestClienteImportReport {
+  total: number;
+  created: number;
+  updated: number;
+}
+
+export interface ConvertInvestClientePayload {
+  nome: string;
+  origem?: string;
+  produto?: string;
+  pitch?: string;
+  pitchId?: string | null;
+  pl: number;
+  faixa?: InvestFaixa | null;
+  responsavelId?: string | null;
+  responsavelNome?: string;
+  celular?: string;
+  contato: string;
+  passo: string;
+  retorno?: string | null;
+  obs: string;
+}
+
+export interface ConvertInvestClienteResult {
+  lead: InvestLead;
+  alreadyConverted: boolean;
+  message: string;
+}
+
+export function investLeadFonte(lead: Pick<InvestLead, "invest_cliente_id">): "base_btg" | "captacao" {
+  return lead.invest_cliente_id ? "base_btg" : "captacao";
+}
+
+export async function fetchInvestClientes(params: {
+  page?: number;
+  limit?: number;
+  q?: string;
+  assessor?: string;
+  faixa?: InvestFaixa;
+  status?: InvestClienteStatus;
+}): Promise<InvestClientesGridResult> {
+  const sp = new URLSearchParams();
+  if (params.page) sp.set("page", String(params.page));
+  if (params.limit) sp.set("limit", String(params.limit));
+  if (params.q) sp.set("q", params.q);
+  if (params.assessor) sp.set("assessor", params.assessor);
+  if (params.faixa) sp.set("faixa", params.faixa);
+  if (params.status) sp.set("status", params.status);
+  const qs = sp.toString();
+  const res = await apiFetch<{ data: InvestClientesGridResult }>(
+    `/investimentos/clientes${qs ? `?${qs}` : ""}`,
+  );
+  return res.data;
+}
+
+export async function fetchInvestClienteAssessores(): Promise<string[]> {
+  const res = await apiFetch<{ data: string[] }>("/investimentos/clientes/assessores");
+  return res.data;
+}
+
+export async function importInvestClientes(
+  rows: InvestBtgImportRow[],
+): Promise<InvestClienteImportReport> {
+  const res = await apiFetch<{ data: InvestClienteImportReport }>("/investimentos/clientes/import", {
+    method: "POST",
+    body: JSON.stringify({ rows }),
+  });
+  return res.data;
+}
+
+export async function convertInvestCliente(
+  id: string,
+  payload: ConvertInvestClientePayload,
+): Promise<ConvertInvestClienteResult> {
+  const res = await apiFetch<{ data: ConvertInvestClienteResult }>(
+    `/investimentos/clientes/${id}/converter`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return res.data;
+}
+
+export function buildClienteConvertDefaults(cliente: InvestCliente): ConvertInvestClientePayload {
+  const obsParts = [
+    cliente.cidade && cliente.estado ? `${cliente.cidade}/${cliente.estado}` : cliente.cidade || cliente.estado,
+    cliente.profissao,
+    cliente.tipo_investidor,
+    cliente.pl_declarado > 0 ? `PL declarado: R$ ${cliente.pl_declarado.toLocaleString("pt-BR")}` : "",
+    cliente.faixa_btg ? `Faixa BTG: ${cliente.faixa_btg}` : "",
+  ].filter(Boolean);
+
+  return {
+    nome: cliente.nome,
+    origem: "btg",
+    produto: "carteira",
+    pitch: "",
+    pl: cliente.pl_efetivo,
+    faixa: cliente.faixa ?? faixaFromPl(cliente.pl_efetivo),
+    responsavelNome: cliente.assessor_nome,
+    contato: cliente.email,
+    celular: "",
+    passo: `Follow-up carteira BTG — conta ${cliente.conta}`,
+    retorno: null,
+    obs: obsParts.join(" · "),
+  };
 }
 
 // --- Painel TV BNF (KUS-146) -----------------------------------------------

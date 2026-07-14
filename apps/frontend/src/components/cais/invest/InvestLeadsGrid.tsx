@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Columns3, Pencil } from "lucide-react";
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
+import { InvestFonteTag } from "@/components/cais/invest/InvestFonteTag";
 import { cn } from "@/lib/utils";
 import {
   INVEST_ETAPAS,
@@ -199,6 +200,7 @@ export function InvestLeadsGrid({
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center gap-1.5 font-semibold text-azul-profundo">
                           {l.nome}
+                          <InvestFonteTag investClienteId={l.invest_cliente_id} />
                           {l.abaixo_do_piso && (
                             <span title="Abaixo de R$ 1 mi" className="text-amber-500">
                               ⚠

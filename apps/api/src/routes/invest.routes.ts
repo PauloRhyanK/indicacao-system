@@ -22,6 +22,11 @@ import {
   putInvestConfig,
   getInvestOutlookAuth,
   getInvestOutlookCallback,
+  getInvestClientes,
+  getInvestCliente,
+  getInvestClienteAssessores,
+  postInvestClientesImport,
+  postInvestClienteConverter,
 } from "../controllers/invest.controller.js";
 import {
   deleteInvestPitch,
@@ -85,6 +90,17 @@ export async function investRoutes(app: FastifyInstance) {
   app.put("/investimentos/config", { preHandler: [...investManage] }, putInvestConfig);
 
   app.post("/investimentos/import", { preHandler: [...investImport] }, postInvestImport);
+
+  // Carteira de clientes BTG
+  app.get("/investimentos/clientes", { preHandler: [...investView] }, getInvestClientes);
+  app.get("/investimentos/clientes/assessores", { preHandler: [...investView] }, getInvestClienteAssessores);
+  app.get("/investimentos/clientes/:id", { preHandler: [...investView] }, getInvestCliente);
+  app.post("/investimentos/clientes/import", { preHandler: [...investImport] }, postInvestClientesImport);
+  app.post(
+    "/investimentos/clientes/:id/converter",
+    { preHandler: [...investCreate] },
+    postInvestClienteConverter,
+  );
 
   // Biblioteca de pitches (playbook) — leitura para todos com view, gestão para manage.
   app.get("/investimentos/pitches", { preHandler: [...investView] }, getInvestPitches);

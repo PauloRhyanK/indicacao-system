@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvestLeadDialog } from "@/components/cais/invest/InvestLeadDialog";
 import { InvestImportDialog } from "@/components/cais/invest/InvestImportDialog";
 import { InvestFaixaTag } from "@/components/cais/invest/InvestFaixaTag";
+import { InvestFonteTag } from "@/components/cais/invest/InvestFonteTag";
 import { InvestLeadsGrid } from "@/components/cais/invest/InvestLeadsGrid";
 import { fetchProfiles } from "@/lib/cais-api";
 import { fetchMe } from "@/lib/api/auth";
@@ -326,7 +327,10 @@ function InvestPipelinePage() {
                             <div className="text-[13px] font-semibold leading-tight text-azul-profundo">
                               {l.nome}
                             </div>
-                            <InvestFaixaTag faixa={l.faixa} />
+                            <div className="flex shrink-0 flex-col items-end gap-1">
+                              <InvestFaixaTag faixa={l.faixa} />
+                              <InvestFonteTag investClienteId={l.invest_cliente_id} />
+                            </div>
                           </div>
                           <div className="mt-1.5 flex items-baseline justify-between gap-2">
                             <span className="text-[13px] font-semibold tabular-nums text-ouro-escuro">
