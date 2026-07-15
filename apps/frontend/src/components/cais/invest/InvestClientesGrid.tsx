@@ -72,7 +72,17 @@ export function InvestClientesGrid({
   return (
     <div className="overflow-hidden rounded-md border border-slate-200 bg-branco">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left text-[13px]">
+        <table className="w-full min-w-[960px] table-fixed text-left text-[13px]">
+          <colgroup>
+            <col className="w-[20%]" />
+            <col className="w-[9%]" />
+            <col className="w-[15%]" />
+            <col className="w-[10%]" />
+            <col className="w-[8%]" />
+            <col className="w-[16%]" />
+            <col className="w-[9%]" />
+            <col className="w-[13%]" />
+          </colgroup>
           <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Cliente</th>
@@ -82,27 +92,36 @@ export function InvestClientesGrid({
               <th className="px-4 py-3 font-semibold">Faixa</th>
               <th className="px-4 py-3 font-semibold">Local</th>
               <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold text-right">Ação</th>
+              <th className="px-4 py-3 text-right font-semibold">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {clientes.map((c) => (
               <tr key={c.id} className="transition-colors hover:bg-slate-50/60">
                 <td className="px-4 py-3">
-                  <div className="font-medium text-azul-profundo">{c.nome}</div>
+                  <div className="truncate font-medium text-azul-profundo" title={c.nome}>
+                    {c.nome}
+                  </div>
                   {c.email && (
-                    <div className="text-[11px] text-slate-500">{c.email}</div>
+                    <div className="truncate text-[11px] text-slate-500" title={c.email}>
+                      {c.email}
+                    </div>
                   )}
                 </td>
-                <td className="px-4 py-3 tabular-nums text-slate-600">{c.conta}</td>
-                <td className="px-4 py-3 text-slate-600">{c.assessor_nome || "—"}</td>
-                <td className="px-4 py-3 font-medium tabular-nums text-ouro-escuro">
+                <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-600">{c.conta}</td>
+                <td className="truncate px-4 py-3 text-slate-600" title={c.assessor_nome || undefined}>
+                  {c.assessor_nome || "—"}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 font-medium tabular-nums text-ouro-escuro">
                   {c.pl_efetivo > 0 ? formatBRL(c.pl_efetivo) : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <InvestFaixaTag faixa={c.faixa} />
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td
+                  className="truncate px-4 py-3 text-slate-600"
+                  title={[c.cidade, c.estado].filter(Boolean).join("/") || undefined}
+                >
                   {[c.cidade, c.estado].filter(Boolean).join("/") || "—"}
                 </td>
                 <td className="px-4 py-3">
@@ -127,9 +146,8 @@ export function InvestClientesGrid({
                     </Link>
                   ) : canConvert ? (
                     <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 gap-1 text-[12px]"
+                      variant="ghost"
+                      className="ml-auto h-8 gap-1.5 whitespace-nowrap px-3 py-0 text-[12px]"
                       onClick={() => onConvert(c)}
                     >
                       <UserPlus className="h-3.5 w-3.5" />
@@ -149,8 +167,7 @@ export function InvestClientesGrid({
         </span>
         <div className="flex items-center gap-2">
           <Button
-            size="sm"
-            variant="outline"
+            variant="ghost"
             className="h-8 w-8 p-0"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
@@ -161,8 +178,7 @@ export function InvestClientesGrid({
             {pagination.page} / {pagination.totalPages}
           </span>
           <Button
-            size="sm"
-            variant="outline"
+            variant="ghost"
             className="h-8 w-8 p-0"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => p + 1)}

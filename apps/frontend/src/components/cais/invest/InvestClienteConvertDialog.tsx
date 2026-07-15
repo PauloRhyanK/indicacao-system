@@ -114,7 +114,7 @@ export function InvestClienteConvertDialog({
               Cliente convertido em lead. Ele já aparece na Fila SDR com tag <strong>Base BTG</strong>.
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="ghost" onClick={handleClose}>
                 Fechar
               </Button>
               <Link to="/investimentos/sdr">
@@ -228,7 +228,7 @@ export function InvestClienteConvertDialog({
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="ghost" onClick={handleClose}>
                 Cancelar
               </Button>
               <Button
