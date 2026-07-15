@@ -184,14 +184,9 @@ export function InvestClienteConvertDialog({
                 <Label>Responsável</Label>
                 <Select value={responsavelId} onValueChange={setResponsavelId}>
                   <SelectTrigger>
-                    <SelectValue placeholder={form.responsavelNome || "Selecione"} />
+                    <SelectValue placeholder="Selecione um responsável" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE}>
-                      {form.responsavelNome
-                        ? `Usar da planilha: ${form.responsavelNome}`
-                        : "Sem responsável"}
-                    </SelectItem>
                     {profiles.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.name}
@@ -199,6 +194,11 @@ export function InvestClienteConvertDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {form.responsavelNome && (
+                  <p className="text-xs text-muted-foreground">
+                    Referência da planilha: {form.responsavelNome}
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>Retorno</Label>
@@ -232,7 +232,11 @@ export function InvestClienteConvertDialog({
                 Cancelar
               </Button>
               <Button
-                disabled={!form.nome.trim() || mutation.isPending}
+                disabled={
+                  !form.nome.trim() ||
+                  responsavelId === NONE ||
+                  mutation.isPending
+                }
                 onClick={() => mutation.mutate()}
               >
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
