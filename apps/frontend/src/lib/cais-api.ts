@@ -80,6 +80,7 @@ export interface SaleCommercialRoles {
 export interface LeadsFilters {
   search?: string;
   status?: string;
+  statuses?: string[];
   responsavelId?: string;
   unassigned?: boolean;
   createdFrom?: string;
@@ -471,6 +472,9 @@ function buildLeadsQuery(filters?: LeadsFilters): string {
   ];
   for (const [key, value] of entries) {
     if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  if (filters.statuses && filters.statuses.length > 0) {
+    params.set("statuses", filters.statuses.join(","));
   }
   const qs = params.toString();
   return qs ? `?${qs}` : "";

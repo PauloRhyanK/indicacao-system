@@ -76,6 +76,7 @@ export async function listLeads(
     limit,
     search,
     status,
+    statuses,
     responsavelId,
     unassigned,
     createdFrom,
@@ -89,10 +90,15 @@ export async function listLeads(
     notes,
   } = query;
 
+  // Une o status do filtro avançado (único) com os do filtro rápido (múltiplos).
+  const statusSlugs = Array.from(
+    new Set([...(status ? [status] : []), ...(statuses ?? [])]),
+  );
+
   const where: Prisma.LeadWhereInput = {
     ...activeLeadWhere,
     ...(access ? leadListFilter(access.perms, access.userId) : {}),
-    ...(status ? { salesStatus: { slug: status } } : {}),
+    ...(statusSlugs.length ? { salesStatus: { slug: { in: statusSlugs } } } : {}),
     ...(unassigned ? { responsavelId: null } : {}),
     ...(responsavelId ? { responsavelId } : {}),
     ...dateRange("createdAt", createdFrom, createdTo),

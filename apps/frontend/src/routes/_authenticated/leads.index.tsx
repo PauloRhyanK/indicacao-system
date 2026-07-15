@@ -10,6 +10,7 @@ import { ImportExcelDialog } from "@/components/cais/ImportExcelDialog";
 import { RegisterSaleDialog } from "@/components/cais/RegisterSaleDialog";
 import { LeadsDataGrid } from "@/components/cais/LeadsDataGrid";
 import { LeadsFilterModal } from "@/components/cais/LeadsFilterModal";
+import { LeadsStatusFilter } from "@/components/cais/LeadsStatusFilter";
 import { LeadsColumnsModal } from "@/components/cais/LeadsColumnsModal";
 import { AssignResponsavelDialog } from "@/components/cais/AssignResponsavelDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -62,6 +63,7 @@ function LeadsPage() {
   const lookups = useQuery({ queryKey: ["lookups"], queryFn: fetchLookups });
 
   const [quickSearch, setQuickSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [filters, setFilters] = useState<LeadsFilters>({});
   const [filterRows, setFilterRows] = useState<FilterRow[]>([]);
   const [page, setPage] = useState(1);
@@ -96,11 +98,12 @@ function LeadsPage() {
     () => ({
       ...filters,
       search: quickSearch || filters.search,
+      ...(statusFilter.length > 0 ? { statuses: statusFilter } : {}),
       page,
       limit: pageSize,
       ...(leadTab === "unassigned" ? { unassigned: true } : {}),
     }),
-    [filters, quickSearch, page, pageSize, leadTab],
+    [filters, quickSearch, statusFilter, page, pageSize, leadTab],
   );
 
   const leadsQuery = useQuery({
@@ -124,6 +127,16 @@ function LeadsPage() {
   const activeFilterCount = countActiveFilters(filterRows);
   const hiddenColumnCount = countHiddenColumns(columnVisibility);
   const activeChips = filterRows.filter((r) => r.field && r.value).map(filterRowLabel);
+
+  const statusNameBySlug = useMemo(
+    () => new Map((lookups.data?.statuses ?? []).map((s) => [s.slug, s.name])),
+    [lookups.data?.statuses],
+  );
+  const statusChips = statusFilter.map((slug) => ({
+    slug,
+    label: statusNameBySlug.get(slug) ?? slug,
+  }));
+  const hasAnyChip = activeChips.length > 0 || statusChips.length > 0;
 
   const handleApplyFilters = (compiled: LeadsFilters, rows: FilterRow[]) => {
     setFilters(compiled);
@@ -187,6 +200,14 @@ function LeadsPage() {
             setPage(1);
           }}
         />
+        <LeadsStatusFilter
+          statuses={lookups.data?.statuses}
+          selected={statusFilter}
+          onChange={(next) => {
+            setStatusFilter(next);
+            setPage(1);
+          }}
+        />
         <Button variant="ghost" onClick={() => setFilterOpen(true)}>
           <Filter className="mr-1.5 h-4 w-4" />
           Filtros
@@ -207,8 +228,26 @@ function LeadsPage() {
         </Button>
       </div>
 
-      {activeChips.length > 0 && (
+      {hasAnyChip && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
+          {statusChips.map((chip) => (
+            <span
+              key={`status-${chip.slug}`}
+              className="inline-flex items-center gap-1 rounded-full border border-ouro/40 bg-ouro/10 px-2.5 py-1 text-[12px] text-azul-profundo"
+            >
+              Status: {chip.label}
+              <button
+                type="button"
+                className="text-slate-500 hover:text-azul-profundo"
+                onClick={() => {
+                  setStatusFilter((prev) => prev.filter((s) => s !== chip.slug));
+                  setPage(1);
+                }}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
           {activeChips.map((chip, i) => (
             <span
               key={i}
@@ -220,7 +259,10 @@ function LeadsPage() {
           <button
             type="button"
             className="inline-flex items-center gap-1 text-[12px] text-slate-500 hover:text-azul-profundo"
-            onClick={() => handleApplyFilters({}, [])}
+            onClick={() => {
+              handleApplyFilters({}, []);
+              setStatusFilter([]);
+            }}
           >
             <X className="h-3 w-3" /> Limpar filtros
           </button>

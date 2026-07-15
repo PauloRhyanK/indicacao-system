@@ -28,6 +28,17 @@ export const listLeadsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(50),
   search: z.string().optional(),
   status: z.string().optional(),
+  // Aceita ?statuses=a,b ou repetido (?statuses=a&statuses=b) → sempre string[].
+  statuses: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((v) =>
+      v === undefined
+        ? undefined
+        : (Array.isArray(v) ? v : v.split(","))
+            .map((s) => s.trim())
+            .filter(Boolean),
+    ),
   responsavelId: z.string().uuid().optional(),
   unassigned: z.coerce.boolean().optional(),
   createdFrom: z.coerce.date().optional(),
