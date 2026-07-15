@@ -12,7 +12,7 @@
     "docker:dev": "docker compose --env-file .env -f docker/docker-compose.dev.yml up -d",
     "docker:dev:down": "docker compose --env-file .env -f docker/docker-compose.dev.yml down",
     "docker:dev:reset": "docker compose --env-file .env -f docker/docker-compose.dev.yml down -v",
-    "docker:prod": "docker compose --env-file .env --env-file .env -f docker/docker-compose.prod.yml up -d --build",
+    "docker:prod": "docker compose --env-file .env -f docker/docker-compose.prod.yml build && docker compose --env-file .env -f docker/docker-compose.prod.yml up -d",
     "docker:prod:down": "docker compose --env-file .env --env-file .env -f docker/docker-compose.prod.yml down",
     "db:migrate": "pnpm --filter api prisma migrate dev",
     "db:seed": "pnpm --filter api prisma db seed",

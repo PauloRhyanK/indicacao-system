@@ -6,6 +6,8 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS build
+# Limita o heap do Node (tsc/prisma) para não estourar a RAM de servidores pequenos.
+ENV NODE_OPTIONS=--max-old-space-size=512
 # Instala apenas o workspace da API (frontend fica fora desta imagem).
 COPY pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json apps/api/package.json
